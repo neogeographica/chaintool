@@ -26,7 +26,6 @@ More description TBD.
 
 __version__ = "0.1.0"
 
-# TODO regularize printing a final blank line after all output
 # TODO rethink display order of ops in help (show edit first? vals earlier?)
 # TODO code commenting/cleanup and external docs
 # TODO could turn unused-args warning into error (at least for val ops) but
@@ -475,7 +474,6 @@ def update_values_from_args(values_for_names, togglevalues_for_names, args, unus
         if unspecified:
             errprint("Not all placeholders in the commandline have been given a value.")
             errprint("Placeholders that still need a value: " + ' '.join(unspecified))
-            print()
             return False
     return True
 
@@ -484,7 +482,7 @@ def command_with_values(cmd, args, unused_args, purpose):
         cmd_dict = read_cmd_dict(cmd)
     except FileNotFoundError:
         errprint("Command '{}' does not exist.".format(cmd))
-        return (None, None)
+        return None
     values_for_names = cmd_dict['args']
     togglevalues_for_names = cmd_dict['toggle_args']
     if update_values_from_args(values_for_names, togglevalues_for_names, args, unused_args, purpose):
@@ -518,19 +516,25 @@ def update_cmdline(cmd_dict):
     cmd_dict['cmdline'] = PLACEHOLDER_RE.sub(handle_placeholder, oldcmdline)
 
 def handle_cmd_list():
+    print()
     command_names = os.listdir(CMD_DIR)
     if not command_names:
         print("No current commands.")
     else:
         print(' '.join(command_names))
+    print()
     return 0
 
-def handle_cmd_set(cmd, cmdline, overwrite, show_after_set):
+def handle_cmd_set(cmd, cmdline, overwrite, show_after_set, compact=False):
+    if not compact:
+        print()
     if not is_valid_cmdseq_name(cmd):
         errprint("cmdname '{}' contains whitespace, which is not allowed.".format(cmd))
+        print()
         return 1
     if not cmdline:
         errprint("cmdline must be nonempty.")
+        print()
         return 1
     values_for_names = dict()
     togglevalues_for_names = dict()
@@ -588,32 +592,28 @@ def handle_cmd_set(cmd, cmdline, overwrite, show_after_set):
         errprint(
             "(Note that this error can also be triggered by syntax mistakes "
             "when trying to specify placeholder default values or toggle values.)")
-        print()
     if multi_value_names:
         error = True
         errprint(
             "Placeholders occurring multiple times but with different "
             "defaults: " + ' '.join(multi_value_names))
-        print()
     if multi_togglevalue_names:
         error = True
         errprint(
             "'Toggle' placeholders occurring multiple times but with different "
             "values: " + ' '.join(multi_togglevalue_names))
-        print()
     if toggles_without_values:
         error = True
         errprint(
             "'Toggle' placeholders specified without values: " +
             ' '.join(toggles_without_values))
-        print()
     if toggle_dup_names:
         error = True
         errprint(
             "Same placeholder name(s) used for both regular and 'toggle' "
             "placeholders: " + ' '.join(toggle_dup_names))
-        print()
     if error:
+        print()
         return 1
     cmd_doc = yaml.dump(
         {
@@ -634,7 +634,6 @@ def handle_cmd_set(cmd, cmdline, overwrite, show_after_set):
         print("Command '{}' already exists... not modified.".format(cmd))
         print()
         return 0
-    print()
     print("Command '{}' set.".format(cmd))
     if show_after_set:
         handle_cmd_show(cmd)
@@ -643,20 +642,22 @@ def handle_cmd_set(cmd, cmdline, overwrite, show_after_set):
     return 0
 
 def handle_cmd_edit(cmd, show_after_set):
+    print()
     try:
         cmd_dict = read_cmd_dict(cmd)
         old_cmdline = cmd_dict['cmdline']
     except FileNotFoundError:
         old_cmdline = ""
-    print()
     new_cmdline = editline('commandline: ', old_cmdline)
     return handle_cmd_set(cmd, new_cmdline, True, show_after_set)
 
 def handle_cmd_show(cmd):
+    print()
     try:
         cmd_dict = read_cmd_dict(cmd)
     except FileNotFoundError:
         errprint("Command '{}' does not exist.".format(cmd))
+        print()
         return 1
     all_required_placeholders = []
     all_optional_placeholders = []
@@ -666,7 +667,6 @@ def handle_cmd_show(cmd):
         else:
             all_optional_placeholders.append(k)
     all_toggle_placeholders = list(cmd_dict['toggle_args'].keys())
-    print()
     print(Fore.MAGENTA + "* commandline format:" + Fore.RESET)
     print(cmd_dict['cmdline'])
     if all_required_placeholders:
@@ -692,6 +692,7 @@ def handle_cmd_show(cmd):
     return 0
 
 def handle_cmd_del(delcmds, ignore_seq_usage):
+    print()
     if not ignore_seq_usage:
         error = False
         sequence_names = os.listdir(SEQ_DIR)
@@ -709,12 +710,15 @@ def handle_cmd_del(delcmds, ignore_seq_usage):
                     error = True
                     errprint("Command {} is used by sequence {}.".format(cmd, seq_dict['name']))
         if error:
+            print()
             return 1
     for cmd in delcmds:
         try:
             os.remove(os.path.join(CMD_DIR, cmd))
+            print("Command '{}' deleted.".format(cmd))
         except FileNotFoundError:
             print("Command '{}' does not exist.".format(cmd))
+    print()
     return 0
 
 def handle_cmd_run(cmd, args):
@@ -729,11 +733,14 @@ def handle_cmd_run(cmd, args):
     return status
 
 def handle_cmd_run_internal(cmd, args, unused_args):
+    print()
     cmd_dict = command_with_values(cmd, args, unused_args, PlaceholderArgsPurpose.RUN)
     if cmd_dict == None:
+        print()
         return 1
     cmdline = cmd_dict['format'].format(**cmd_dict['args'])
     print(Fore.CYAN + cmdline + Fore.RESET)
+    print()
     status = subprocess.call(cmdline, shell=True)
     print()
     return status
@@ -744,7 +751,6 @@ def handle_cmd_vals(cmd, args, show_after_set):
     if status:
         return status
     if unused_args:
-        print()
         print(
             Fore.YELLOW + "Warning:" + Fore.RESET +
             " the following placeholder args don't apply to this commandline:",
@@ -752,7 +758,9 @@ def handle_cmd_vals(cmd, args, show_after_set):
         print()
     return 0
 
-def handle_cmd_vals_internal(cmd, args, unused_args, show_after_set):
+def handle_cmd_vals_internal(cmd, args, unused_args, show_after_set, compact=False):
+    if not compact:
+        print()
     cmd_dict = command_with_values(cmd, args, unused_args, PlaceholderArgsPurpose.UPDATE)
     if cmd_dict == None:
         return 1
@@ -762,7 +770,6 @@ def handle_cmd_vals_internal(cmd, args, unused_args, show_after_set):
         default_flow_style=False
     )
     write_cmd_doc(cmd, cmd_doc, 'w')
-    print()
     print("Command '{}' updated.".format(cmd))
     if show_after_set:
         handle_cmd_show(cmd)
@@ -788,29 +795,37 @@ def handle_cmd(args):
     return 0
 
 def handle_seq_list():
+    print()
     sequence_names = os.listdir(SEQ_DIR)
     if not sequence_names:
         print("No current sequences.")
     else:
         print(' '.join(sequence_names))
+    print()
     return 0
 
-def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, show_after_set):
+def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, show_after_set, compact=False):
+    if not compact:
+        print()
     if not is_valid_cmdseq_name(seq):
         errprint("seqname '{}' contains whitespace, which is not allowed.".format(seq))
+        print()
         return 1
     if not cmds:
         errprint("At least one cmdname is required.")
+        print()
         return 1
     for c in cmds:
         if not is_valid_cmdseq_name(c):
             errprint("cmdname '{}' contains whitespace, which is not allowed.".format(c))
+            print()
             return 1
     if not ignore_missing_cmds:
         current_cmds = os.listdir(CMD_DIR)
         invalid_cmds = set(cmds) - set(current_cmds)
         if invalid_cmds:
             errprint("Nonexistent command(s): " + ' '.join(invalid_cmds))
+            print()
             return 1
     seq_doc = yaml.dump(
         {
@@ -826,6 +841,7 @@ def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, show_after_set):
         write_seq_doc(seq, seq_doc, mode)
     except FileExistsError:
         print("Sequence '{}' already exists... not modified.".format(seq))
+        print()
         return 0
     print()
     print("Sequence '{}' set.".format(seq))
@@ -836,21 +852,23 @@ def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, show_after_set):
     return 0
 
 def handle_seq_edit(seq, ignore_missing_cmds, show_after_set):
+    print()
     try:
         seq_dict = read_seq_dict(seq)
         old_commands_str = ' '.join(seq_dict['commands'])
     except FileNotFoundError:
         old_commands_str = ""
-    print()
     new_commands_str = editline('commands: ', old_commands_str)
     new_commands = new_commands_str.split()
     return handle_seq_set(seq, new_commands, ignore_missing_cmds, True, show_after_set)
 
 def handle_seq_show(seq):
+    print()
     try:
         seq_dict = read_seq_dict(seq)
     except FileNotFoundError:
         errprint("Sequence '{}' does not exist.".format(seq))
+        print()
         return 1
     commands = seq_dict['commands']
     command_dicts = []
@@ -883,7 +901,6 @@ def handle_seq_show(seq):
                 all_toggle_placeholders_set.add(k)
         except FileNotFoundError:
             commands_display += " " + Fore.RED + cmd + Fore.RESET
-    print()
     print(Fore.MAGENTA + "** commands:" + Fore.RESET)
     print(commands_display)
     print()
@@ -973,22 +990,26 @@ def handle_seq_show(seq):
     return 0
 
 def handle_seq_del(delseqs):
+    print()
     for seq in delseqs:
         try:
             os.remove(os.path.join(SEQ_DIR, seq))
+            print("Sequence '{}' deleted.".format(seq))
         except FileNotFoundError:
             print("Sequence '{}' does not exist.".format(seq))
+    print()
     return 0
 
 def handle_seq_run(seq, args, ignore_errors, skip_cmdnames):
+    print()
     try:
         seq_dict = read_seq_dict(seq)
     except FileNotFoundError:
         errprint("Sequence '{}' does not exist.".format(seq))
+        print()
         return 1
     unused_args = copy.deepcopy(args)
     cmd_list = seq_dict['commands']
-    print()
     for cmd in cmd_list:
         if skip_cmdnames and cmd in skip_cmdnames:
             print(Fore.MAGENTA + "* SKIPPING command '{}'".format(cmd) + Fore.RESET)
@@ -999,7 +1020,6 @@ def handle_seq_run(seq, args, ignore_errors, skip_cmdnames):
         if status and not ignore_errors:
             return status
     if unused_args:
-        print()
         print(
             Fore.YELLOW + "Warning:" + Fore.RESET +
             " the following placeholder args don't apply to any commandline:",
@@ -1008,30 +1028,32 @@ def handle_seq_run(seq, args, ignore_errors, skip_cmdnames):
     return 0
 
 def handle_seq_vals(seq, args, show_after_set):
+    print()
     try:
         seq_dict = read_seq_dict(seq)
     except FileNotFoundError:
         errprint("Sequence '{}' does not exist.".format(seq))
+        print()
         return 1
     unused_args = copy.deepcopy(args)
     cmd_list = seq_dict['commands']
+    print(Fore.MAGENTA + "* updating all commands in sequence" + Fore.RESET)
+    print()
     error = False
     any_change = False
     for cmd in cmd_list:
-        status = handle_cmd_vals_internal(cmd, args, unused_args, False)
+        status = handle_cmd_vals_internal(cmd, args, unused_args, False, True)
         if status:
             error = True
         else:
             any_change = True
     if any_change:
-        print()
         print("Sequence '{}' updated.".format(seq))
         if show_after_set:
             handle_seq_show(seq)
         else:
             print()
     if unused_args:
-        print()
         print(
             Fore.YELLOW + "Warning:" + Fore.RESET +
             " the following placeholder args don't apply to any commandline "
@@ -1060,15 +1082,17 @@ def handle_seq(args):
     return 0
 
 def handle_vals(args):
+    print()
     unused_args = copy.deepcopy(args.placeholder_args)
     cmd_list = os.listdir(CMD_DIR)
+    print(Fore.MAGENTA + "* updating all commands" + Fore.RESET)
+    print()
     error = False
     for cmd in cmd_list:
-        status = handle_cmd_vals_internal(cmd, args.placeholder_args, unused_args, False)
+        status = handle_cmd_vals_internal(cmd, args.placeholder_args, unused_args, False, True)
         if status:
             error = True
     if unused_args:
-        print()
         print(
             Fore.YELLOW + "Warning:" + Fore.RESET +
             " the following placeholder args don't apply to any commandline:",
@@ -1079,10 +1103,13 @@ def handle_vals(args):
     return 0
 
 def handle_export(args):
+    print()
     export_dict = {
         'commands': [],
         'sequences': []
     }
+    print(Fore.MAGENTA + "* Exporting commands..." + Fore.RESET)
+    print()
     command_names = os.listdir(CMD_DIR)
     for cmd in command_names:
         try:
@@ -1093,9 +1120,12 @@ def handle_export(args):
                     'cmdline': cmd_dict['cmdline']
                 }
             )
+            print("Command '{}' exported.".format(cmd))
         except FileNotFoundError:
-            # Race with a deletion? Ignore.
-            pass
+            print("Failed to read command '{}' ... skipped.".format(cmd))
+        print()
+    print(Fore.MAGENTA + "* Exporting sequences..." + Fore.RESET)
+    print()
     sequence_names = os.listdir(SEQ_DIR)
     for seq in sequence_names:
         try:
@@ -1106,9 +1136,10 @@ def handle_export(args):
                     'commands': seq_dict['commands']
                 }
             )
+            print("Sequence '{}' exported.".format(seq))
         except FileNotFoundError:
-            # Race with a deletion? Ignore.
-            pass
+            print("Failed to read sequence '{}' ... skipped.".format(seq))
+        print()
     export_doc = yaml.dump(
         export_dict,
         default_flow_style=False
@@ -1118,14 +1149,17 @@ def handle_export(args):
     return 0
 
 def handle_import(args):
+    print()
     with open(args.file, 'r') as import_file:
         import_dict = yaml.safe_load(import_file)
     print(Fore.MAGENTA + "* Importing commands..." + Fore.RESET)
+    print()
     for cmd_dict in import_dict['commands']:
-        handle_cmd_set(cmd_dict['name'], cmd_dict['cmdline'], args.overwrite, False)
+        handle_cmd_set(cmd_dict['name'], cmd_dict['cmdline'], args.overwrite, False, True)
     print(Fore.MAGENTA + "* Importing sequences..." + Fore.RESET)
+    print()
     for seq_dict in import_dict['sequences']:
-        handle_seq_set(seq_dict['name'], seq_dict['commands'], True, args.overwrite, False)
+        handle_seq_set(seq_dict['name'], seq_dict['commands'], True, args.overwrite, False, True)
     return 0
 
 def main(argv):
