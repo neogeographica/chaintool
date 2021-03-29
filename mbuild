@@ -26,6 +26,7 @@ More description TBD.
 
 __version__ = "0.1.0"
 
+# TODO regularize printing a final blank line after all output
 # TODO rethink display order of ops in help (show edit first? vals earlier?)
 # TODO code commenting/cleanup and external docs
 # TODO could turn unused-args warning into error (at least for val ops) but
@@ -469,9 +470,12 @@ def update_values_from_args(values_for_names, togglevalues_for_names, args, unus
     if purpose == PlaceholderArgsPurpose.RUN:
         for key in unactivated_toggles:
             values_for_names[key] = togglevalues_for_names[key][0]
-        values_for_names = {
-            key:value for (key,value) in values_for_names.items()
-            if value != None}
+        unspecified = [k for k in all_values_keys if values_for_names[k] == None]
+        if unspecified:
+            errprint("Not all placeholders in the commandline have been given a value.")
+            errprint("Placeholders that still need a value: " + ' '.join(unspecified))
+            print()
+            return False
     return True
 
 def command_with_values(cmd, args, unused_args, purpose):
@@ -727,15 +731,7 @@ def handle_cmd_run_internal(cmd, args, unused_args):
     cmd_dict = command_with_values(cmd, args, unused_args, PlaceholderArgsPurpose.RUN)
     if cmd_dict == None:
         return 1
-    try:
-        cmdline = cmd_dict['format'].format(**cmd_dict['args'])
-    except KeyError:
-        errprint("Not all placeholders in the commandline have been given a value.")
-        all_placeholders = PLACEHOLDER_RE.findall(cmd_dict['format'])
-        specified = values_for_names.keys()
-        unspecified = [p for p in all_placeholders if p not in specified]
-        errprint("Placeholders that still need a value: " + ' '.join(unspecified))
-        return 1
+    cmdline = cmd_dict['format'].format(**cmd_dict['args'])
     print(Fore.CYAN + cmdline + Fore.RESET)
     status = os.system(cmdline)
     print()
