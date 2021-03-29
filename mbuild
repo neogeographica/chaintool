@@ -43,6 +43,7 @@ import os
 import re
 import readline
 import string
+import subprocess
 import sys
 
 # Three nonstandard modules required: appdirs, colorama, and pyyaml.
@@ -733,7 +734,7 @@ def handle_cmd_run_internal(cmd, args, unused_args):
         return 1
     cmdline = cmd_dict['format'].format(**cmd_dict['args'])
     print(Fore.CYAN + cmdline + Fore.RESET)
-    status = os.system(cmdline)
+    status = subprocess.call(cmdline, shell=True)
     print()
     return status
 
