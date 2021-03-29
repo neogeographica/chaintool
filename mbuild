@@ -26,7 +26,6 @@ More description TBD.
 
 __version__ = "0.1.0"
 
-# TODO allow underscores in placeholder names
 # TODO can we somehow handle multiple instances of same placeholder in cmd?
 #      currently errors with "Duplicate placeholder names"
 #      what about defaults there? could allow multi if exactly the same
@@ -69,7 +68,7 @@ class PlaceholderArgsPurpose(enum.Enum):
 PLACEHOLDER_RE = re.compile("{([^}]+)}")
 PLACEHOLDER_DEFAULT_RE = re.compile("{([^+][^}=]*)=([^}]*)}")
 PLACEHOLDER_TOGGLE_RE = re.compile("{([^}]*):(\+[^}:]+):([^}]*)}")
-ALPHANUM_PLACEHOLDER_RE = re.compile("{(\+?[a-zA-Z][a-zA-Z0-9]*)}")
+ALPHANUM_PLACEHOLDER_RE = re.compile("{(\+?[a-zA-Z][a-zA-Z0-9_]*)}")
 
 APP_NAME = "mbuild"
 APP_AUTHOR = "Joel Baxter"
@@ -558,7 +557,8 @@ def handle_cmd_set(cmd, cmdline, overwrite, show_after_set):
         else:
             errprint("Bad placeholder format: " + ' '.join(set(bad_placeholder_names)))
         errprint(
-            "Placeholder names must be alphanumeric and begin with a letter.")
+            "Placeholder names must begin with a letter and be composed only "
+            "of letters, numbers, and underscores.")
         errprint(
             "(Note that this error can also be triggered by syntax mistakes "
             "when trying to specify placeholder default values or toggle values.)")
