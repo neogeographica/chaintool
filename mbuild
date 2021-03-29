@@ -1,0 +1,1108 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright 2021 Joel Baxter
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+"""Compose and run sequences of commandlines with tweakable parameters.
+
+Originally designed for managing the sequences of "compile" commands needed
+to transform Quake 1/2/3 .map files into .bsp files.
+
+More description TBD.
+"""
+
+__version__ = "0.1.0"
+
+# TODO allow underscores in placeholder names
+# TODO can we somehow handle multiple instances of same placeholder in cmd?
+#      currently errors with "Duplicate placeholder names"
+#      what about defaults there? could allow multi if exactly the same
+# TODO support some way of 'vals' for all commands
+# TODO rethink display order of ops in help (show edit first? vals earlier?)
+# TODO code commenting/cleanup and external docs
+# TODO could turn unused-args warning into error (at least for val ops) but
+#      that will require more separation between args-process and cmd-update
+# TODO maybe mutex protection for multiple instances editing stuff?
+# TODO requirements.txt and PyPi
+
+import atexit
+import copy
+import enum
+import errno
+import argparse
+import os
+import re
+import readline
+import string
+import sys
+
+# Three nonstandard modules required: appdirs, colorama, and pyyaml.
+import appdirs
+import colorama
+import yaml
+
+from colorama import Fore
+
+# We need at least Python 3.7; current long pole is the ability to require
+# a subcommand in the argparse definitions.
+if sys.version_info < (3, 7):
+    sys.stderr.write("Python version 3.7 or later is required.\n")
+    sys.exit(1)
+
+class PlaceholderArgsPurpose(enum.Enum):
+    RUN = 1
+    UPDATE = 2
+
+PLACEHOLDER_RE = re.compile("{([^}]+)}")
+PLACEHOLDER_DEFAULT_RE = re.compile("{([^+][^}=]*)=([^}]*)}")
+PLACEHOLDER_TOGGLE_RE = re.compile("{([^}]*):(\+[^}:]+):([^}]*)}")
+ALPHANUM_PLACEHOLDER_RE = re.compile("{(\+?[a-zA-Z][a-zA-Z0-9]*)}")
+
+APP_NAME = "mbuild"
+APP_AUTHOR = "Joel Baxter"
+CONFIG_DIR = appdirs.user_config_dir(APP_NAME, APP_AUTHOR)
+CMD_DIR = os.path.join(CONFIG_DIR, "command")
+SEQ_DIR = os.path.join(CONFIG_DIR, "sequence")
+
+
+class SubparsersHelpAction(argparse.Action):
+    def __init__(self, option_strings, dest, help=None, subparsers=[]):
+        self.subparsers = subparsers
+        super(SubparsersHelpAction, self).__init__(
+            option_strings=option_strings,
+            dest=argparse.SUPPRESS,
+            default=argparse.SUPPRESS,
+            nargs=0,
+            help=help)
+    def __call__(self, parser, namespace, values, option_string=None):
+        cut_prefix = os.path.basename(sys.argv[0]) + ' '
+        print()
+        for p in self.subparsers:
+            desc = p.prog
+            if desc.startswith(cut_prefix):
+                desc = desc[len(cut_prefix):]
+            print(Fore.MAGENTA + "* '{}' help:".format(desc) + Fore.RESET)
+            print()
+            p.print_help()
+            print()
+        parser.exit()
+
+def errprint(msg):
+    sys.stderr.write(Fore.RED + msg + Fore.RESET + '\n')
+
+def is_valid_cmdseq_name(n):
+    if not n:
+        return False
+    for c in n:
+        if c in string.whitespace:
+            return False
+    return True
+
+def editline(prompt, oldline):
+    def startup_hook():
+        readline.insert_text(oldline)
+    readline.set_startup_hook(startup_hook)
+    # Note that using color codes as part of the prompt will mess up cursor
+    # positioning in some edit situations. The solution is probably: put
+    # \x01 before any color code and put \x02 after any color code. Haven't
+    # tested that though because currently am happy without using colors here.
+    newline = input(prompt)
+    readline.set_startup_hook()
+    return newline
+
+def set_cmd_options(group_subparsers):
+    group_parser_cmd = group_subparsers.add_parser(
+        "cmd",
+        add_help=False,
+        help="Work with saved commandlines.",
+        description="Work with saved commandlines.")
+    cmd_subparsers = group_parser_cmd.add_subparsers(
+        title="operations",
+        dest="operation",
+        required=True)
+    cmd_parser_list = cmd_subparsers.add_parser(
+        "list",
+        help="List current commandline names.",
+        description="List current commandline names.")
+    cmd_parser_set = cmd_subparsers.add_parser(
+        "set",
+        help="Create or update a named commandline.",
+        description="Create or update a named commandline.")
+    cmd_parser_set.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Don't display info about the resulting commandline.")
+    cmd_parser_set.add_argument(
+        "cmdname")
+    cmd_parser_set.add_argument(
+        "cmdline",
+        help="Entire commandline as one argument (will probably need to be "
+        "quoted). This string may include named placeholders in Python style, "
+        "e.g. {placeholdername}. Such a placeholder may also include a default "
+        "value string e.g. {placeholdername=2}. 'Toggle' style placeholders "
+        "can also be specified, of the form {defval:+togglename:newval}. That "
+        "example defines a location that will normally be the string 'defval' "
+        "but can be toggled to be 'newval' instead.")
+    cmd_parser_edit = cmd_subparsers.add_parser(
+        "edit",
+        help="Interactively edit a new or existing commandline.",
+        description="Interactively edit a new or existing commandline.")
+    cmd_parser_edit.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Don't display info about the resulting commandline.")
+    cmd_parser_edit.add_argument(
+        "cmdname")
+    cmd_parser_show = cmd_subparsers.add_parser(
+        "show",
+        help="Display a commandline and its placeholders/defaults.",
+        description="Display a commandline and its placeholders/defaults.")
+    cmd_parser_show.add_argument(
+        "cmdname")
+    cmd_parser_del = cmd_subparsers.add_parser(
+        "del",
+        help="Delete one or more commandlines.",
+        description="Delete one or more commandlines.")
+    cmd_parser_del.add_argument(
+        "-f", "--force",
+        action="store_true",
+        help="Allow deletion of commandlines currently used by sequences.")
+    cmd_parser_del.add_argument(
+        "cmdnames",
+        nargs='+',
+        metavar="cmdname",
+        help="Commandline to delete. Requires that this commandline currently NOT "
+        "be used by any sequence, unless the optional --force argument is specified.")
+    cmd_parser_run = cmd_subparsers.add_parser(
+        "run",
+        help="Execute a commandline, optionally setting values for placeholders.",
+        description="Execute a commandline, optionally setting values for placeholders.")
+    cmd_parser_run.add_argument(
+        "cmdname")
+    cmd_parser_run.add_argument(
+        "placeholder_args",
+        nargs='*',
+        metavar="placeholder_arg",
+        help="Each of these items can either specify a value for a placeholder "
+        "(overriding any default) or activate a 'toggle' style placeholder. A "
+        "value for a 'normal' placeholder is specified with an argument of the "
+        "form placeholdername=value, while a toggle is activated just by "
+        "specifying +togglename.")
+    cmd_parser_vals = cmd_subparsers.add_parser(
+        "vals",
+        help="Set/clear values for placeholders in an existing commandline.",
+        description="Set/clear values for placeholders in an existing commandline.")
+    cmd_parser_vals.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Don't display info about the resulting commandline.")
+    cmd_parser_vals.add_argument(
+        "cmdname")
+    cmd_parser_vals.add_argument(
+        "placeholder_args",
+        nargs='+',
+        metavar="placeholder_arg",
+        help="Each of these items updates an existing placeholder specification "
+        "in the commandline. An argument of the form placeholdername=value will "
+        "set the default value for the given placeholder, while an argument of "
+        "the form placeholdername will clear the default value. An argument of "
+        "the form defval:+togglename:newval will replace the values for a "
+        "'toggle' style placeholder.")
+    group_parser_cmd.add_argument(
+        "-h", "--help",
+        action=SubparsersHelpAction,
+        help='show detailed operations help message and exit',
+        subparsers=[
+            cmd_parser_list,
+            cmd_parser_set,
+            cmd_parser_edit,
+            cmd_parser_show,
+            cmd_parser_del,
+            cmd_parser_run,
+            cmd_parser_vals])
+    return group_parser_cmd
+
+def set_seq_options(group_subparsers):
+    group_parser_seq = group_subparsers.add_parser(
+        "seq",
+        add_help=False,
+        help="Work with sequences of saved commandlines.",
+        description="Work with sequences of saved commandlines.")
+    seq_subparsers = group_parser_seq.add_subparsers(
+        title="operations",
+        dest="operation",
+        required=True)
+    seq_parser_list = seq_subparsers.add_parser(
+        "list",
+        help="List current sequence names.",
+        description="List current sequence names.")
+    seq_parser_set = seq_subparsers.add_parser(
+        "set",
+        help="Create or update a named sequence.",
+        description="Create or update a named sequence.")
+    seq_parser_set.add_argument(
+        "-f", "--force",
+        action="store_true",
+        help="Allow use of commandline names that are not currently defined.")
+    seq_parser_set.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Don't display info about the resulting sequence.")
+    seq_parser_set.add_argument(
+        "seqname")
+    seq_parser_set.add_argument(
+        "cmdnames",
+        nargs='+',
+        metavar="cmdname",
+        help="Commandline to use in this sequence. Must currently exist, unless "
+        "the optional --force argument is specified. When the sequence is run, "
+        "the commandlines will be run in the specified order.")
+    seq_parser_edit = seq_subparsers.add_parser(
+        "edit",
+        help="Interactively edit a new or existing sequence.",
+        description="Interactively edit a new or existing sequence.")
+    seq_parser_edit.add_argument(
+        "-f", "--force",
+        action="store_true",
+        help="Allow use of commandline names that are not currently defined.")
+    seq_parser_edit.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Don't display info about the resulting sequence.")
+    seq_parser_edit.add_argument(
+        "seqname")
+    seq_parser_show = seq_subparsers.add_parser(
+        "show",
+        help="Display the commandlines for the named sequence, with their "
+        "available placeholders.",
+        description="Display the commandlines for the named sequence, with their "
+        "available placeholders.")
+    seq_parser_show.add_argument(
+        "seqname")
+    seq_parser_del = seq_subparsers.add_parser(
+        "del",
+        help="Delete one or more sequences.",
+        description="Delete one or more sequences.")
+    seq_parser_del.add_argument(
+        "seqnames",
+        nargs='+',
+        metavar="seqname",
+        help="Sequence to delete.")
+    seq_parser_run = seq_subparsers.add_parser(
+        "run",
+        help="Execute a sequence, optionally setting values for commandlines' "
+        "placeholders.",
+        description="Execute a sequence, optionally setting values for commandlines' "
+        "placeholders.")
+    seq_parser_run.add_argument(
+        "-i", "--ignore-errors",
+        action="store_true",
+        dest="ignore_errors",
+        help="Continue running the sequence even if a commandline does not exist "
+        "or returns an error status.")
+    seq_parser_run.add_argument(
+        "-s", "--skip",
+        action="append",
+        metavar="cmdname",
+        dest="skip_cmdnames",
+        help="Skip running a command, if it is in this sequence. Multiple --skip "
+        "usages are allowed, to skip multiple commands.")
+    seq_parser_run.add_argument(
+        "seqname")
+    seq_parser_run.add_argument(
+        "placeholder_args",
+        nargs='*',
+        metavar="placeholder_arg",
+        help="Each of these items must be in the same format as used for "
+        "'cmd run', and they will be passed along to each commandline in this "
+        "sequence when running it. It is OK if a placeholder specified here is "
+        "only relevant for some subset of the commandlines.")
+    seq_parser_vals = seq_subparsers.add_parser(
+        "vals",
+        help="Set/clear values for placeholders in a sequence's commandlines.",
+        description="Set/clear values for placeholders in a sequence's commandlines.")
+    seq_parser_vals.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Don't display info about the resulting sequence.")
+    seq_parser_vals.add_argument(
+        "seqname")
+    seq_parser_vals.add_argument(
+        "placeholder_args",
+        nargs='+',
+        metavar="placeholder_arg",
+        help="Each of these items must be in the same format as used for "
+        "'cmd vals', and they will be passed along to each commandline in this "
+        "sequence. It is OK if a placeholder specified here is only relevant for "
+        "some subset of the commandlines.")
+    group_parser_seq.add_argument(
+        "-h", "--help",
+        action=SubparsersHelpAction,
+        help='show detailed operations help message and exit',
+        subparsers=[
+            seq_parser_list,
+            seq_parser_set,
+            seq_parser_edit,
+            seq_parser_show,
+            seq_parser_del,
+            seq_parser_run,
+            seq_parser_vals])
+    return group_parser_seq
+
+def set_export_options(group_subparsers):
+    group_parser_export = group_subparsers.add_parser(
+        "export",
+        help="Store commandline and sequence definitions to a flat file.",
+        description="Store commandline and sequence definitions to a flat file.")
+    group_parser_export.add_argument(
+        "file",
+        metavar="outfile")
+    return group_parser_export
+
+def set_import_options(group_subparsers):
+    group_parser_import = group_subparsers.add_parser(
+        "import",
+        help="Load commandline and sequence definitions from a flat file.",
+        description="Load commandline and sequence definitions from a flat file.")
+    group_parser_import.add_argument(
+        "-o", "--overwrite",
+        action="store_true",
+        help="Allow overwriting an existing commandline/sequence with an imported "
+        "definition. If this is not specified, any such conflicts will be skipped.")
+    group_parser_import.add_argument(
+        "file",
+        metavar="infile")
+    return group_parser_import
+
+def read_cmd_dict(cmd):
+    with open(os.path.join(CMD_DIR, cmd), 'r') as cmd_file:
+        cmd_dict = yaml.safe_load(cmd_file)
+    return cmd_dict
+
+def write_cmd_doc(cmd, cmd_doc, mode):
+    with open(os.path.join(CMD_DIR, cmd), mode) as cmd_file:
+        cmd_file.write(cmd_doc)
+
+def read_seq_dict(seq):
+    with open(os.path.join(SEQ_DIR, seq), 'r') as seq_file:
+        seq_dict = yaml.safe_load(seq_file)
+    return seq_dict
+
+def write_seq_doc(seq, seq_doc, mode):
+    with open(os.path.join(SEQ_DIR, seq), mode) as seq_file:
+        seq_file.write(seq_doc)
+
+def update_values_from_args(values_for_names, togglevalues_for_names, args, unused_args, purpose):
+    all_values_keys = list(values_for_names.keys())
+    unactivated_toggles = list(togglevalues_for_names.keys())
+    for a in args:
+        token = "{" + a + "}"
+        default_match = PLACEHOLDER_DEFAULT_RE.match(token)
+        if default_match:
+            # Changing a placeholder default is always OK and always handled
+            # the same way.
+            key = default_match.group(1)
+            if key in all_values_keys:
+                values_for_names[key] = default_match.group(2)
+                if a in unused_args:
+                    unused_args.remove(a)
+        else:
+            # For default-clearing and toggles, we need more smarts.
+            toggle_match = PLACEHOLDER_TOGGLE_RE.match(token)
+            if purpose == PlaceholderArgsPurpose.RUN:
+                if a[0] == '+':
+                    if a in togglevalues_for_names:
+                        values_for_names[a] = togglevalues_for_names[a][1]
+                        if a in unactivated_toggles:
+                            unactivated_toggles.remove(a)
+                        if a in unused_args:
+                            unused_args.remove(a)
+                elif toggle_match:
+                    errprint(
+                        "Can't specify values for 'toggle' style placeholders "
+                        "such as '{}' in this operation.".format(toggle_match.group(2)))
+                    return False
+                else:
+                    errprint(
+                        "Placeholder '{}' specified in args without a value.".format(a))
+                    return False
+            else:
+                if toggle_match:
+                    key = toggle_match.group(2)
+                    if key in togglevalues_for_names:
+                        togglevalues_for_names[key] = [toggle_match.group(1), toggle_match.group(3)]
+                        if a in unused_args:
+                            unused_args.remove(a)
+                elif a[0] == '+':
+                    errprint(
+                        "'Toggle' style placeholders such as '{}' require "
+                        "accompanying pre/post values in this operation.".format(a))
+                    return False
+                else:
+                    if a in values_for_names:
+                        values_for_names[a] = None
+                        if a in unused_args:
+                            unused_args.remove(a)
+    if purpose == PlaceholderArgsPurpose.RUN:
+        for key in unactivated_toggles:
+            values_for_names[key] = togglevalues_for_names[key][0]
+        values_for_names = {
+            key:value for (key,value) in values_for_names.items()
+            if value != None}
+    return True
+
+def command_with_values(cmd, args, unused_args, purpose):
+    try:
+        cmd_dict = read_cmd_dict(cmd)
+    except FileNotFoundError:
+        errprint("Command '{}' does not exist.".format(cmd))
+        return (None, None)
+    values_for_names = cmd_dict['args']
+    togglevalues_for_names = cmd_dict['toggle_args']
+    if update_values_from_args(values_for_names, togglevalues_for_names, args, unused_args, purpose):
+        return cmd_dict
+    return None
+
+def update_cmdline(cmd_dict):
+    def handle_placeholder(match):
+        token = match.group(0)
+        toggle_match = PLACEHOLDER_TOGGLE_RE.match(token)
+        if toggle_match:
+            key = toggle_match.group(2)
+            if key not in cmd_dict['toggle_args']:
+                # Weird, but we'll handle it.
+                return token
+            untoggled_value = cmd_dict['toggle_args'][key][0]
+            toggled_value = cmd_dict['toggle_args'][key][1]
+            return  "{" + untoggled_value + ":" + key + ":" + toggled_value + "}"
+        default_match = PLACEHOLDER_DEFAULT_RE.match(token)
+        if default_match:
+            key = default_match.group(1)
+        else:
+            key = match.group(1)
+        if key not in cmd_dict['args']:
+            # Weird, but we'll handle it.
+            return token
+        if cmd_dict['args'][key] == None:
+            return "{" + key + "}"
+        return  "{" + key + "=" + cmd_dict['args'][key] + "}"
+    oldcmdline = cmd_dict['cmdline']
+    cmd_dict['cmdline'] = PLACEHOLDER_RE.sub(handle_placeholder, oldcmdline)
+
+def handle_cmd_list():
+    command_names = os.listdir(CMD_DIR)
+    if not command_names:
+        print("No current commands.")
+    else:
+        print(' '.join(command_names))
+    return 0
+
+def handle_cmd_set(cmd, cmdline, overwrite, show_after_set):
+    if not is_valid_cmdseq_name(cmd):
+        errprint("cmdname '{}' contains whitespace, which is not allowed.".format(cmd))
+        return 1
+    if not cmdline:
+        errprint("cmdline must be nonempty.")
+        return 1
+    values_for_names = dict()
+    togglevalues_for_names = dict()
+    def handle_placeholder_default(match):
+        key = match.group(1)
+        value = match.group(2)
+        values_for_names[key] = value
+        return "{" + key + "}"
+    def handle_placeholder_toggle(match):
+        untoggled_value = match.group(1)
+        key = match.group(2)
+        toggled_value = match.group(3)
+        togglevalues_for_names[key] = [untoggled_value, toggled_value]
+        return "{" + key + "}"
+    cmdline_format = PLACEHOLDER_DEFAULT_RE.sub(handle_placeholder_default, cmdline)
+    cmdline_format = PLACEHOLDER_TOGGLE_RE.sub(handle_placeholder_toggle, cmdline_format)
+    all_placeholders = PLACEHOLDER_RE.findall(cmdline_format)
+    if len(all_placeholders) != len(set(all_placeholders)):
+        errprint("Duplicate placeholder names in the given commandline.")
+        return 1
+    alphanum_placeholders = ALPHANUM_PLACEHOLDER_RE.findall(cmdline_format)
+    toggles_without_values = []
+    toggle_dup_names = []
+    for p in alphanum_placeholders:
+        if p[0] == '+':
+            if p not in togglevalues_for_names:
+                toggles_without_values.append(p[1:])
+            if p[1:] in all_placeholders:
+                toggle_dup_names.append(p[1:])
+        else:
+            if p not in values_for_names:
+                values_for_names[p] = None
+    if len(alphanum_placeholders) != len(all_placeholders):
+        bad_placeholder_names = [p for p in all_placeholders if p not in alphanum_placeholders]
+        bad_placeholder_names = [p[1:] if p and p[0] == '+' else p for p in bad_placeholder_names]
+        if "" in bad_placeholder_names:
+            # This can't happen with current regexes, but leaving it here in
+            # case that changes.
+            errprint("Empty-named placeholder encountered.")
+        else:
+            errprint("Bad placeholder format: " + ' '.join(set(bad_placeholder_names)))
+        errprint(
+            "Placeholder names must be alphanumeric and begin with a letter.")
+        errprint(
+            "(Note that this error can also be triggered by syntax mistakes "
+            "when trying to specify placeholder default values or toggle values.)")
+        return 1
+    if toggles_without_values:
+        errprint("Toggle placeholders specified without values: " + ' '.join(toggles_without_values))
+        return 1
+    if toggle_dup_names:
+        errprint("Toggle(s) with same name as regular placeholder(s): " + ' '.join(toggle_dup_names))
+        return 1
+    cmd_doc = yaml.dump(
+        {
+            'cmdline': cmdline,
+            'format': cmdline_format,
+            'args': values_for_names,
+            'toggle_args': togglevalues_for_names
+        },
+        default_flow_style=False
+    )
+    if overwrite:
+        mode = 'w'
+    else:
+        mode = 'x'
+    try:
+        write_cmd_doc(cmd, cmd_doc, mode)
+    except FileExistsError:
+        print("Command '{}' already exists... not modified.".format(cmd))
+        return 0
+    print()
+    print("Command '{}' set.".format(cmd))
+    if show_after_set:
+        handle_cmd_show(cmd)
+    else:
+        print()
+    return 0
+
+def handle_cmd_edit(cmd, show_after_set):
+    try:
+        cmd_dict = read_cmd_dict(cmd)
+        old_cmdline = cmd_dict['cmdline']
+    except FileNotFoundError:
+        old_cmdline = ""
+    print()
+    new_cmdline = editline('commandline: ', old_cmdline)
+    return handle_cmd_set(cmd, new_cmdline, True, show_after_set)
+
+def handle_cmd_show(cmd):
+    try:
+        cmd_dict = read_cmd_dict(cmd)
+    except FileNotFoundError:
+        errprint("Command '{}' does not exist.".format(cmd))
+        return 1
+    all_required_placeholders = []
+    all_optional_placeholders = []
+    for k, v in cmd_dict['args'].items():
+        if v == None:
+            all_required_placeholders.append(k)
+        else:
+            all_optional_placeholders.append(k)
+    all_toggle_placeholders = list(cmd_dict['toggle_args'].keys())
+    print()
+    print(Fore.MAGENTA + "* commandline format:" + Fore.RESET)
+    print(cmd_dict['cmdline'])
+    if all_required_placeholders:
+        print()
+        print(Fore.MAGENTA + "* required values:" + Fore.RESET)
+        all_required_placeholders.sort()
+        for p in all_required_placeholders:
+            print(p)
+    if all_optional_placeholders:
+        print()
+        print(Fore.MAGENTA + "* optional values with default:" + Fore.RESET)
+        all_optional_placeholders.sort()
+        for p in all_optional_placeholders:
+            print("{} = '{}'".format(p, cmd_dict['args'][p]))
+    if all_toggle_placeholders:
+        print()
+        print(Fore.MAGENTA + "* toggles with untoggled -> toggled:" + Fore.RESET)
+        all_toggle_placeholders.sort()
+        for p in all_toggle_placeholders:
+            togglevals = cmd_dict['toggle_args'][p]
+            print("{} : '{}' -> '{}'".format(p, togglevals[0], togglevals[1]))
+    print()
+    return 0
+
+def handle_cmd_del(delcmds, ignore_seq_usage):
+    if not ignore_seq_usage:
+        error = False
+        sequence_names = os.listdir(SEQ_DIR)
+        seq_dicts = []
+        for seq in sequence_names:
+            try:
+                seq_dict = read_seq_dict(seq)
+                seq_dict['name'] = seq
+                seq_dicts.append(seq_dict)
+            except FileNotFoundError:
+                pass
+        for cmd in delcmds:
+            for seq_dict in seq_dicts:
+                if cmd in seq_dict['commands']:
+                    error = True
+                    errprint("Command {} is used by sequence {}.".format(cmd, seq_dict['name']))
+        if error:
+            return 1
+    for cmd in delcmds:
+        try:
+            os.remove(os.path.join(CMD_DIR, cmd))
+        except FileNotFoundError:
+            print("Command '{}' does not exist.".format(cmd))
+    return 0
+
+def handle_cmd_run(cmd, args):
+    unused_args = copy.deepcopy(args)
+    status = handle_cmd_run_internal(cmd, args, unused_args)
+    if unused_args:
+        print(
+            Fore.YELLOW + "Warning:" + Fore.RESET +
+            " the following placeholder args don't apply to this commandline:",
+            ' '.join(unused_args))
+        print()
+    return status
+
+def handle_cmd_run_internal(cmd, args, unused_args):
+    cmd_dict = command_with_values(cmd, args, unused_args, PlaceholderArgsPurpose.RUN)
+    if cmd_dict == None:
+        return 1
+    try:
+        cmdline = cmd_dict['format'].format(**cmd_dict['args'])
+    except KeyError:
+        errprint("Not all placeholders in the commandline have been given a value.")
+        all_placeholders = PLACEHOLDER_RE.findall(cmd_dict['format'])
+        specified = values_for_names.keys()
+        unspecified = [p for p in all_placeholders if p not in specified]
+        errprint("Placeholders that still need a value: " + ' '.join(unspecified))
+        return 1
+    print(Fore.CYAN + cmdline + Fore.RESET)
+    status = os.system(cmdline)
+    print()
+    return status
+
+def handle_cmd_vals(cmd, args, show_after_set):
+    unused_args = copy.deepcopy(args)
+    status = handle_cmd_vals_internal(cmd, args, unused_args, show_after_set)
+    if status:
+        return status
+    if unused_args:
+        print()
+        print(
+            Fore.YELLOW + "Warning:" + Fore.RESET +
+            " the following placeholder args don't apply to this commandline:",
+            ' '.join(unused_args))
+        print()
+    return 0
+
+def handle_cmd_vals_internal(cmd, args, unused_args, show_after_set):
+    cmd_dict = command_with_values(cmd, args, unused_args, PlaceholderArgsPurpose.UPDATE)
+    if cmd_dict == None:
+        return 1
+    update_cmdline(cmd_dict)
+    cmd_doc = yaml.dump(
+        cmd_dict,
+        default_flow_style=False
+    )
+    write_cmd_doc(cmd, cmd_doc, 'w')
+    print()
+    print("Command '{}' updated.".format(cmd))
+    if show_after_set:
+        handle_cmd_show(cmd)
+    else:
+        print()
+    return 0
+
+def handle_cmd(args):
+    if args.operation == "list":
+        return handle_cmd_list()
+    if args.operation == "set":
+        return handle_cmd_set(args.cmdname, args.cmdline, True, not args.quiet)
+    if args.operation == "edit":
+        return handle_cmd_edit(args.cmdname, not args.quiet)
+    if args.operation == "show":
+        return handle_cmd_show(args.cmdname)
+    if args.operation == "del":
+        return handle_cmd_del(args.cmdnames, args.force)
+    if args.operation == "run":
+        return handle_cmd_run(args.cmdname, args.placeholder_args)
+    if args.operation == "vals":
+        return handle_cmd_vals(args.cmdname, args.placeholder_args, not args.quiet)
+    return 0
+
+def handle_seq_list():
+    sequence_names = os.listdir(SEQ_DIR)
+    if not sequence_names:
+        print("No current sequences.")
+    else:
+        print(' '.join(sequence_names))
+    return 0
+
+def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, show_after_set):
+    if not is_valid_cmdseq_name(seq):
+        errprint("seqname '{}' contains whitespace, which is not allowed.".format(seq))
+        return 1
+    if not cmds:
+        errprint("At least one cmdname is required.")
+        return 1
+    for c in cmds:
+        if not is_valid_cmdseq_name(c):
+            errprint("cmdname '{}' contains whitespace, which is not allowed.".format(c))
+            return 1
+    if not ignore_missing_cmds:
+        current_cmds = os.listdir(CMD_DIR)
+        invalid_cmds = set(cmds) - set(current_cmds)
+        if invalid_cmds:
+            errprint("Nonexistent command(s): " + ' '.join(invalid_cmds))
+            return 1
+    seq_doc = yaml.dump(
+        {
+            'commands': cmds
+        },
+        default_flow_style=False
+    )
+    if overwrite:
+        mode = 'w'
+    else:
+        mode = 'x'
+    try:
+        write_seq_doc(seq, seq_doc, mode)
+    except FileExistsError:
+        print("Sequence '{}' already exists... not modified.".format(seq))
+        return 0
+    print()
+    print("Sequence '{}' set.".format(seq))
+    if show_after_set:
+        handle_seq_show(seq)
+    else:
+        print()
+    return 0
+
+def handle_seq_edit(seq, ignore_missing_cmds, show_after_set):
+    try:
+        seq_dict = read_seq_dict(seq)
+        old_commands_str = ' '.join(seq_dict['commands'])
+    except FileNotFoundError:
+        old_commands_str = ""
+    print()
+    new_commands_str = editline('commands: ', old_commands_str)
+    new_commands = new_commands_str.split()
+    return handle_seq_set(seq, new_commands, ignore_missing_cmds, True, show_after_set)
+
+def handle_seq_show(seq):
+    try:
+        seq_dict = read_seq_dict(seq)
+    except FileNotFoundError:
+        errprint("Sequence '{}' does not exist.".format(seq))
+        return 1
+    commands = seq_dict['commands']
+    command_dicts = []
+    command_dicts_by_cmd = dict()
+    all_required_placeholders_set = set()
+    all_optional_placeholders_set = set()
+    all_toggle_placeholders_set = set()
+    commands_by_placeholder = dict()
+    commands_display = ""
+    for cmd in commands:    
+        try:
+            cmd_dict = read_cmd_dict(cmd)
+            commands_display += " " + cmd
+            cmd_dict['name'] = cmd
+            command_dicts.append(cmd_dict)
+            command_dicts_by_cmd[cmd] = cmd_dict
+            def record_placeholder(p):
+                if p in commands_by_placeholder:
+                    commands_by_placeholder[p].append(cmd)
+                else:
+                    commands_by_placeholder[p] = [cmd]
+            for k, v in cmd_dict['args'].items():
+                record_placeholder(k)
+                if v == None:
+                    all_required_placeholders_set.add(k)
+                else:
+                    all_optional_placeholders_set.add(k)
+            for k in cmd_dict['toggle_args'].keys():
+                record_placeholder(k)
+                all_toggle_placeholders_set.add(k)
+        except FileNotFoundError:
+            commands_display += " " + Fore.RED + cmd + Fore.RESET
+    print()
+    print(Fore.MAGENTA + "** commands:" + Fore.RESET)
+    print(commands_display)
+    print()
+    print(Fore.MAGENTA + "** commandline formats:" + Fore.RESET)
+    for d in command_dicts:
+        print(Fore.CYAN + "* " + d['name'] + Fore.RESET)
+        print(d['cmdline'])
+    # This sort function aims to list bigger command-groups first; and among
+    # command-groups of the same size, order them by how early their first
+    # command appears in the sequence.
+    num_commands = len(commands)
+    def cga_sort_keyvalue(cga):
+        group = cga[0]
+        return num_commands*len(group)+(num_commands-commands.index(group[0])-1)
+    def print_command_groups(argset):
+        cmd_group_args = []
+        for a in argset:
+            cmd_group = commands_by_placeholder[a]
+            update_checker = []
+            def args_updater(oldargs):
+                oldargs.append(a)
+                update_checker.append(True)
+                return oldargs
+            cmd_group_args = [
+                (group, args_updater(args)) if group == cmd_group else (group, args)
+                for (group, args) in cmd_group_args]
+            if not update_checker:
+                newentry = (cmd_group, [a])
+                cmd_group_args.append(newentry)
+        cmd_group_args.sort(key=cga_sort_keyvalue, reverse=True)
+        for group, args in cmd_group_args:
+            print(Fore.CYAN + "* " + ', '.join(group) + Fore.RESET)
+            args.sort()
+            first_cmd = group[0]
+            for a in args:
+                format_str = "{}"
+                format_args = [a]
+                args_dict = None
+                if a in command_dicts_by_cmd[first_cmd]['args']:
+                    if command_dicts_by_cmd[first_cmd]['args'][a] != None:
+                        args_dict = 'args'
+                        common_format_str = "{} = '{}'"
+                        format_divider = " = "
+                else:
+                    args_dict = 'toggle_args'
+                    common_format_str = "{} : '{}' -> '{}'"
+                    format_divider = " : "
+                if args_dict != None:
+                    has_common_value = True
+                    first_value = command_dicts_by_cmd[first_cmd][args_dict][a]
+                    def format_parts(v, c):
+                        if args_dict == 'args':
+                            return ("'{}' ({})", [v, c])
+                        else:
+                            return ("'{}' -> '{}' ({})", [*v, c])
+                    (format_suffix, added_args) = format_parts(first_value, first_cmd)
+                    format_str += format_divider + format_suffix
+                    format_args += added_args
+                    for cmd in group[1:]:
+                        this_value = command_dicts_by_cmd[cmd][args_dict][a]
+                        if this_value == None:
+                            has_common_value = False
+                            format_str = "{}"
+                            format_args = [a]
+                            break
+                        (format_suffix, added_args) = format_parts(this_value, cmd)
+                        format_str += ", " + format_suffix
+                        format_args += added_args
+                        if this_value != first_value:
+                            has_common_value = False
+                    if has_common_value:
+                        format_str = common_format_str
+                print(format_str.format(*format_args))
+    if all_required_placeholders_set:
+        print()
+        print(Fore.MAGENTA + "** required values:" + Fore.RESET)
+        print_command_groups(all_required_placeholders_set)
+    if all_optional_placeholders_set:
+        print()
+        print(Fore.MAGENTA + "** optional values with default:" + Fore.RESET)
+        print_command_groups(all_optional_placeholders_set)
+    if all_toggle_placeholders_set:
+        print()
+        print(Fore.MAGENTA + "** toggles with untoggled -> toggled:" + Fore.RESET)
+        print_command_groups(all_toggle_placeholders_set)
+    print()
+    return 0
+
+def handle_seq_del(delseqs):
+    for seq in delseqs:
+        try:
+            os.remove(os.path.join(SEQ_DIR, seq))
+        except FileNotFoundError:
+            print("Sequence '{}' does not exist.".format(seq))
+    return 0
+
+def handle_seq_run(seq, args, ignore_errors, skip_cmdnames):
+    try:
+        seq_dict = read_seq_dict(seq)
+    except FileNotFoundError:
+        errprint("Sequence '{}' does not exist.".format(seq))
+        return 1
+    unused_args = copy.deepcopy(args)
+    cmd_list = seq_dict['commands']
+    print()
+    for cmd in cmd_list:
+        if skip_cmdnames and cmd in skip_cmdnames:
+            print(Fore.MAGENTA + "* SKIPPING command '{}'".format(cmd) + Fore.RESET)
+            print()
+            continue
+        print(Fore.MAGENTA + "* running command '{}':".format(cmd) + Fore.RESET)
+        status = handle_cmd_run_internal(cmd, args, unused_args)
+        if status and not ignore_errors:
+            return status
+    if unused_args:
+        print()
+        print(
+            Fore.YELLOW + "Warning:" + Fore.RESET +
+            " the following placeholder args don't apply to any commandline:",
+            ' '.join(unused_args))
+        print()
+    return 0
+
+def handle_seq_vals(seq, args, show_after_set):
+    try:
+        seq_dict = read_seq_dict(seq)
+    except FileNotFoundError:
+        errprint("Sequence '{}' does not exist.".format(seq))
+        return 1
+    unused_args = copy.deepcopy(args)
+    cmd_list = seq_dict['commands']
+    error = False
+    any_change = False
+    for cmd in cmd_list:
+        status = handle_cmd_vals_internal(cmd, args, unused_args, False)
+        if status:
+            error = True
+        else:
+            any_change = True
+    if any_change:
+        print()
+        print("Sequence '{}' updated.".format(seq))
+        if show_after_set:
+            handle_seq_show(seq)
+        else:
+            print()
+    if unused_args:
+        print()
+        print(
+            Fore.YELLOW + "Warning:" + Fore.RESET +
+            " the following placeholder args don't apply to any commandline:",
+            ' '.join(unused_args))
+        print()
+    if error:
+        return 1
+    return 0
+
+def handle_seq(args):
+    if args.operation == "list":
+        return handle_seq_list()
+    if args.operation == "set":
+        return handle_seq_set(args.seqname, args.cmdnames, args.force, True, not args.quiet)
+    if args.operation == "edit":
+        return handle_seq_edit(args.seqname, args.force, not args.quiet)
+    if args.operation == "show":
+        return handle_seq_show(args.seqname)
+    if args.operation == "del":
+        return handle_seq_del(args.seqnames)
+    if args.operation == "run":
+        return handle_seq_run(args.seqname, args.placeholder_args, args.ignore_errors, args.skip_cmdnames)
+    if args.operation == "vals":
+        return handle_seq_vals(args.seqname, args.placeholder_args, not args.quiet)
+    return 0
+
+def handle_export(args):
+    export_dict = {
+        'commands': [],
+        'sequences': []
+    }
+    command_names = os.listdir(CMD_DIR)
+    for cmd in command_names:
+        try:
+            cmd_dict = read_cmd_dict(cmd)
+            export_dict['commands'].append(
+                {
+                    'name': cmd,
+                    'cmdline': cmd_dict['cmdline']
+                }
+            )
+        except FileNotFoundError:
+            # Race with a deletion? Ignore.
+            pass
+    sequence_names = os.listdir(SEQ_DIR)
+    for seq in sequence_names:
+        try:
+            seq_dict = read_seq_dict(seq)
+            export_dict['sequences'].append(
+                {
+                    'name': seq,
+                    'commands': seq_dict['commands']
+                }
+            )
+        except FileNotFoundError:
+            # Race with a deletion? Ignore.
+            pass
+    export_doc = yaml.dump(
+        export_dict,
+        default_flow_style=False
+    )
+    with open(args.file, 'w') as export_file:
+        export_file.write(export_doc)
+    return 0
+
+def handle_import(args):
+    with open(args.file, 'r') as import_file:
+        import_dict = yaml.safe_load(import_file)
+    print(Fore.MAGENTA + "* Importing commands..." + Fore.RESET)
+    for cmd_dict in import_dict['commands']:
+        handle_cmd_set(cmd_dict['name'], cmd_dict['cmdline'], args.overwrite, False)
+    print(Fore.MAGENTA + "* Importing sequences..." + Fore.RESET)
+    for seq_dict in import_dict['sequences']:
+        handle_seq_set(seq_dict['name'], seq_dict['commands'], True, args.overwrite, False)
+    return 0
+
+def main(argv):
+    colorama.init()
+    atexit.register(lambda: colorama.deinit()) 
+    os.makedirs(CMD_DIR, exist_ok=True)
+    os.makedirs(SEQ_DIR, exist_ok=True)
+    parser = argparse.ArgumentParser(add_help=False)
+    group_subparsers = parser.add_subparsers(
+        title="command groups",
+        dest="commandgroup",
+        required=True)
+    group_parser_cmd = set_cmd_options(group_subparsers)
+    group_parser_seq = set_seq_options(group_subparsers)
+    group_parser_export = set_export_options(group_subparsers)
+    group_parser_import = set_import_options(group_subparsers)
+    parser.add_argument(
+        "-h", "--help",
+        action=SubparsersHelpAction,
+        help='show detailed help message and exit',
+        subparsers=[
+            group_parser_cmd,
+            group_parser_seq,
+            group_parser_export,
+            group_parser_import])
+    args = parser.parse_args(argv)
+    status = 0
+    if args.commandgroup == "cmd":
+        status = handle_cmd(args)
+    elif args.commandgroup == "seq":
+        status = handle_seq(args)
+    elif args.commandgroup == "export":
+        status = handle_export(args)
+    elif args.commandgroup == "import":
+        status = handle_import(args)
+    return status
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
