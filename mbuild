@@ -26,9 +26,6 @@ More description TBD.
 
 __version__ = "0.1.0"
 
-# TODO can we somehow handle multiple instances of same placeholder in cmd?
-#      currently errors with "Duplicate placeholder names"
-#      what about defaults there? could allow multi if exactly the same
 # TODO rethink display order of ops in help (show edit first? vals earlier?)
 # TODO code commenting/cleanup and external docs
 # TODO could turn unused-args warning into error (at least for val ops) but
@@ -67,7 +64,7 @@ class PlaceholderArgsPurpose(enum.Enum):
 PLACEHOLDER_RE = re.compile("{([^}]+)}")
 PLACEHOLDER_DEFAULT_RE = re.compile("{([^+][^}=]*)=([^}]*)}")
 PLACEHOLDER_TOGGLE_RE = re.compile("{([^}]*):(\+[^}:]+):([^}]*)}")
-ALPHANUM_PLACEHOLDER_RE = re.compile("{(\+?[a-zA-Z][a-zA-Z0-9_]*)}")
+ALPHANUM_RE = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$")
 
 APP_NAME = "mbuild"
 APP_AUTHOR = "Joel Baxter"
@@ -532,56 +529,86 @@ def handle_cmd_set(cmd, cmdline, overwrite, show_after_set):
         return 1
     values_for_names = dict()
     togglevalues_for_names = dict()
-    def handle_placeholder_default(match):
-        key = match.group(1)
-        value = match.group(2)
+    non_alphanum_names = set()
+    multi_value_names = set()
+    multi_togglevalue_names = set()
+    toggles_without_values = set()
+    toggle_dup_names = set()
+    def handle_placeholder(match):
+        token = match.group(0)
+        toggle_match = PLACEHOLDER_TOGGLE_RE.match(token)
+        if toggle_match:
+            untoggled_value = toggle_match.group(1)
+            key = toggle_match.group(2)
+            toggled_value = toggle_match.group(3)
+            value = [untoggled_value, toggled_value]
+            if not ALPHANUM_RE.match(key[1:]):
+                non_alphanum_names.add(key)
+            if key[1:] in values_for_names:
+                toggle_dup_names.add(key[1:])
+            if key in togglevalues_for_names:
+                if togglevalues_for_names[key] != value:
+                    multi_togglevalue_names.add(key)
+            togglevalues_for_names[key] = value
+            return "{" + key + "}"
+        default_match = PLACEHOLDER_DEFAULT_RE.match(token)
+        if default_match:
+            key = default_match.group(1)
+            value = default_match.group(2)
+        else:
+            key = match.group(1)
+            value = None
+            if key[0] == '+':
+                if not ALPHANUM_RE.match(key[1:]):
+                    non_alphanum_names.add(key)
+                toggles_without_values.add(key)
+                return token
+        if not ALPHANUM_RE.match(key):
+            non_alphanum_names.add(key)
+        if "+" + key in togglevalues_for_names:
+            toggle_dup_names.add(key)
+        if key in values_for_names:
+            if values_for_names[key] != value:
+                multi_value_names.add(key)
         values_for_names[key] = value
         return "{" + key + "}"
-    def handle_placeholder_toggle(match):
-        untoggled_value = match.group(1)
-        key = match.group(2)
-        toggled_value = match.group(3)
-        togglevalues_for_names[key] = [untoggled_value, toggled_value]
-        return "{" + key + "}"
-    cmdline_format = PLACEHOLDER_DEFAULT_RE.sub(handle_placeholder_default, cmdline)
-    cmdline_format = PLACEHOLDER_TOGGLE_RE.sub(handle_placeholder_toggle, cmdline_format)
-    all_placeholders = PLACEHOLDER_RE.findall(cmdline_format)
-    if len(all_placeholders) != len(set(all_placeholders)):
-        errprint("Duplicate placeholder names in the given commandline.")
-        return 1
-    alphanum_placeholders = ALPHANUM_PLACEHOLDER_RE.findall(cmdline_format)
-    toggles_without_values = []
-    toggle_dup_names = []
-    for p in alphanum_placeholders:
-        if p[0] == '+':
-            if p not in togglevalues_for_names:
-                toggles_without_values.append(p[1:])
-            if p[1:] in all_placeholders:
-                toggle_dup_names.append(p[1:])
-        else:
-            if p not in values_for_names:
-                values_for_names[p] = None
-    if len(alphanum_placeholders) != len(all_placeholders):
-        bad_placeholder_names = [p for p in all_placeholders if p not in alphanum_placeholders]
-        bad_placeholder_names = [p[1:] if p and p[0] == '+' else p for p in bad_placeholder_names]
-        if "" in bad_placeholder_names:
-            # This can't happen with current regexes, but leaving it here in
-            # case that changes.
-            errprint("Empty-named placeholder encountered.")
-        else:
-            errprint("Bad placeholder format: " + ' '.join(set(bad_placeholder_names)))
+    cmdline_format = PLACEHOLDER_RE.sub(handle_placeholder, cmdline)
+    error = False
+    if non_alphanum_names:
+        error = True
+        errprint("Bad placeholder format: " + ' '.join(non_alphanum_names))
         errprint(
             "Placeholder names must begin with a letter and be composed only "
             "of letters, numbers, and underscores.")
         errprint(
             "(Note that this error can also be triggered by syntax mistakes "
             "when trying to specify placeholder default values or toggle values.)")
-        return 1
+        print()
+    if multi_value_names:
+        error = True
+        errprint(
+            "Placeholders occurring multiple times but with different "
+            "defaults: " + ' '.join(multi_value_names))
+        print()
+    if multi_togglevalue_names:
+        error = True
+        errprint(
+            "'Toggle' placeholders occurring multiple times but with different "
+            "values: " + ' '.join(multi_togglevalue_names))
+        print()
     if toggles_without_values:
-        errprint("Toggle placeholders specified without values: " + ' '.join(toggles_without_values))
-        return 1
+        error = True
+        errprint(
+            "'Toggle' placeholders specified without values: " +
+            ' '.join(toggles_without_values))
+        print()
     if toggle_dup_names:
-        errprint("Toggle(s) with same name as regular placeholder(s): " + ' '.join(toggle_dup_names))
+        error = True
+        errprint(
+            "Same placeholder name(s) used for both regular and 'toggle' "
+            "placeholders: " + ' '.join(toggle_dup_names))
+        print()
+    if error:
         return 1
     cmd_doc = yaml.dump(
         {
@@ -600,6 +627,7 @@ def handle_cmd_set(cmd, cmdline, overwrite, show_after_set):
         write_cmd_doc(cmd, cmd_doc, mode)
     except FileExistsError:
         print("Command '{}' already exists... not modified.".format(cmd))
+        print()
         return 0
     print()
     print("Command '{}' set.".format(cmd))
