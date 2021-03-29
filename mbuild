@@ -29,7 +29,6 @@ __version__ = "0.1.0"
 # TODO can we somehow handle multiple instances of same placeholder in cmd?
 #      currently errors with "Duplicate placeholder names"
 #      what about defaults there? could allow multi if exactly the same
-# TODO support some way of 'vals' for all commands
 # TODO rethink display order of ops in help (show edit first? vals earlier?)
 # TODO code commenting/cleanup and external docs
 # TODO could turn unused-args warning into error (at least for val ops) but
@@ -360,6 +359,21 @@ def set_seq_options(group_subparsers):
             seq_parser_run,
             seq_parser_vals])
     return group_parser_seq
+
+def set_vals_options(group_subparsers):
+    group_parser_vals = group_subparsers.add_parser(
+        "vals",
+        help="Update placeholder values across all commandlines.",
+        description="Update placeholder values across all commandlines.")
+    group_parser_vals.add_argument(
+        "placeholder_args",
+        nargs='+',
+        metavar="placeholder_arg",
+        help="Each of these items must be in the same format as used for "
+        "'cmd vals', and they will be passed along to each commandline. It is "
+        "OK if a placeholder specified here is only relevant for some subset "
+        "of the commandlines.")
+    return group_parser_vals
 
 def set_export_options(group_subparsers):
     group_parser_export = group_subparsers.add_parser(
@@ -995,7 +1009,8 @@ def handle_seq_vals(seq, args, show_after_set):
         print()
         print(
             Fore.YELLOW + "Warning:" + Fore.RESET +
-            " the following placeholder args don't apply to any commandline:",
+            " the following placeholder args don't apply to any commandline "
+            "in this sequence:",
             ' '.join(unused_args))
         print()
     if error:
@@ -1017,6 +1032,25 @@ def handle_seq(args):
         return handle_seq_run(args.seqname, args.placeholder_args, args.ignore_errors, args.skip_cmdnames)
     if args.operation == "vals":
         return handle_seq_vals(args.seqname, args.placeholder_args, not args.quiet)
+    return 0
+
+def handle_vals(args):
+    unused_args = copy.deepcopy(args.placeholder_args)
+    cmd_list = os.listdir(CMD_DIR)
+    error = False
+    for cmd in cmd_list:
+        status = handle_cmd_vals_internal(cmd, args.placeholder_args, unused_args, False)
+        if status:
+            error = True
+    if unused_args:
+        print()
+        print(
+            Fore.YELLOW + "Warning:" + Fore.RESET +
+            " the following placeholder args don't apply to any commandline:",
+            ' '.join(unused_args))
+        print()
+    if error:
+        return 1
     return 0
 
 def handle_export(args):
@@ -1081,6 +1115,7 @@ def main(argv):
         required=True)
     group_parser_cmd = set_cmd_options(group_subparsers)
     group_parser_seq = set_seq_options(group_subparsers)
+    group_parser_vals = set_vals_options(group_subparsers)
     group_parser_export = set_export_options(group_subparsers)
     group_parser_import = set_import_options(group_subparsers)
     parser.add_argument(
@@ -1090,6 +1125,7 @@ def main(argv):
         subparsers=[
             group_parser_cmd,
             group_parser_seq,
+            group_parser_vals,
             group_parser_export,
             group_parser_import])
     args = parser.parse_args(argv)
@@ -1098,6 +1134,8 @@ def main(argv):
         status = handle_cmd(args)
     elif args.commandgroup == "seq":
         status = handle_seq(args)
+    elif args.commandgroup == "vals":
+        status = handle_vals(args)
     elif args.commandgroup == "export":
         status = handle_export(args)
     elif args.commandgroup == "import":
