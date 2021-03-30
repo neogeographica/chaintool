@@ -843,7 +843,6 @@ def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, show_after_set, co
         print("Sequence '{}' already exists... not modified.".format(seq))
         print()
         return 0
-    print()
     print("Sequence '{}' set.".format(seq))
     if show_after_set:
         handle_seq_show(seq)
