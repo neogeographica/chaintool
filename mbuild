@@ -26,13 +26,6 @@ More description TBD.
 
 __version__ = "0.1.0"
 
-# TODO rethink display order of ops in help (show edit first? vals earlier?)
-# TODO code commenting/cleanup and external docs
-# TODO could turn unused-args warning into error (at least for val ops) but
-#      that will require more separation between args-process and cmd-update
-# TODO maybe mutex protection for multiple instances editing stuff?
-# TODO requirements.txt and PyPi
-
 import atexit
 import copy
 import enum
