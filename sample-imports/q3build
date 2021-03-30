@@ -1,11 +1,18 @@
 commands:
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
+    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -meta -samplesize
+    {samplesize=8} {:+leaktest:-leaktest} -skyfix "{map}"'
+  name: q3bsp
+- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
+    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -vis -saveprt {:+fastvis:-fast}
+    "{map}"'
+  name: q3vis
+- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
     "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -light -samplesize
     {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
-    -super {supersamples=2} -filter -bounce {bounce=8} -bouncegrid {-shade:+nophong:}
-    -dirty -dirtmode {dirtmode=0} -dirtscale {dirtscale=2.5} -dirtdepth {dirtdepth=24}
+    {-samples:+super:-super} {samples=3} -filter -bounce {bounce=8} -bouncegrid {-shade:+nophong:}
     "{map}"'
-  name: q3light-supersample-dirtmap
+  name: q3light
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
     "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -light -samplesize
     {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
@@ -14,66 +21,32 @@ commands:
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
     "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -light -samplesize
     {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
-    -samples {samples=3} -filter -bounce {bounce=8} -bouncegrid {-shade:+nophong:}
-    "{map}"'
-  name: q3light
-- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -meta -samplesize
-    {samplesize=8} -leaktest -skyfix "{map}"'
-  name: q3bsp-leaktest
-- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -light -samplesize
-    {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
-    -samples {samples=3} -filter -bounce {bounce=8} -bouncegrid {-shade:+nophong:}
+    {-samples:+super:-super} {samples=3} -filter -bounce {bounce=8} -bouncegrid {-shade:+nophong:}
     -dirty -dirtmode {dirtmode=0} -dirtscale {dirtscale=2.5} -dirtdepth {dirtdepth=24}
     "{map}"'
   name: q3light-dirtmap
-- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -light -samplesize
-    {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
-    -super {supersamples=2} -filter -bounce {bounce=8} -bouncegrid {-shade:+nophong:}
-    "{map}"'
-  name: q3light-supersample
-- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -vis -saveprt -fast
-    "{map}"'
-  name: q3vis-fast
-- cmdline: '"{bspc=mbspc.x86_64}" -threads {threads=7} -forcesidesvisible {-optimize:+unoptimized:}
-    -bsp2aas "{map}"'
-  name: q3aas
-- cmdline: MAPBASE=$(basename -s.map "{map}"); {basepath=/home/joel/Mapping/Quake3}/{q3exe=quake3e.x64}
-    +set sv_pure 0 +set fs_game {mod=baseq3} {:+lightmap:+r_lightmap 1} +devmap "$MAPBASE"
-  name: q3launch
 - cmdline: SRCPATH="{map}"; SRCDIR=$(dirname "$SRCPATH"); DESTDIR="{basepath=/home/joel/Mapping/Quake3}/{mod=baseq3}/maps";
     if [ "$SRCDIR" != "$DESTDIR" ]; then BSPOUT=$(basename -s.map "$SRCPATH").bsp;
     cp "$SRCDIR/$BSPOUT" "$DESTDIR/$BSPOUT"; fi
   name: q3copy
-- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -meta -samplesize
-    {samplesize=8} -skyfix "{map}"'
-  name: q3bsp
-- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -vis -saveprt "{map}"'
-  name: q3vis
+- cmdline: MAPBASE=$(basename -s.map "{map}"); {basepath=/home/joel/Mapping/Quake3}/{q3exe=quake3e.x64}
+    +set sv_pure 0 +set fs_game {mod=baseq3} {:+lightmap:+r_lightmap 1} +devmap "$MAPBASE"
+  name: q3launch
+- cmdline: '"{bspc=mbspc.x86_64}" -threads {threads=7} -forcesidesvisible {-optimize:+unoptimized:}
+    -bsp2aas "{map}"'
+  name: q3aas
 sequences:
 - commands:
-  - q3bsp-leaktest
+  - q3bsp
   - q3vis
   - q3light
   - q3copy
   - q3launch
-  name: bsp-vis-light
+  name: q3b
 - commands:
-  - q3bsp-leaktest
-  - q3vis-fast
+  - q3bsp
+  - q3vis
   - q3light-simple
   - q3copy
   - q3launch
-  name: bsp-visfast-lightsimple
-- commands:
-  - q3bsp-leaktest
-  - q3vis-fast
-  - q3light
-  - q3copy
-  - q3launch
-  name: bsp-visfast-light
+  name: q3b-s
