@@ -1,12 +1,9 @@
 commands:
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -meta -samplesize
-    {samplesize=8} {:+leaktest:-leaktest} -skyfix "{map}"'
-  name: q3bsp
-- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -vis -saveprt {:+fastvis:-fast}
-    "{map}"'
-  name: q3vis
+    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -light -samplesize
+    {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
+    -filter "{map}"'
+  name: q3light-simple
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
     "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -light -samplesize
     {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
@@ -16,33 +13,33 @@ commands:
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
     "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -light -samplesize
     {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
-    -filter "{map}"'
-  name: q3light-simple
-- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -light -samplesize
-    {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
     {-samples:+super:-super} {samples=3} -filter -bounce {bounce=8} -bouncegrid {-shade:+nophong:}
     -dirty -dirtmode {dirtmode=0} -dirtscale {dirtscale=2.5} -dirtdepth {dirtdepth=24}
     "{map}"'
   name: q3light-dirtmap
-- cmdline: SRCPATH="{map}"; SRCDIR=$(dirname "$SRCPATH"); DESTDIR="{basepath=/home/joel/Mapping/Quake3}/{mod=baseq3}/maps";
-    if [ "$SRCDIR" != "$DESTDIR" ]; then BSPOUT=$(basename -s.map "$SRCPATH").bsp;
-    cp "$SRCDIR/$BSPOUT" "$DESTDIR/$BSPOUT"; fi
-  name: q3copy
-- cmdline: MAPBASE=$(basename -s.map "{map}"); {basepath=/home/joel/Mapping/Quake3}/{q3exe=quake3e.x64}
-    +set sv_pure 0 +set fs_game {mod=baseq3} {:+lightmap:+r_lightmap 1} +devmap "$MAPBASE"
-  name: q3launch
 - cmdline: '"{bspc=mbspc.x86_64}" -threads {threads=7} -forcesidesvisible {-optimize:+unoptimized:}
     -bsp2aas "{map}"'
   name: q3aas
+- cmdline: DESTBSP="{destbsp=}"; MAPBASE=$(basename "${{DESTBSP%.[bB][sS][pP]}}");
+    if [ "$MAPBASE" = "" ]; then SRCMAP="{map}"; MAPBASE=$(basename "${{SRCMAP%.[mM][aA][pP]}}");
+    fi; {basepath=/home/joel/Mapping/Quake3}/{q3exe=quake3e.x64} +set sv_pure 0 +set
+    fs_game {mod=baseq3} {:+lightmap:+r_lightmap 1} +devmap "$MAPBASE"
+  name: q3launch
+- cmdline: SRCMAP="{map}"; SRCBSP=$(basename "${{SRCMAP%.[mM][aA][pP]}}").bsp; DESTBSP="{destbsp=}";
+    if [ "$DESTBSP" = "" ]; then DESTBSP="$SRCBSP"; fi; SRCDIR=$(dirname "{map}");
+    DESTDIR="{basepath=/home/joel/Mapping/Quake3}/{mod=baseq3}/maps"; SRCPATH="$SRCDIR/$SRCBSP";
+    DESTPATH="$DESTDIR/$DESTBSP"; if [ "$SRCPATH" != "$DESTPATH" ]; then cp "$SRCPATH"
+    "$DESTPATH"; fi
+  name: q3copy
+- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
+    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -meta -samplesize
+    {samplesize=8} {:+leaktest:-leaktest} -skyfix "{map}"'
+  name: q3bsp
+- cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
+    "{basepath=/home/joel/Mapping/Quake3}" -fs_game {mod=baseq3} -vis -saveprt {:+fastvis:-fast}
+    "{map}"'
+  name: q3vis
 sequences:
-- commands:
-  - q3bsp
-  - q3vis
-  - q3light
-  - q3copy
-  - q3launch
-  name: q3b
 - commands:
   - q3bsp
   - q3vis
@@ -50,3 +47,10 @@ sequences:
   - q3copy
   - q3launch
   name: q3b-s
+- commands:
+  - q3bsp
+  - q3vis
+  - q3light
+  - q3copy
+  - q3launch
+  name: q3b
