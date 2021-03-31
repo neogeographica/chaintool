@@ -534,11 +534,9 @@ def update_cmdline(cmd_dict):
 def handle_cmd_list():
     print()
     command_names = os.listdir(CMD_DIR)
-    if not command_names:
-        print("No current commands.")
-    else:
+    if command_names:
         print(' '.join(command_names))
-    print()
+        print()
     return 0
 
 def handle_cmd_set(cmd, cmdline, overwrite, info_after_set, compact=False):
@@ -816,11 +814,9 @@ def handle_cmd(args):
 def handle_seq_list():
     print()
     sequence_names = os.listdir(SEQ_DIR)
-    if not sequence_names:
-        print("No current sequences.")
-    else:
+    if sequence_names:
         print(' '.join(sequence_names))
-    print()
+        print()
     return 0
 
 def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, info_after_set, compact=False):
