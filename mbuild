@@ -154,11 +154,11 @@ def set_cmd_options(group_subparsers):
         help="Don't display info about the resulting commandline.")
     cmd_parser_edit.add_argument(
         "cmdname")
-    cmd_parser_show = cmd_subparsers.add_parser(
-        "show",
+    cmd_parser_info = cmd_subparsers.add_parser(
+        "info",
         help="Display a commandline and its placeholders/defaults.",
         description="Display a commandline and its placeholders/defaults.")
-    cmd_parser_show.add_argument(
+    cmd_parser_info.add_argument(
         "cmdname")
     cmd_parser_del = cmd_subparsers.add_parser(
         "del",
@@ -217,7 +217,7 @@ def set_cmd_options(group_subparsers):
             cmd_parser_list,
             cmd_parser_set,
             cmd_parser_edit,
-            cmd_parser_show,
+            cmd_parser_info,
             cmd_parser_del,
             cmd_parser_run,
             cmd_parser_vals])
@@ -272,13 +272,13 @@ def set_seq_options(group_subparsers):
         help="Don't display info about the resulting sequence.")
     seq_parser_edit.add_argument(
         "seqname")
-    seq_parser_show = seq_subparsers.add_parser(
-        "show",
+    seq_parser_info = seq_subparsers.add_parser(
+        "info",
         help="Display the commandlines for the named sequence, with their "
         "available placeholders.",
         description="Display the commandlines for the named sequence, with their "
         "available placeholders.")
-    seq_parser_show.add_argument(
+    seq_parser_info.add_argument(
         "seqname")
     seq_parser_del = seq_subparsers.add_parser(
         "del",
@@ -344,7 +344,7 @@ def set_seq_options(group_subparsers):
             seq_parser_list,
             seq_parser_set,
             seq_parser_edit,
-            seq_parser_show,
+            seq_parser_info,
             seq_parser_del,
             seq_parser_run,
             seq_parser_vals])
@@ -541,7 +541,7 @@ def handle_cmd_list():
     print()
     return 0
 
-def handle_cmd_set(cmd, cmdline, overwrite, show_after_set, compact=False):
+def handle_cmd_set(cmd, cmdline, overwrite, info_after_set, compact=False):
     if not compact:
         print()
     if not is_valid_cmdseq_name(cmd):
@@ -654,13 +654,13 @@ def handle_cmd_set(cmd, cmdline, overwrite, show_after_set, compact=False):
         print()
         return 0
     print("Command '{}' set.".format(cmd))
-    if show_after_set:
-        handle_cmd_show(cmd)
+    if info_after_set:
+        handle_cmd_info(cmd)
     else:
         print()
     return 0
 
-def handle_cmd_edit(cmd, show_after_set):
+def handle_cmd_edit(cmd, info_after_set):
     print()
     try:
         cmd_dict = read_cmd_dict(cmd)
@@ -668,9 +668,9 @@ def handle_cmd_edit(cmd, show_after_set):
     except FileNotFoundError:
         old_cmdline = ""
     new_cmdline = editline('commandline: ', old_cmdline)
-    return handle_cmd_set(cmd, new_cmdline, True, show_after_set)
+    return handle_cmd_set(cmd, new_cmdline, True, info_after_set)
 
-def handle_cmd_show(cmd):
+def handle_cmd_info(cmd):
     print()
     try:
         cmd_dict = read_cmd_dict(cmd)
@@ -764,9 +764,9 @@ def handle_cmd_run_internal(cmd, args, unused_args):
     print()
     return status
 
-def handle_cmd_vals(cmd, args, show_after_set):
+def handle_cmd_vals(cmd, args, info_after_set):
     unused_args = copy.deepcopy(args)
-    status = handle_cmd_vals_internal(cmd, args, unused_args, show_after_set)
+    status = handle_cmd_vals_internal(cmd, args, unused_args, info_after_set)
     if status:
         return status
     if unused_args:
@@ -777,7 +777,7 @@ def handle_cmd_vals(cmd, args, show_after_set):
         print()
     return 0
 
-def handle_cmd_vals_internal(cmd, args, unused_args, show_after_set, compact=False):
+def handle_cmd_vals_internal(cmd, args, unused_args, info_after_set, compact=False):
     if not compact:
         print()
     cmd_dict = command_with_values(cmd, args, unused_args, PlaceholderArgsPurpose.UPDATE)
@@ -790,8 +790,8 @@ def handle_cmd_vals_internal(cmd, args, unused_args, show_after_set, compact=Fal
     )
     write_cmd_doc(cmd, cmd_doc, 'w')
     print("Command '{}' updated.".format(cmd))
-    if show_after_set:
-        handle_cmd_show(cmd)
+    if info_after_set:
+        handle_cmd_info(cmd)
     else:
         print()
     return 0
@@ -803,8 +803,8 @@ def handle_cmd(args):
         return handle_cmd_set(args.cmdname, args.cmdline, True, not args.quiet)
     if args.operation == "edit":
         return handle_cmd_edit(args.cmdname, not args.quiet)
-    if args.operation == "show":
-        return handle_cmd_show(args.cmdname)
+    if args.operation == "info":
+        return handle_cmd_info(args.cmdname)
     if args.operation == "del":
         return handle_cmd_del(args.cmdnames, args.force)
     if args.operation == "run":
@@ -823,7 +823,7 @@ def handle_seq_list():
     print()
     return 0
 
-def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, show_after_set, compact=False):
+def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, info_after_set, compact=False):
     if not compact:
         print()
     if not is_valid_cmdseq_name(seq):
@@ -863,13 +863,13 @@ def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, show_after_set, co
         print()
         return 0
     print("Sequence '{}' set.".format(seq))
-    if show_after_set:
-        handle_seq_show(seq)
+    if info_after_set:
+        handle_seq_info(seq)
     else:
         print()
     return 0
 
-def handle_seq_edit(seq, ignore_missing_cmds, show_after_set):
+def handle_seq_edit(seq, ignore_missing_cmds, info_after_set):
     print()
     try:
         seq_dict = read_seq_dict(seq)
@@ -878,9 +878,9 @@ def handle_seq_edit(seq, ignore_missing_cmds, show_after_set):
         old_commands_str = ""
     new_commands_str = editline('commands: ', old_commands_str)
     new_commands = new_commands_str.split()
-    return handle_seq_set(seq, new_commands, ignore_missing_cmds, True, show_after_set)
+    return handle_seq_set(seq, new_commands, ignore_missing_cmds, True, info_after_set)
 
-def handle_seq_show(seq):
+def handle_seq_info(seq):
     print()
     try:
         seq_dict = read_seq_dict(seq)
@@ -1045,7 +1045,7 @@ def handle_seq_run(seq, args, ignore_errors, skip_cmdnames):
         print()
     return 0
 
-def handle_seq_vals(seq, args, show_after_set):
+def handle_seq_vals(seq, args, info_after_set):
     print()
     try:
         seq_dict = read_seq_dict(seq)
@@ -1067,8 +1067,8 @@ def handle_seq_vals(seq, args, show_after_set):
             any_change = True
     if any_change:
         print("Sequence '{}' updated.".format(seq))
-        if show_after_set:
-            handle_seq_show(seq)
+        if info_after_set:
+            handle_seq_info(seq)
         else:
             print()
     if unused_args:
@@ -1089,8 +1089,8 @@ def handle_seq(args):
         return handle_seq_set(args.seqname, args.cmdnames, args.force, True, not args.quiet)
     if args.operation == "edit":
         return handle_seq_edit(args.seqname, args.force, not args.quiet)
-    if args.operation == "show":
-        return handle_seq_show(args.seqname)
+    if args.operation == "info":
+        return handle_seq_info(args.seqname)
     if args.operation == "del":
         return handle_seq_del(args.seqnames)
     if args.operation == "run":
