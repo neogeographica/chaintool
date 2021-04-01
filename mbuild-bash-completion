@@ -1,24 +1,26 @@
 #!/usr/bin/env bash
 
-if compopt 2> /dev/null
-then
-  true
-else
-  echo "Note: old bash shell version in use. Tab completion of directories for"
-  echo "mbuild export/import arguments will have an annoying space at the end."
-  if [[ $(uname -s) == "Darwin" ]]
-  then
-    echo "cf. https://itnext.io/upgrading-bash-on-macos-7138bd1066ba"
-  fi
-fi
+# Bash completion implementation for the mbuild tool. Either paste all the
+# code below into a file that will be sourced such as ~/.bash_completion
+# or explicitly source this file from some other such file.
 
-_set_file_completions()
+
+# Subroutine to populate COMPREPLY with file/directory completions.
+_mbuild_file_completions()
 {
-  CUR="$1"
+  local CUR="${COMP_WORDS[$COMP_CWORD]}"
   if compopt -o filenames 2> /dev/null
   then
+    # If compopt worked, we can just get filename completions and they will
+    # automagically get trailing slashes (and no extra trailing space) if they
+    # are directories.
     COMPREPLY=( $(compgen -f -- "$CUR") )
   else
+    # If compopt failed, this is probably an old bash version. Likely to
+    # happen on macOS, cf. https://itnext.io/upgrading-bash-on-macos-7138bd1066ba
+    # We will try an alternate approach here; works pretty well but any
+    # directory-name completions for import/export will have an annoying
+    # space after the slash.
     COMPREPLY=()
     local TEMP_COMPREPLY=$(compgen -f -- "$CUR")
     if [[ -n "$TEMP_COMPREPLY" ]]
@@ -36,33 +38,292 @@ _set_file_completions()
   fi
 }
 
+# Subroutine to populate COMPREPLY for operations in the "cmd" commandgroup.
+_mbuild_cmd_completions()
+{
+  OPERATION="$1"
+  NO_FLAGS="$2"
+  HAS_PREV_POSITIONAL="$3"
+  local CUR="${COMP_WORDS[$COMP_CWORD]}"
+  local OPTLIST=""
+  local POSLIST=""
+  local MIGHT_MATCH_NAME=1
+  if [[ "$CUR" == -* ]]
+  then
+    MIGHT_MATCH_NAME=0
+  fi
+  case "$OPERATION" in
+    list)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help"
+      fi
+      ;;
+    set)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help --quiet"
+      fi
+      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        POSLIST=$("${COMP_WORDS[0]}" cmd list)
+      fi
+      ;;
+    edit)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help --quiet"
+      fi
+      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        POSLIST=$("${COMP_WORDS[0]}" cmd list)
+      fi
+      ;;
+    info)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help"
+      fi
+      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        POSLIST=$("${COMP_WORDS[0]}" cmd list)
+      fi
+      ;;
+    del)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help --force"
+      fi
+      if [[ $MIGHT_MATCH_NAME == 1 ]]
+      then
+        POSLIST=$("${COMP_WORDS[0]}" cmd list)
+      fi
+      ;;
+    run)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help"
+      fi
+      if [[ $HAS_PREV_POSITIONAL == 0 ]]
+      then
+        if [[ $MIGHT_MATCH_NAME == 1 ]]
+        then
+          POSLIST=$("${COMP_WORDS[0]}" cmd list)
+        fi
+      else
+        # XXX Would do run placeholders here. Only bother to query if CUR is
+        # empty or starts with a letter or + sign.
+        true
+      fi
+      ;;
+    vals)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help --quiet"
+      fi
+      if [[ $HAS_PREV_POSITIONAL == 0 ]]
+      then
+        if [[ $MIGHT_MATCH_NAME == 1 ]]
+        then
+          POSLIST=$("${COMP_WORDS[0]}" cmd list)
+        fi
+      else
+        # XXX Would do vals placeholders here. Only bother to query if CUR is
+        # empty or starts with a letter or + sign.
+        true
+      fi
+      ;;
+  esac
+  COMPREPLY=( $(compgen -W "$POSLIST $OPTLIST" -- "$CUR") )
+}
+
+# Subroutine to populate COMPREPLY for operations in the "seq" commandgroup.
+_mbuild_seq_completions()
+{
+  OPERATION="$1"
+  NO_FLAGS="$2"
+  HAS_PREV_POSITIONAL="$3"
+  local CUR="${COMP_WORDS[$COMP_CWORD]}"
+  local BEFORE_CUR="${COMP_WORDS[$COMP_CWORD-1]}"
+  local OPTLIST=""
+  local POSLIST=""
+  local MIGHT_MATCH_NAME=1
+  if [[ "$CUR" == -* ]]
+  then
+    MIGHT_MATCH_NAME=0
+  fi
+  case "$OPERATION" in
+    list)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help"
+      fi
+      ;;
+    set)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help --force --quiet"
+      fi
+      if [[ $MIGHT_MATCH_NAME == 1 ]]
+      then
+        if [[ $HAS_PREV_POSITIONAL == 0 ]]
+        then
+          POSLIST=$("${COMP_WORDS[0]}" seq list)
+        else
+          POSLIST=$("${COMP_WORDS[0]}" cmd list)
+        fi
+      fi
+      ;;
+    edit)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help --force --quiet"
+      fi
+      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        POSLIST=$("${COMP_WORDS[0]}" seq list)
+      fi
+      ;;
+    info)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help"
+      fi
+      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        POSLIST=$("${COMP_WORDS[0]}" seq list)
+      fi
+      ;;
+    del)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help"
+      fi
+      if [[ $MIGHT_MATCH_NAME == 1 ]]
+      then
+        POSLIST=$("${COMP_WORDS[0]}" seq list)
+      fi
+      ;;
+    run)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help --ignore-errors --skip"
+      fi
+      if [[ $MIGHT_MATCH_NAME == 1 ]]
+      then
+        if [[ $NO_FLAGS == 0 && ( "$BEFORE_CUR" == "-s" || "$BEFORE_CUR" == "--skip" ) ]]
+        then
+          POSLIST=$("${COMP_WORDS[0]}" cmd list)
+        else
+          if [[ $HAS_PREV_POSITIONAL == 0 ]]
+          then
+            POSLIST=$("${COMP_WORDS[0]}" seq list)
+          else
+            # XXX Would do run placeholders here. Only bother to query if CUR is
+            # empty or starts with a letter or + sign.
+            true
+          fi
+        fi
+      fi
+      ;;
+    vals)
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        OPTLIST="--help --quiet"
+      fi
+      if [[ $HAS_PREV_POSITIONAL == 0 ]]
+      then
+        if [[ $MIGHT_MATCH_NAME == 1 ]]
+        then
+          POSLIST=$("${COMP_WORDS[0]}" seq list)
+        fi
+      else
+        # XXX Would do vals placeholders here. Only bother to query if CUR is
+        # empty or starts with a letter or + sign.
+        true
+      fi
+      ;;
+  esac
+  COMPREPLY=( $(compgen -W "$POSLIST $OPTLIST" -- "$CUR") )
+}
+
+# Subroutine to populate COMPREPLY for operations in the "import" and
+# "export" commandgroups.
+_mbuild_import_export_completions()
+{
+  OPERATION="$1"
+  NO_FLAGS="$2"
+  HAS_PREV_POSITIONAL="$3"
+  local CUR="${COMP_WORDS[$COMP_CWORD]}"
+  local OPTLIST
+  if [[ "$OPERATION" == "import" ]]
+  then
+    OPTLIST="--help --overwrite"
+  else
+    OPTLIST="--help"
+  fi
+  # If we've already got the filename, the only remaining valid things are
+  # options.
+  if [[ $HAS_PREV_POSITIONAL == 1 ]]
+  then
+    if [[ $NO_FLAGS == 0 ]]
+    then
+      COMPREPLY=( $(compgen -W "$OPTLIST" -- "$CUR") )
+    fi
+    return
+  fi
+  # We haven't got the filename yet.
+  # If "--" has been provided, we know we are not interested in matching
+  # against options, so provide file matches.
+  if [[ $NO_FLAGS == 1 ]]
+  then
+    _mbuild_file_completions
+    return
+  fi
+  if [[ "$CUR" == "" ]]
+  then
+    # TAB was pressed with nothing typed yet. We're in a position that could
+    # accept an option or a filename -- instead of mixing the options with all
+    # filename completions, just show a "<file>" placeholder.
+    COMPREPLY=( $(compgen -W "$OPTLIST <file>" -- "$CUR") )
+  elif [[ "$CUR" == -* ]]
+  then
+    # The first char is a hyphen. Since we are not preceded by a "--" then
+    # this must be an option... don't bother to find filename completions.
+    COMPREPLY=( $(compgen -W "$OPTLIST" -- "$CUR") )
+  else
+    # The first char is not a hyphen. Do the filename completions.
+    _mbuild_file_completions
+  fi
+}
+
+# Subroutine to populate COMPREPLY for operations in the "vals" commandgroup.
+_mbuild_vals_completions()
+{
+  NO_FLAGS="$1"
+  local CUR="${COMP_WORDS[$COMP_CWORD]}"
+  local OPTLIST=""
+  if [[ $NO_FLAGS == 0 ]]
+  then
+    OPTLIST="--help"
+  fi
+  # XXX Would do vals placeholders here. Only bother to query if CUR is
+  # empty or starts with a letter or + sign.
+  local POSLIST=""
+  COMPREPLY=( $(compgen -W "$POSLIST $OPTLIST" -- "$CUR") )
+}
+
+# Main entry point for mbuild argument completions.
 _mbuild()
 {
   # Memo-ize the word we're trying to complete.
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
 
-  # If it starts with a dash, for now we'll assume it's an option.
-  local IS_FLAG=0
-  if [[ "$CUR" == -* ]]
-  then
-    IS_FLAG=1
-  fi
-
-  # XX Currently showing "option" type completions if and only if CUR starts
-  # with a hyphen and is not preceded by "--". The latter criterion is fine
-  # but maybe relax the former? Especially if CUR is emptystring it would be
-  # nice to see available options when hitting tab?
-
   # If this is the first word (after the program name itself), the only thing
   # it can be is the help option or a commandgroup.
   if [[ $COMP_CWORD == 1 ]]
   then
-    if [[ $IS_FLAG == 1 ]]
-    then
-      COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
-    else
-      COMPREPLY=( $(compgen -S ' ' -W "cmd seq vals export import" -- "$CUR") )
-    fi
+    COMPREPLY=( $(compgen -W "--help cmd seq vals export import" -- "$CUR") )
     return 0
   fi
 
@@ -80,24 +341,17 @@ _mbuild()
   # be an operation (if it's not the help option).
   if [[ $COMP_CWORD == 2 ]]
   then
-    if [[ $IS_FLAG == 1 ]]
-    then
-      if [[ "$CMD_GROUP" == "import" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help --overwrite" -- "$CUR") )
-      else
-        COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
-      fi
-    else
-      if [[ "$CMD_GROUP" == "cmd" || "$CMD_GROUP" == "seq" ]]
-      then
-        COMPREPLY=( $(compgen -W "list set edit info del run vals" -- "$CUR") )
-      fi
-    fi
     if [[ "$CMD_GROUP" == "cmd" || "$CMD_GROUP" == "seq" ]]
     then
-      return 0
+      COMPREPLY=( $(compgen -W "--help list set edit info del run vals" -- "$CUR") )
+    elif [[ "$CMD_GROUP" == "import" || "$CMD_GROUP" == "export" ]]
+    then
+      _mbuild_import_export_completions "$CMD_GROUP" 0 0
+    elif [[ "$CMD_GROUP" == "vals" ]]
+    then
+      _mbuild_vals_completions 0
     fi
+    return 0
   fi
 
   # After word 2 we will need to do some looking through all args in the
@@ -142,6 +396,22 @@ _mbuild()
   # depending on the prior args and the position of the argument. So we need
   # to look through the arguments now.
 
+  # Also, let's talk about the way argparse is used by mbuild. You can't put
+  # an option in the middle of a "varying number" positional arglist. Those
+  # arglists appear in:
+  #   cmd del, with the list of cmdnames to delete
+  #   cmd run or vals, with the list of placeholders
+  #   seq set, with the list of cmdnames
+  #   seq del, with the list of seqnames to delete
+  #   seq run or vals, with the list of placeholders
+  #   vals, with the list of placeholders
+  # It's actually fine to place an option AFTER such an arglist, but if you
+  # are typing out args generally in order, the least confusing approach
+  # for autocomplete would be to not offer autocomplete for options once such
+  # an arglist has started. To generally detect/enforce that, we'll set NO_FLAGS
+  # if we encounter a positional argument in the scan. This also mirrors what
+  # the helptext indicates.
+
   # Scan up to just before our current position.
   local NO_FLAGS=0
   local FOUND_POSITIONAL=0
@@ -160,7 +430,6 @@ _mbuild()
       if [[ "$THIS_WORD" == "--" ]]
       then
         NO_FLAGS=1
-        IS_FLAG=0
         CHECK_SKIP=0
         continue
       fi
@@ -174,169 +443,33 @@ _mbuild()
       if [[ $CHECK_SKIP == 1 ]]
       then
         local PREV_WORD="${COMP_WORDS[$INDEX-1]}"
-        if [[ "$PREV_WORD"=="-s" || "$PREV_WORD"=="--skip" ]]
+        if [[ "$PREV_WORD" == "-s" || "$PREV_WORD" == "--skip" ]]
         then
           continue
         fi
       fi
       FOUND_POSITIONAL=1
+      NO_FLAGS=1
     done
   fi
 
-  # If we still think the current word is an option, let's finish up.
-  if [[ $IS_FLAG == 1 ]]
-  then
-    if [[ "$CMD_GROUP" == "cmd" ]]
-    then
-      if [[ "$OPERATION" == "list" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
-      elif [[ "$OPERATION" == "set" || "$OPERATION" == "edit" || "$OPERATION" == "vals" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help --quiet" -- "$CUR") )
-      elif [[ "$OPERATION" == "info" || "$OPERATION" == "run" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
-      elif [[ "$OPERATION" == "del" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help --force" -- "$CUR") )
-      fi
-    elif [[ "$CMD_GROUP" == "seq" ]]
-    then
-      if [[ "$OPERATION" == "list" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
-      elif [[ "$OPERATION" == "set" || "$OPERATION" == "edit" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help --force --quiet" -- "$CUR") )
-      elif [[ "$OPERATION" == "info" || "$OPERATION" == "del" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
-      elif [[ "$OPERATION" == "run" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help --ignore-errors --skip" -- "$CUR") )
-      elif [[ "$OPERATION" == "vals" ]]
-      then
-        COMPREPLY=( $(compgen -W "--help --quiet" -- "$CUR") )
-      fi
-    elif [[ "$CMD_GROUP" == "import" ]]
-    then
-      COMPREPLY=( $(compgen -W "--help --overwrite" -- "$CUR") )
-    elif [[ "$CMD_GROUP" == "export" || "$CMD_GROUP" == "vals"  ]]
-    then
-      COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
-    fi
-    return 0
-  fi
-
-  # Current word is a positional arg, so let's find out what kind.
-  local CUR_IS_CMDNAME=0
-  local CUR_IS_SEQNAME=0
-  local CUR_IS_FILENAME=0
-  local CUR_IS_PLACEHOLDER_VALS=0
-  local CUR_IS_PLACEHOLDER_RUN=0
-  if [[ "$CMD_GROUP" == "cmd" ]]
-  then
-    if [[ "$OPERATION" == "list" ]]
-    then
-      true
-    elif [[ "$OPERATION" == "set" || "$OPERATION" == "edit" || "$OPERATION" == "info" ]]
-    then
-      if [[ $FOUND_POSITIONAL == 0 ]]
-      then
-        CUR_IS_CMDNAME=1
-      fi
-    elif [[ "$OPERATION" == "del" ]]
-    then
-      CUR_IS_CMDNAME=1
-    elif [[ "$OPERATION" == "run" ]]
-    then
-      if [[ $FOUND_POSITIONAL == 0 ]]
-      then
-        CUR_IS_CMDNAME=1
-      else
-        CUR_IS_PLACEHOLDER_RUN=1
-      fi
-    elif [[ "$OPERATION" == "vals" ]]
-    then
-      if [[ $FOUND_POSITIONAL == 0 ]]
-      then
-        CUR_IS_CMDNAME=1
-      else
-        CUR_IS_PLACEHOLDER_VALS=1
-      fi
-    fi
-  elif [[ "$CMD_GROUP" == "seq" ]]
-  then
-    if [[ "$OPERATION" == "list" ]]
-    then
-      true
-    elif [[ "$OPERATION" == "set" ]]
-    then
-      if [[ $FOUND_POSITIONAL == 0 ]]
-      then
-        CUR_IS_SEQNAME=1
-      else
-        CUR_IS_CMDNAME=1
-      fi
-    elif [[ "$OPERATION" == "edit" || "$OPERATION" == "info" ]]
-    then
-      if [[ $FOUND_POSITIONAL == 0 ]]
-      then
-        CUR_IS_SEQNAME=1
-      fi
-    elif [[ "$OPERATION" == "del" ]]
-    then
-      CUR_IS_SEQNAME=1
-    elif [[ "$OPERATION" == "run" ]]
-    then
-      if [[ $FOUND_POSITIONAL == 0 ]]
-      then
-        local BEFORE_CUR="${COMP_WORDS[$COMP_CWORD-1]}"
-        if [[ "$BEFORE_CUR"=="-s" || "$BEFORE_CUR"=="--skip" ]]
-        then
-          CUR_IS_CMDNAME=1
-        else
-          CUR_IS_SEQNAME=1
-        fi
-      else
-        CUR_IS_PLACEHOLDER_RUN=1
-      fi
-    elif [[ "$OPERATION" == "vals" ]]
-    then
-      if [[ $FOUND_POSITIONAL == 0 ]]
-      then
-        CUR_IS_SEQNAME=1
-      else
-        CUR_IS_PLACEHOLDER_VALS=1
-      fi
-    fi
-  elif [[ "$CMD_GROUP" == "import" || "$CMD_GROUP" == "export" ]]
-  then
-    if [[ $FOUND_POSITIONAL == 0 ]]
-    then
-      CUR_IS_FILENAME=1
-    fi
-  elif [[ "$CMD_GROUP" == "vals" ]]
-  then
-    CUR_IS_PLACEHOLDER_VALS=1
-  fi
-
-  # For now we can handle command name, sequence name, or filename.
-  if [[ $CUR_IS_CMDNAME == 1 ]]
-  then
-    local CMDLIST=$("${COMP_WORDS[0]}" cmd list)
-    COMPREPLY=( $(compgen -W "$CMDLIST" -- "$CUR") )
-  elif [[ $CUR_IS_SEQNAME == 1 ]]
-  then
-    local SEQLIST=$("${COMP_WORDS[0]}" seq list)
-    COMPREPLY=( $(compgen -W "$SEQLIST" -- "$CUR") )
-  elif [[ $CUR_IS_FILENAME == 1 ]]
-  then
-    _set_file_completions "$CUR"
-  fi
-
-  # XXX Maybe placeholder support next!
+  # Use the scan results and generate completions.
+  case "$CMD_GROUP" in
+    cmd)
+      _mbuild_cmd_completions "$OPERATION" $NO_FLAGS $FOUND_POSITIONAL
+      ;;
+    seq)
+      _mbuild_seq_completions "$OPERATION" $NO_FLAGS $FOUND_POSITIONAL
+      ;;
+    import)
+      _mbuild_import_export_completions "$CMD_GROUP" $NO_FLAGS $FOUND_POSITIONAL
+      ;;
+    export)
+      _mbuild_import_export_completions "$CMD_GROUP" $NO_FLAGS $FOUND_POSITIONAL
+      ;;
+    vals)
+      _mbuild_vals_completions $NO_FLAGS
+  esac
 
   return 0
 }
