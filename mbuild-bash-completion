@@ -48,6 +48,11 @@ _mbuild()
     IS_FLAG=1
   fi
 
+  # XX Currently showing "option" type completions if and only if CUR starts
+  # with a hyphen and is not preceded by "--". The latter criterion is fine
+  # but maybe relax the former? Especially if CUR is emptystring it would be
+  # nice to see available options when hitting tab?
+
   # If this is the first word (after the program name itself), the only thing
   # it can be is the help option or a commandgroup.
   if [[ $COMP_CWORD == 1 ]]
@@ -62,17 +67,17 @@ _mbuild()
   fi
 
   # If this after the first word, bail out now if the first word was not a valid
-  # commandgroup.
+  # commandgroup. (This includes if it was a help option.)
   local CMD_GROUP="${COMP_WORDS[1]}"
-  echo "cmd seq vals export import" | grep -qw "$CMD_GROUP"
+  echo "cmd seq vals export import" | grep -qw -- "$CMD_GROUP"
   if [[ $? -ne 0 ]]
   then
     return 0
   fi
 
   # OK! Things are still pretty simple for the second word. There is a small
-  # number of valid options, or if the commandgroup was cmd/seq then this can
-  # be an operation. For export/import we can do file completion.
+  # number of valid options, or if the commandgroup was cmd/seq then this must
+  # be an operation (if it's not the help option).
   if [[ $COMP_CWORD == 2 ]]
   then
     if [[ $IS_FLAG == 1 ]]
@@ -87,175 +92,254 @@ _mbuild()
       if [[ "$CMD_GROUP" == "cmd" || "$CMD_GROUP" == "seq" ]]
       then
         COMPREPLY=( $(compgen -W "list set edit info del run vals" -- "$CUR") )
-      elif [[ "$CMD_GROUP" == "import" || "$CMD_GROUP" == "export" ]]
-      then
-        _set_file_completions "$CUR"
       fi
     fi
-    return 0
-  fi
-
-  # XXX Need to handle export possibly having a filename after option(s) here.
-
-  # After the second word we will only do completions for cmd/seq commandgroups.
-  if [[ "$CMD_GROUP" != "cmd" && "$CMD_GROUP" != "seq" ]]
-  then
-    return 0
-  fi
-
-  # At this point we know we're in the cmd/seq commandgroups. Bail out now if
-  # the second word was not a valid operation.
-  local OPERATION="${COMP_WORDS[2]}"
-  echo "list set edit info del run vals" | grep -qw "$OPERATION"
-  if [[ $? -ne 0 ]]
-  then
-    return 0
-  fi
-
-  # We have a valid operation. Onward!
-
-  # We can complete an option if the commandline doesn't have a prior "--",
-  # and we can also complete on a command or sequence name depending on the
-  # position of the argument. So we need to look through the arguments now.
-
-  local NO_FLAGS=0
-  local FOUND_FIRST_NAME=0
-  local CUR_IS_NAME=0
-  local CUR_IS_ALTNAME=0
-  local CHECK_NAME_DEL=0
-  local CHECK_ALTNAME_SET=0
-  local CHECK_ALTNAME_RUN=0
-
-  if [[ "$OPERATION" == "del" ]]
-  then
-    CHECK_NAME_DEL=1
-  elif [[ "$CMD_GROUP" == "seq" && "$OPERATION" == "set" ]]
-  then
-    CHECK_ALTNAME_SET=1
-  elif [[ "$CMD_GROUP" == "seq" && "$OPERATION" == "run" ]]
-  then
-    CHECK_ALTNAME_RUN=1
-  fi
-
-  # Scanning from word 3 up to our current position...
-  for INDEX in $(seq 3 $COMP_CWORD)
-  do
-    local THIS_WORD="${COMP_WORDS[$INDEX]}"
-    # Let's first handle looking for whether "--" appears before our word.
-    if [[ "$THIS_WORD" == "--" && $INDEX != $COMP_CWORD ]]
+    if [[ "$CMD_GROUP" == "cmd" || "$CMD_GROUP" == "seq" ]]
     then
-      NO_FLAGS=1
-      if [[ $IS_FLAG == 1 ]]
+      return 0
+    fi
+  fi
+
+  # After word 2 we will need to do some looking through all args in the
+  # command line up through the COMP_CWORD position. For cmd/seq commandgroups
+  # we'll start at position 3; for anything else we start at position 2. Also,
+  # if we're in the cmd/seq commandgroups, bail out now if the second word was
+  # not a valid operation (this includes if it was a help option). We'll also
+  # bail out if the help option was specified right after operation, or right
+  # after one of the other commandgroups.
+  local SCAN_START
+  if [[ "$CMD_GROUP" == "cmd" || "$CMD_GROUP" == "seq" ]]
+  then
+    local OPERATION="${COMP_WORDS[2]}"
+    echo "list set edit info del run vals" | grep -qw -- "$OPERATION"
+    if [[ $? -ne 0 ]]
+    then
+      return 0
+    fi
+    if [[ $COMP_CWORD != 3 ]]
+    then
+      if [[ "${COMP_WORDS[3]}" == "-h" || "${COMP_WORDS[3]}" == "--help" ]]
       then
-        # If our word starts with a hyphen, it's not actually an option since it
-        # is after "--". But nothing we're currently able to match can start
-        # with a hyphen, so bail out.
-        # XXX This might change if we introduce filename matching for import/export?
         return 0
       fi
-    # OK, is this a command name after a "-s" option for "seq run"?
-    elif [[ $CHECK_ALTNAME_RUN == 1 && $INDEX == $COMP_CWORD && $NO_FLAGS == 0 ]]
-    then
-      local PREV_WORD="${COMP_WORDS[$INDEX-1]}"
-      if [[ "$PREV_WORD"=="-s" || "$PREV_WORD"=="--skip" ]]
-      then
-        CUR_IS_ALTNAME=1
-        break
-      fi
     fi
-    # If this word starts with a hyphen, nothing else to check about it.
-    if [[ "$THIS_WORD" == -* ]]
+    SCAN_START=3
+  else
+    if [[ "${COMP_WORDS[2]}" == "-h" || "${COMP_WORDS[2]}" == "--help" ]]
     then
-      continue
+      return 0
     fi
-    # If we already found a positional-arg name in the command line, generally
-    # we won't look for another one, except for "cmd/seq del" and "seq set".
-    if [[ $FOUND_FIRST_NAME == 1 && $CHECK_NAME_DEL == 0 && $CHECK_ALTNAME_SET == 0 ]]
-    then
-      continue
-    fi
-    if [[ $INDEX == $COMP_CWORD ]]
-    then
-      if [[ $FOUND_FIRST_NAME == 1 && $CHECK_ALTNAME_SET == 1 ]]
-      then
-        # This is a command name (not the primary sequence name) for "seq set".
-        CUR_IS_ALTNAME=1
-        break
-      fi
-      # Either FOUND_FIRST_NAME is false, in which case this is the primary
-      # command/sequence name, or we're doing "cmd/seq del" which allows
-      # multiple names of the same type.
-      CUR_IS_NAME=1
-      break
-    fi
-    FOUND_FIRST_NAME=1
-  done
-
-  # Got all the info we need... time to get down to the completions.
-
-  # If word is not a name or option then bail out.
-  if [[ $IS_FLAG == 0 && $CUR_IS_NAME == 0 && $CUR_IS_ALTNAME == 0 ]]
-  then
-    return 0
+    SCAN_START=2
   fi
 
-  # "cmd/seq list" is simple; can only have a help option.
-  if [[ "$OPERATION" == "list" ]]
+  # Note that if "--help" shows up in subsequent args in the command line,
+  # from this point on we will still do completion on other words even though
+  # the help option short-circuits any other activity. Not sure what the best
+  # approach is for dealing with that non-confusingly.
+
+  # We can complete an option if the commandline doesn't have a prior "--",
+  # and we can also complete on a command name, sequence name, or filename
+  # depending on the prior args and the position of the argument. So we need
+  # to look through the arguments now.
+
+  # Scan up to just before our current position.
+  local NO_FLAGS=0
+  local FOUND_POSITIONAL=0
+  local CHECK_SKIP=0
+  if [[ "$CMD_GROUP" == "seq" && "$OPERATION" == "run" ]]
   then
-    if [[ $IS_FLAG == 1 ]]
-    then
-      COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
-    fi
-    return 0
+    CHECK_SKIP=1
+  fi
+  if [[ $SCAN_START != $COMP_CWORD ]]
+  then
+    let SCAN_END=$COMP_CWORD-1
+    for INDEX in $(seq $SCAN_START $SCAN_END)
+    do
+      local THIS_WORD="${COMP_WORDS[$INDEX]}"
+      # See if "--" prevents later options.
+      if [[ "$THIS_WORD" == "--" ]]
+      then
+        NO_FLAGS=1
+        IS_FLAG=0
+        CHECK_SKIP=0
+        continue
+      fi
+      # If this word is an option, keep looking.
+      if [[ $NO_FLAGS == 0 && "$THIS_WORD" == -* ]]
+      then
+        continue
+      fi
+      # Otherwise, we've probably found a positional arg. Only exception is
+      # the "skip" arguments for seq run.
+      if [[ $CHECK_SKIP == 1 ]]
+      then
+        local PREV_WORD="${COMP_WORDS[$INDEX-1]}"
+        if [[ "$PREV_WORD"=="-s" || "$PREV_WORD"=="--skip" ]]
+        then
+          continue
+        fi
+      fi
+      FOUND_POSITIONAL=1
+    done
   fi
 
-  # For anything else we might have a name to complete.
-  if [[ $CUR_IS_NAME == 1 ]]
+  # If we still think the current word is an option, let's finish up.
+  if [[ $IS_FLAG == 1 ]]
   then
     if [[ "$CMD_GROUP" == "cmd" ]]
     then
-      local CMDLIST=$("${COMP_WORDS[0]}" cmd list)
-      COMPREPLY=( $(compgen -W "$CMDLIST" -- "$CUR") )
-    else
-      local SEQLIST=$("${COMP_WORDS[0]}" seq list)
-      COMPREPLY=( $(compgen -W "$SEQLIST" -- "$CUR") )
+      if [[ "$OPERATION" == "list" ]]
+      then
+        COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
+      elif [[ "$OPERATION" == "set" || "$OPERATION" == "edit" || "$OPERATION" == "vals" ]]
+      then
+        COMPREPLY=( $(compgen -W "--help --quiet" -- "$CUR") )
+      elif [[ "$OPERATION" == "info" || "$OPERATION" == "run" ]]
+      then
+        COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
+      elif [[ "$OPERATION" == "del" ]]
+      then
+        COMPREPLY=( $(compgen -W "--help --force" -- "$CUR") )
+      fi
+    elif [[ "$CMD_GROUP" == "seq" ]]
+    then
+      if [[ "$OPERATION" == "list" ]]
+      then
+        COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
+      elif [[ "$OPERATION" == "set" || "$OPERATION" == "edit" ]]
+      then
+        COMPREPLY=( $(compgen -W "--help --force --quiet" -- "$CUR") )
+      elif [[ "$OPERATION" == "info" || "$OPERATION" == "del" ]]
+      then
+        COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
+      elif [[ "$OPERATION" == "run" ]]
+      then
+        COMPREPLY=( $(compgen -W "--help --ignore-errors --skip" -- "$CUR") )
+      elif [[ "$OPERATION" == "vals" ]]
+      then
+        COMPREPLY=( $(compgen -W "--help --quiet" -- "$CUR") )
+      fi
+    elif [[ "$CMD_GROUP" == "import" ]]
+    then
+      COMPREPLY=( $(compgen -W "--help --overwrite" -- "$CUR") )
+    elif [[ "$CMD_GROUP" == "export" || "$CMD_GROUP" == "vals"  ]]
+    then
+      COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
     fi
-    return 0
-  elif [[ $CUR_IS_ALTNAME == 1 ]]
-  then
-    local CMDLIST=$("${COMP_WORDS[0]}" cmd list)
-    COMPREPLY=( $(compgen -W "$CMDLIST" -- "$CUR") )
     return 0
   fi
 
-  # If not, then we're just completing options.
+  # Current word is a positional arg, so let's find out what kind.
+  local CUR_IS_CMDNAME=0
+  local CUR_IS_SEQNAME=0
+  local CUR_IS_FILENAME=0
+  local CUR_IS_PLACEHOLDER_VALS=0
+  local CUR_IS_PLACEHOLDER_RUN=0
   if [[ "$CMD_GROUP" == "cmd" ]]
   then
-    if [[ "$OPERATION" == "set" || "$OPERATION" == "edit" || "$OPERATION" == "vals" ]]
+    if [[ "$OPERATION" == "list" ]]
     then
-      COMPREPLY=( $(compgen -W "--help --quiet" -- "$CUR") )
-    elif [[ "$OPERATION" == "info" || "$OPERATION" == "run" ]]
+      true
+    elif [[ "$OPERATION" == "set" || "$OPERATION" == "edit" || "$OPERATION" == "info" ]]
     then
-      COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
+      if [[ $FOUND_POSITIONAL == 0 ]]
+      then
+        CUR_IS_CMDNAME=1
+      fi
     elif [[ "$OPERATION" == "del" ]]
     then
-      COMPREPLY=( $(compgen -W "--help --force" -- "$CUR") )
-    fi
-  else
-    if [[ "$OPERATION" == "set" || "$OPERATION" == "edit" ]]
-    then
-      COMPREPLY=( $(compgen -W "--help --force --quiet" -- "$CUR") )
-    elif [[ "$OPERATION" == "info" || "$OPERATION" == "del" ]]
-    then
-      COMPREPLY=( $(compgen -W "--help" -- "$CUR") )
+      CUR_IS_CMDNAME=1
     elif [[ "$OPERATION" == "run" ]]
     then
-      COMPREPLY=( $(compgen -W "--help --ignore-errors --skip" -- "$CUR") )
+      if [[ $FOUND_POSITIONAL == 0 ]]
+      then
+        CUR_IS_CMDNAME=1
+      else
+        CUR_IS_PLACEHOLDER_RUN=1
+      fi
     elif [[ "$OPERATION" == "vals" ]]
     then
-      COMPREPLY=( $(compgen -W "--help --quiet" -- "$CUR") )
+      if [[ $FOUND_POSITIONAL == 0 ]]
+      then
+        CUR_IS_CMDNAME=1
+      else
+        CUR_IS_PLACEHOLDER_VALS=1
+      fi
     fi
+  elif [[ "$CMD_GROUP" == "seq" ]]
+  then
+    if [[ "$OPERATION" == "list" ]]
+    then
+      true
+    elif [[ "$OPERATION" == "set" ]]
+    then
+      if [[ $FOUND_POSITIONAL == 0 ]]
+      then
+        CUR_IS_SEQNAME=1
+      else
+        CUR_IS_CMDNAME=1
+      fi
+    elif [[ "$OPERATION" == "edit" || "$OPERATION" == "info" ]]
+    then
+      if [[ $FOUND_POSITIONAL == 0 ]]
+      then
+        CUR_IS_SEQNAME=1
+      fi
+    elif [[ "$OPERATION" == "del" ]]
+    then
+      CUR_IS_SEQNAME=1
+    elif [[ "$OPERATION" == "run" ]]
+    then
+      if [[ $FOUND_POSITIONAL == 0 ]]
+      then
+        local BEFORE_CUR="${COMP_WORDS[$COMP_CWORD-1]}"
+        if [[ "$BEFORE_CUR"=="-s" || "$BEFORE_CUR"=="--skip" ]]
+        then
+          CUR_IS_CMDNAME=1
+        else
+          CUR_IS_SEQNAME=1
+        fi
+      else
+        CUR_IS_PLACEHOLDER_RUN=1
+      fi
+    elif [[ "$OPERATION" == "vals" ]]
+    then
+      if [[ $FOUND_POSITIONAL == 0 ]]
+      then
+        CUR_IS_SEQNAME=1
+      else
+        CUR_IS_PLACEHOLDER_VALS=1
+      fi
+    fi
+  elif [[ "$CMD_GROUP" == "import" || "$CMD_GROUP" == "export" ]]
+  then
+    if [[ $FOUND_POSITIONAL == 0 ]]
+    then
+      CUR_IS_FILENAME=1
+    fi
+  elif [[ "$CMD_GROUP" == "vals" ]]
+  then
+    CUR_IS_PLACEHOLDER_VALS=1
   fi
+
+  # For now we can handle command name, sequence name, or filename.
+  if [[ $CUR_IS_CMDNAME == 1 ]]
+  then
+    local CMDLIST=$("${COMP_WORDS[0]}" cmd list)
+    COMPREPLY=( $(compgen -W "$CMDLIST" -- "$CUR") )
+  elif [[ $CUR_IS_SEQNAME == 1 ]]
+  then
+    local SEQLIST=$("${COMP_WORDS[0]}" seq list)
+    COMPREPLY=( $(compgen -W "$SEQLIST" -- "$CUR") )
+  elif [[ $CUR_IS_FILENAME == 1 ]]
+  then
+    _set_file_completions "$CUR"
+  fi
+
+  # XXX Maybe placeholder support next!
+
+  return 0
 }
+
 complete -F _mbuild mbuild
 
