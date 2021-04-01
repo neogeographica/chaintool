@@ -56,7 +56,7 @@ class PlaceholderArgsPurpose(enum.Enum):
     UPDATE = 2
 
 PLACEHOLDER_DEFAULT_RE = re.compile("^([^+][^=]*)=(.*)$")
-PLACEHOLDER_TOGGLE_RE = re.compile("^(.*):(\+[^:]+):(.*)$")
+PLACEHOLDER_TOGGLE_RE = re.compile("^(\+[^=]+)=([^,]*),(.*)$")
 ALPHANUM_RE = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$")
 
 APP_NAME = "mbuild"
@@ -435,7 +435,7 @@ def update_values_from_args(values_for_names, togglevalues_for_names, args, unus
                 elif toggle_match:
                     errprint(
                         "Can't specify values for 'toggle' style placeholders "
-                        "such as '{}' in this operation.".format(toggle_match.group(2)))
+                        "such as '{}' in this operation.".format(toggle_match.group(1)))
                     return False
                 else:
                     errprint(
@@ -443,9 +443,9 @@ def update_values_from_args(values_for_names, togglevalues_for_names, args, unus
                     return False
             else:
                 if toggle_match:
-                    key = toggle_match.group(2)
+                    key = toggle_match.group(1)
                     if key in togglevalues_for_names:
-                        togglevalues_for_names[key] = [toggle_match.group(1), toggle_match.group(3)]
+                        togglevalues_for_names[key] = [toggle_match.group(2), toggle_match.group(3)]
                         if a in unused_args:
                             unused_args.remove(a)
                 elif a[0] == '+':
@@ -510,13 +510,13 @@ def update_cmdline(cmd_dict):
     def handle_placeholder(placeholder):
         toggle_match = PLACEHOLDER_TOGGLE_RE.match(placeholder)
         if toggle_match:
-            key = toggle_match.group(2)
+            key = toggle_match.group(1)
             if key not in cmd_dict['toggle_args']:
                 # Weird, but we'll handle it.
                 return placeholder
             untoggled_value = explode_literal_braces(cmd_dict['toggle_args'][key][0])
             toggled_value = explode_literal_braces(cmd_dict['toggle_args'][key][1])
-            return untoggled_value + ":" + key + ":" + toggled_value
+            return key + "=" + untoggled_value + "," + toggled_value
         default_match = PLACEHOLDER_DEFAULT_RE.match(placeholder)
         if default_match:
             key = default_match.group(1)
@@ -562,8 +562,8 @@ def handle_cmd_set(cmd, cmdline, overwrite, info_after_set, compact=False):
     def handle_placeholder(placeholder):
         toggle_match = PLACEHOLDER_TOGGLE_RE.match(placeholder)
         if toggle_match:
-            key = toggle_match.group(2)
-            untoggled_value = collapse_literal_braces(toggle_match.group(1))
+            key = toggle_match.group(1)
+            untoggled_value = collapse_literal_braces(toggle_match.group(2))
             toggled_value = collapse_literal_braces(toggle_match.group(3))
             value = [untoggled_value, toggled_value]
             if not ALPHANUM_RE.match(key[1:]):
