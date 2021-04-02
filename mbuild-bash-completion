@@ -27,6 +27,8 @@ _mbuild_file_completions()
     then
       while IFS= read -r COMP
       do
+        # XXX The quoting here means tilde will subvert correct directory
+        # detection... don't think there's an easy answer.
         if [[ -d "$COMP" ]]
         then
           COMPREPLY+=("$COMP/")
@@ -297,6 +299,19 @@ _mbuild_import_export_completions()
   fi
 }
 
+# Subroutine to populate COMPREPLY for operations in the "info" commandgroup.
+_mbuild_info_completions()
+{
+  NO_FLAGS="$1"
+  local CUR="${COMP_WORDS[$COMP_CWORD]}"
+  local OPTLIST=""
+  if [[ $NO_FLAGS == 0 ]]
+  then
+    OPTLIST="--help"
+  fi
+  COMPREPLY=( $(compgen -W "$OPTLIST" -- "$CUR") )
+}
+
 # Subroutine to populate COMPREPLY for operations in the "vals" commandgroup.
 _mbuild_vals_completions()
 {
@@ -323,14 +338,14 @@ _mbuild()
   # it can be is the help option or a commandgroup.
   if [[ $COMP_CWORD == 1 ]]
   then
-    COMPREPLY=( $(compgen -W "--help cmd seq vals export import" -- "$CUR") )
+    COMPREPLY=( $(compgen -W "--help cmd seq info vals export import" -- "$CUR") )
     return 0
   fi
 
   # If this after the first word, bail out now if the first word was not a valid
   # commandgroup. (This includes if it was a help option.)
   local CMD_GROUP="${COMP_WORDS[1]}"
-  echo "cmd seq vals export import" | grep -qw -- "$CMD_GROUP"
+  echo "cmd seq info vals export import" | grep -qw -- "$CMD_GROUP"
   if [[ $? -ne 0 ]]
   then
     return 0
@@ -347,6 +362,9 @@ _mbuild()
     elif [[ "$CMD_GROUP" == "import" || "$CMD_GROUP" == "export" ]]
     then
       _mbuild_import_export_completions "$CMD_GROUP" 0 0
+    elif [[ "$CMD_GROUP" == "info" ]]
+    then
+      _mbuild_info_completions 0
     elif [[ "$CMD_GROUP" == "vals" ]]
     then
       _mbuild_vals_completions 0
@@ -467,8 +485,12 @@ _mbuild()
     export)
       _mbuild_import_export_completions "$CMD_GROUP" $NO_FLAGS $FOUND_POSITIONAL
       ;;
+    info)
+      _mbuild_info_completions $NO_FLAGS
+      ;;
     vals)
       _mbuild_vals_completions $NO_FLAGS
+      ;;
   esac
 
   return 0

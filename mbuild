@@ -350,6 +350,13 @@ def set_seq_options(group_subparsers):
             seq_parser_vals])
     return group_parser_seq
 
+def set_info_options(group_subparsers):
+    group_parser_info = group_subparsers.add_parser(
+        "info",
+        help="Display placeholders across all commandlines.",
+        description="Display placeholders across all commandlines.")
+    return group_parser_info
+
 def set_vals_options(group_subparsers):
     group_parser_vals = group_subparsers.add_parser(
         "vals",
@@ -876,15 +883,7 @@ def handle_seq_edit(seq, ignore_missing_cmds, info_after_set):
     new_commands = new_commands_str.split()
     return handle_seq_set(seq, new_commands, ignore_missing_cmds, True, info_after_set)
 
-def handle_seq_info(seq):
-    print()
-    try:
-        seq_dict = read_seq_dict(seq)
-    except FileNotFoundError:
-        errprint("Sequence '{}' does not exist.".format(seq))
-        print()
-        return 1
-    commands = seq_dict['commands']
+def handle_multi_info(commands):
     command_dicts = []
     command_dicts_by_cmd = dict()
     all_required_placeholders_set = set()
@@ -1003,6 +1002,16 @@ def handle_seq_info(seq):
     print()
     return 0
 
+def handle_seq_info(seq):
+    print()
+    try:
+        seq_dict = read_seq_dict(seq)
+    except FileNotFoundError:
+        errprint("Sequence '{}' does not exist.".format(seq))
+        print()
+        return 1
+    return handle_multi_info(seq_dict['commands'])
+
 def handle_seq_del(delseqs):
     print()
     for seq in delseqs:
@@ -1094,6 +1103,10 @@ def handle_seq(args):
     if args.operation == "vals":
         return handle_seq_vals(args.seqname, args.placeholder_args, not args.quiet)
     return 0
+
+def handle_info(args):
+    print()
+    return handle_multi_info(os.listdir(CMD_DIR))
 
 def handle_vals(args):
     print()
@@ -1188,6 +1201,7 @@ def main(argv):
         required=True)
     group_parser_cmd = set_cmd_options(group_subparsers)
     group_parser_seq = set_seq_options(group_subparsers)
+    group_parser_info = set_info_options(group_subparsers)
     group_parser_vals = set_vals_options(group_subparsers)
     group_parser_export = set_export_options(group_subparsers)
     group_parser_import = set_import_options(group_subparsers)
@@ -1198,6 +1212,7 @@ def main(argv):
         subparsers=[
             group_parser_cmd,
             group_parser_seq,
+            group_parser_info,
             group_parser_vals,
             group_parser_export,
             group_parser_import])
@@ -1207,6 +1222,8 @@ def main(argv):
         status = handle_cmd(args)
     elif args.commandgroup == "seq":
         status = handle_seq(args)
+    elif args.commandgroup == "info":
+        status = handle_info(args)
     elif args.commandgroup == "vals":
         status = handle_vals(args)
     elif args.commandgroup == "export":
