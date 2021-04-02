@@ -34,6 +34,7 @@ import argparse
 import os
 import re
 import readline
+import shlex
 import string
 import subprocess
 import sys
@@ -56,7 +57,7 @@ class PlaceholderArgsPurpose(enum.Enum):
     UPDATE = 2
 
 PLACEHOLDER_DEFAULT_RE = re.compile("^([^+][^=]*)=(.*)$")
-PLACEHOLDER_TOGGLE_RE = re.compile("^(\+[^=]+)=([^,]*),(.*)$")
+PLACEHOLDER_TOGGLE_RE = re.compile("^(\+[^=]+)=([^:]*):(.*)$")
 ALPHANUM_RE = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$")
 
 APP_NAME = "mbuild"
@@ -125,6 +126,10 @@ def set_cmd_options(group_subparsers):
         "list",
         help="List current commandline names.",
         description="List current commandline names.")
+    cmd_parser_list.add_argument(
+        "-c", "--column",
+        action="store_true",
+        help="Single-column format.")
     cmd_parser_set = cmd_subparsers.add_parser(
         "set",
         help="Create or update a named commandline.",
@@ -158,6 +163,11 @@ def set_cmd_options(group_subparsers):
         "print",
         help="Display a commandline and its placeholders/defaults.",
         description="Display a commandline and its placeholders/defaults.")
+    cmd_parser_print.add_argument(
+        "--dump-placeholders",
+        choices=["run", "vals"],
+        dest="dump_placeholders",
+        help=argparse.SUPPRESS)
     cmd_parser_print.add_argument(
         "cmdname")
     cmd_parser_del = cmd_subparsers.add_parser(
@@ -237,6 +247,10 @@ def set_seq_options(group_subparsers):
         "list",
         help="List current sequence names.",
         description="List current sequence names.")
+    seq_parser_list.add_argument(
+        "-c", "--column",
+        action="store_true",
+        help="Single-column format.")
     seq_parser_set = seq_subparsers.add_parser(
         "set",
         help="Create or update a named sequence.",
@@ -278,6 +292,11 @@ def set_seq_options(group_subparsers):
         "available placeholders.",
         description="Display the commandlines for the named sequence, with their "
         "available placeholders.")
+    seq_parser_print.add_argument(
+        "--dump-placeholders",
+        choices=["run", "vals"],
+        dest="dump_placeholders",
+        help=argparse.SUPPRESS)
     seq_parser_print.add_argument(
         "seqname")
     seq_parser_del = seq_subparsers.add_parser(
@@ -355,6 +374,11 @@ def set_print_options(group_subparsers):
         "print",
         help="Display placeholders across all commandlines.",
         description="Display placeholders across all commandlines.")
+    group_parser_print.add_argument(
+        "--dump-placeholders",
+        choices=["run", "vals"],
+        dest="dump_placeholders",
+        help=argparse.SUPPRESS)
     return group_parser_print
 
 def set_vals_options(group_subparsers):
@@ -414,6 +438,54 @@ def read_seq_dict(seq):
 def write_seq_doc(seq, seq_doc, mode):
     with open(os.path.join(SEQ_DIR, seq), mode) as seq_file:
         seq_file.write(seq_doc)
+
+def handle_dump_placeholders(commands, is_run):
+    placeholders_with_consistent_value = dict()
+    other_placeholders_set = set()
+    toggles_with_consistent_value = dict()
+    other_toggles_set = set()
+    for cmd in commands:    
+        try:
+            cmd_dict = read_cmd_dict(cmd)
+            for k, v in cmd_dict['args'].items():
+                if v == None:
+                    other_placeholders_set.add(k)
+                else:
+                    if k not in other_placeholders_set:
+                        if k in placeholders_with_consistent_value:
+                            if placeholders_with_consistent_value[k] != v:
+                                del placeholders_with_consistent_value[k]
+                                other_placeholders_set.add(k)
+                        else:
+                            placeholders_with_consistent_value[k] = v
+            for k, v in cmd_dict['toggle_args'].items():
+                if k not in other_toggles_set:
+                    if k in toggles_with_consistent_value:
+                        if toggles_with_consistent_value[k] != v:
+                            del toggles_with_consistent_value[k]
+                            other_toggles_set.add(k)
+                    else:
+                        toggles_with_consistent_value[k] = v
+        except FileNotFoundError:
+            pass
+    for k, v in placeholders_with_consistent_value.items():
+        print("{}={}".format(k, v))
+    for k in other_placeholders_set:
+        if is_run:
+            print("{}=".format(k))
+        else:
+            print("{}".format(k))
+    for k, v in toggles_with_consistent_value.items():
+        if is_run:
+            print(k)
+        else:
+            print("{}={}:{}".format(k, v[0], v[1]))
+    for k in other_toggles_set:
+        if is_run:
+            print(k)
+        else:
+            print("{}=".format(k))
+    return 0
 
 def update_values_from_args(values_for_names, togglevalues_for_names, args, unused_args, purpose):
     all_values_keys = list(values_for_names.keys())
@@ -523,7 +595,7 @@ def update_cmdline(cmd_dict):
                 return placeholder
             untoggled_value = explode_literal_braces(cmd_dict['toggle_args'][key][0])
             toggled_value = explode_literal_braces(cmd_dict['toggle_args'][key][1])
-            return key + "=" + untoggled_value + "," + toggled_value
+            return key + "=" + untoggled_value + ":" + toggled_value
         default_match = PLACEHOLDER_DEFAULT_RE.match(placeholder)
         if default_match:
             key = default_match.group(1)
@@ -538,11 +610,14 @@ def update_cmdline(cmd_dict):
         return key + "=" + value
     cmd_dict['cmdline'] = process_cmdline(cmd_dict['cmdline'], handle_placeholder)
 
-def handle_cmd_list():
+def handle_cmd_list(column):
     print()
     command_names = os.listdir(CMD_DIR)
     if command_names:
-        print(' '.join(command_names))
+        if column:
+            print('\n'.join(command_names))
+        else:
+            print(' '.join(command_names))
         print()
     return 0
 
@@ -660,7 +735,7 @@ def handle_cmd_set(cmd, cmdline, overwrite, print_after_set, compact=False):
         return 0
     print("Command '{}' set.".format(cmd))
     if print_after_set:
-        handle_cmd_print(cmd)
+        handle_cmd_print(cmd, False)
     else:
         print()
     return 0
@@ -675,7 +750,9 @@ def handle_cmd_edit(cmd, print_after_set):
     new_cmdline = editline('commandline: ', old_cmdline)
     return handle_cmd_set(cmd, new_cmdline, True, print_after_set)
 
-def handle_cmd_print(cmd):
+def handle_cmd_print(cmd, dump_placeholders):
+    if dump_placeholders != None:
+        return handle_dump_placeholders([cmd], dump_placeholders=="run")
     print()
     try:
         cmd_dict = read_cmd_dict(cmd)
@@ -704,14 +781,14 @@ def handle_cmd_print(cmd):
         print(Fore.MAGENTA + "* optional values with default:" + Fore.RESET)
         all_optional_placeholders.sort()
         for p in all_optional_placeholders:
-            print("{} = '{}'".format(p, cmd_dict['args'][p]))
+            print("{} = {}".format(p, shlex.quote(cmd_dict['args'][p])))
     if all_toggle_placeholders:
         print()
-        print(Fore.MAGENTA + "* toggles with untoggled -> toggled:" + Fore.RESET)
+        print(Fore.MAGENTA + "* toggles with untoggled:toggled values:" + Fore.RESET)
         all_toggle_placeholders.sort()
         for p in all_toggle_placeholders:
             togglevals = cmd_dict['toggle_args'][p]
-            print("{} : '{}' -> '{}'".format(p, togglevals[0], togglevals[1]))
+            print("{} = {}:{}".format(p, shlex.quote(togglevals[0]), shlex.quote(togglevals[1])))
     print()
     return 0
 
@@ -796,20 +873,20 @@ def handle_cmd_vals_internal(cmd, args, unused_args, print_after_set, compact=Fa
     write_cmd_doc(cmd, cmd_doc, 'w')
     print("Command '{}' updated.".format(cmd))
     if print_after_set:
-        handle_cmd_print(cmd)
+        handle_cmd_print(cmd, False)
     else:
         print()
     return 0
 
 def handle_cmd(args):
     if args.operation == "list":
-        return handle_cmd_list()
+        return handle_cmd_list(args.column)
     if args.operation == "set":
         return handle_cmd_set(args.cmdname, args.cmdline, True, not args.quiet)
     if args.operation == "edit":
         return handle_cmd_edit(args.cmdname, not args.quiet)
     if args.operation == "print":
-        return handle_cmd_print(args.cmdname)
+        return handle_cmd_print(args.cmdname, args.dump_placeholders)
     if args.operation == "del":
         return handle_cmd_del(args.cmdnames, args.force)
     if args.operation == "run":
@@ -818,11 +895,14 @@ def handle_cmd(args):
         return handle_cmd_vals(args.cmdname, args.placeholder_args, not args.quiet)
     return 0
 
-def handle_seq_list():
+def handle_seq_list(column):
     print()
     sequence_names = os.listdir(SEQ_DIR)
     if sequence_names:
-        print(' '.join(sequence_names))
+        if column:
+            print('\n'.join(sequence_names))
+        else:
+            print(' '.join(sequence_names))
         print()
     return 0
 
@@ -867,7 +947,7 @@ def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, c
         return 0
     print("Sequence '{}' set.".format(seq))
     if print_after_set:
-        handle_seq_print(seq)
+        handle_seq_print(seq, False)
     else:
         print()
     return 0
@@ -949,28 +1029,28 @@ def handle_multi_print(commands):
             args.sort()
             first_cmd = group[0]
             for a in args:
-                format_str = "{}"
+                format_str = "{} = "
                 format_args = [a]
                 args_dict = None
                 if a in command_dicts_by_cmd[first_cmd]['args']:
                     if command_dicts_by_cmd[first_cmd]['args'][a] != None:
                         args_dict = 'args'
-                        common_format_str = "{} = '{}'"
-                        format_divider = " = "
+                        common_format_str = "{} = {}"
                 else:
                     args_dict = 'toggle_args'
-                    common_format_str = "{} : '{}' -> '{}'"
-                    format_divider = " : "
+                    common_format_str = "{} = {}:{}"
                 if args_dict != None:
                     has_common_value = True
                     first_value = command_dicts_by_cmd[first_cmd][args_dict][a]
                     def format_parts(v, c):
                         if args_dict == 'args':
-                            return ("'{}' ({})", [v, c])
+                            return ("{} ({})", [shlex.quote(v), c])
                         else:
-                            return ("'{}' -> '{}' ({})", [*v, c])
+                            v0 = shlex.quote(v[0])
+                            v1 = shlex.quote(v[1])
+                            return ("{}:{} ({})", [v0, v1, c])
                     (format_suffix, added_args) = format_parts(first_value, first_cmd)
-                    format_str += format_divider + format_suffix
+                    format_str += format_suffix
                     format_args += added_args
                     for cmd in group[1:]:
                         this_value = command_dicts_by_cmd[cmd][args_dict][a]
@@ -997,20 +1077,25 @@ def handle_multi_print(commands):
         print_command_groups(all_optional_placeholders_set)
     if all_toggle_placeholders_set:
         print()
-        print(Fore.MAGENTA + "** toggles with untoggled -> toggled:" + Fore.RESET)
+        print(Fore.MAGENTA + "** toggles with untoggled:toggled values:" + Fore.RESET)
         print_command_groups(all_toggle_placeholders_set)
     print()
     return 0
 
-def handle_seq_print(seq):
-    print()
+def handle_seq_print(seq, dump_placeholders):
+    if dump_placeholders == None:
+        print()
     try:
         seq_dict = read_seq_dict(seq)
     except FileNotFoundError:
-        errprint("Sequence '{}' does not exist.".format(seq))
+        if dump_placeholders == None:
+            errprint("Sequence '{}' does not exist.".format(seq))
         print()
         return 1
-    return handle_multi_print(seq_dict['commands'])
+    commands = seq_dict['commands']
+    if dump_placeholders != None:
+        return handle_dump_placeholders(commands, dump_placeholders=="run")
+    return handle_multi_print(commands)
 
 def handle_seq_del(delseqs):
     print()
@@ -1073,7 +1158,7 @@ def handle_seq_vals(seq, args, print_after_set):
     if any_change:
         print("Sequence '{}' updated.".format(seq))
         if print_after_set:
-            handle_seq_print(seq)
+            handle_seq_print(seq, False)
         else:
             print()
     if unused_args:
@@ -1089,13 +1174,13 @@ def handle_seq_vals(seq, args, print_after_set):
 
 def handle_seq(args):
     if args.operation == "list":
-        return handle_seq_list()
+        return handle_seq_list(args.column)
     if args.operation == "set":
         return handle_seq_set(args.seqname, args.cmdnames, args.force, True, not args.quiet)
     if args.operation == "edit":
         return handle_seq_edit(args.seqname, args.force, not args.quiet)
     if args.operation == "print":
-        return handle_seq_print(args.seqname)
+        return handle_seq_print(args.seqname, args.dump_placeholders)
     if args.operation == "del":
         return handle_seq_del(args.seqnames)
     if args.operation == "run":
@@ -1105,8 +1190,11 @@ def handle_seq(args):
     return 0
 
 def handle_print(args):
+    commands = os.listdir(CMD_DIR)
+    if args.dump_placeholders != None:
+        return handle_dump_placeholders(commands, args.dump_placeholders=="run")
     print()
-    return handle_multi_print(os.listdir(CMD_DIR))
+    return handle_multi_print(commands)
 
 def handle_vals(args):
     print()

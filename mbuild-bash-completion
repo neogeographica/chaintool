@@ -45,10 +45,10 @@ _mbuild_cmd_completions()
 {
   OPERATION="$1"
   NO_FLAGS="$2"
-  HAS_PREV_POSITIONAL="$3"
+  FIRST_POSITIONAL_INDEX="$3"
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
-  local OPTLIST=""
-  local POSLIST=""
+  local GENWORDS=()
+  local IFS=$'\n'
   local MIGHT_MATCH_NAME=1
   if [[ "$CUR" == -* ]]
   then
@@ -58,85 +58,95 @@ _mbuild_cmd_completions()
     list)
       if [[ $NO_FLAGS == 0 ]]
       then
-        OPTLIST="--help"
+        GENWORDS+=( "--help" "--column" )
       fi
       ;;
     set)
+      if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+      fi
       if [[ $NO_FLAGS == 0 ]]
       then
-        OPTLIST="--help --quiet"
-      fi
-      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
-      then
-        POSLIST=$("${COMP_WORDS[0]}" cmd list)
+        GENWORDS+=( "--help" "--quiet" )
       fi
       ;;
     edit)
+      if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+      fi
       if [[ $NO_FLAGS == 0 ]]
       then
-        OPTLIST="--help --quiet"
-      fi
-      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
-      then
-        POSLIST=$("${COMP_WORDS[0]}" cmd list)
+        GENWORDS+=( "--help" "--quiet" )
       fi
       ;;
     print)
+      if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+      fi
       if [[ $NO_FLAGS == 0 ]]
       then
-        OPTLIST="--help"
-      fi
-      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
-      then
-        POSLIST=$("${COMP_WORDS[0]}" cmd list)
+        GENWORDS+=( "--help" )
       fi
       ;;
     del)
-      if [[ $NO_FLAGS == 0 ]]
-      then
-        OPTLIST="--help --force"
-      fi
       if [[ $MIGHT_MATCH_NAME == 1 ]]
       then
-        POSLIST=$("${COMP_WORDS[0]}" cmd list)
+        GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+      fi
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        GENWORDS+=( "--help" "--force" )
       fi
       ;;
     run)
-      if [[ $NO_FLAGS == 0 ]]
-      then
-        OPTLIST="--help"
-      fi
-      if [[ $HAS_PREV_POSITIONAL == 0 ]]
+      if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
       then
         if [[ $MIGHT_MATCH_NAME == 1 ]]
         then
-          POSLIST=$("${COMP_WORDS[0]}" cmd list)
+          GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
         fi
       else
-        # XXX Would do run placeholders here. Only bother to query if CUR is
-        # empty or starts with a letter or + sign.
-        true
+        if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
+        then
+          local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
+          GENWORDS=($("${COMP_WORDS[0]}" cmd print $CMDNAME --dump-placeholders run))
+        fi
+      fi
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        GENWORDS+=( "--help" )
       fi
       ;;
     vals)
-      if [[ $NO_FLAGS == 0 ]]
-      then
-        OPTLIST="--help --quiet"
-      fi
-      if [[ $HAS_PREV_POSITIONAL == 0 ]]
+      if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
       then
         if [[ $MIGHT_MATCH_NAME == 1 ]]
         then
-          POSLIST=$("${COMP_WORDS[0]}" cmd list)
+          GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
         fi
       else
-        # XXX Would do vals placeholders here. Only bother to query if CUR is
-        # empty or starts with a letter or + sign.
-        true
+        if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
+        then
+          local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
+          GENWORDS=($("${COMP_WORDS[0]}" cmd print $CMDNAME --dump-placeholders vals))
+        fi
+      fi
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        GENWORDS+=( "--help" "--quiet" )
       fi
       ;;
   esac
-  COMPREPLY=( $(compgen -W "$POSLIST $OPTLIST" -- "$CUR") )
+  CANDIDATES=($(compgen -W "${GENWORDS[*]}" -- "$CUR"))
+  if [ ${#CANDIDATES[*]} -eq 0 ]
+  then
+    COMPREPLY=()
+  else
+    COMPREPLY=($(printf "%q\n" "${CANDIDATES[@]}"))
+  fi
 }
 
 # Subroutine to populate COMPREPLY for operations in the "seq" commandgroup.
@@ -144,11 +154,11 @@ _mbuild_seq_completions()
 {
   OPERATION="$1"
   NO_FLAGS="$2"
-  HAS_PREV_POSITIONAL="$3"
+  FIRST_POSITIONAL_INDEX="$3"
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
   local BEFORE_CUR="${COMP_WORDS[$COMP_CWORD-1]}"
-  local OPTLIST=""
-  local POSLIST=""
+  local GENWORDS=()
+  local IFS=$'\n'
   local MIGHT_MATCH_NAME=1
   if [[ "$CUR" == -* ]]
   then
@@ -158,95 +168,105 @@ _mbuild_seq_completions()
     list)
       if [[ $NO_FLAGS == 0 ]]
       then
-        OPTLIST="--help"
+        GENWORDS+=( "--help" "--column" )
       fi
       ;;
     set)
-      if [[ $NO_FLAGS == 0 ]]
-      then
-        OPTLIST="--help --force --quiet"
-      fi
       if [[ $MIGHT_MATCH_NAME == 1 ]]
       then
-        if [[ $HAS_PREV_POSITIONAL == 0 ]]
+        if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
         then
-          POSLIST=$("${COMP_WORDS[0]}" seq list)
+          GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
         else
-          POSLIST=$("${COMP_WORDS[0]}" cmd list)
+          GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
         fi
+      fi
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        GENWORDS+=( "--help" "--force" "--quiet" )
       fi
       ;;
     edit)
+      if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
+      fi
       if [[ $NO_FLAGS == 0 ]]
       then
-        OPTLIST="--help --force --quiet"
-      fi
-      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
-      then
-        POSLIST=$("${COMP_WORDS[0]}" seq list)
+        GENWORDS+=( "--help" "--force" "--quiet" )
       fi
       ;;
     print)
+      if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
+      then
+        GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
+      fi
       if [[ $NO_FLAGS == 0 ]]
       then
-        OPTLIST="--help"
-      fi
-      if [[ $HAS_PREV_POSITIONAL == 0 && $MIGHT_MATCH_NAME == 1 ]]
-      then
-        POSLIST=$("${COMP_WORDS[0]}" seq list)
+        GENWORDS+=( "--help" )
       fi
       ;;
     del)
-      if [[ $NO_FLAGS == 0 ]]
-      then
-        OPTLIST="--help"
-      fi
       if [[ $MIGHT_MATCH_NAME == 1 ]]
       then
-        POSLIST=$("${COMP_WORDS[0]}" seq list)
+        GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
+      fi
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        GENWORDS+=( "--help" )
       fi
       ;;
     run)
-      if [[ $NO_FLAGS == 0 ]]
-      then
-        OPTLIST="--help --ignore-errors --skip"
-      fi
       if [[ $MIGHT_MATCH_NAME == 1 ]]
       then
         if [[ $NO_FLAGS == 0 && ( "$BEFORE_CUR" == "-s" || "$BEFORE_CUR" == "--skip" ) ]]
         then
-          POSLIST=$("${COMP_WORDS[0]}" cmd list)
+          GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
         else
-          if [[ $HAS_PREV_POSITIONAL == 0 ]]
+          if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
           then
-            POSLIST=$("${COMP_WORDS[0]}" seq list)
+            GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
           else
-            # XXX Would do run placeholders here. Only bother to query if CUR is
-            # empty or starts with a letter or + sign.
-            true
+            if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
+            then
+              local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
+              GENWORDS=($("${COMP_WORDS[0]}" seq print $SEQNAME --dump-placeholders run))
+            fi
           fi
         fi
       fi
-      ;;
-    vals)
       if [[ $NO_FLAGS == 0 ]]
       then
-        OPTLIST="--help --quiet"
+        GENWORDS+=( "--help" "--ignore-errors" "--skip" )
       fi
-      if [[ $HAS_PREV_POSITIONAL == 0 ]]
+      ;;
+    vals)
+      if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
       then
         if [[ $MIGHT_MATCH_NAME == 1 ]]
         then
-          POSLIST=$("${COMP_WORDS[0]}" seq list)
+          GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
         fi
       else
-        # XXX Would do vals placeholders here. Only bother to query if CUR is
-        # empty or starts with a letter or + sign.
-        true
+        if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
+        then
+          local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
+          GENWORDS=($("${COMP_WORDS[0]}" seq print $SEQNAME --dump-placeholders vals))
+        fi
+      fi
+      if [[ $NO_FLAGS == 0 ]]
+      then
+        GENWORDS+=( "--help" "--quiet" )
       fi
       ;;
   esac
-  COMPREPLY=( $(compgen -W "$POSLIST $OPTLIST" -- "$CUR") )
+  CANDIDATES=($(compgen -W "${GENWORDS[*]}" -- "$CUR"))
+  if [ ${#CANDIDATES[*]} -eq 0 ]
+  then
+    COMPREPLY=()
+  else
+    COMPREPLY=($(printf "%q\n" "${CANDIDATES[@]}"))
+  fi
 }
 
 # Subroutine to populate COMPREPLY for operations in the "import" and
@@ -255,7 +275,7 @@ _mbuild_import_export_completions()
 {
   OPERATION="$1"
   NO_FLAGS="$2"
-  HAS_PREV_POSITIONAL="$3"
+  FIRST_POSITIONAL_INDEX="$3"
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
   local OPTLIST
   if [[ "$OPERATION" == "import" ]]
@@ -266,7 +286,7 @@ _mbuild_import_export_completions()
   fi
   # If we've already got the filename, the only remaining valid things are
   # options.
-  if [[ $HAS_PREV_POSITIONAL == 1 ]]
+  if [[ $FIRST_POSITIONAL_INDEX == 1 ]]
   then
     if [[ $NO_FLAGS == 0 ]]
     then
@@ -317,20 +337,30 @@ _mbuild_vals_completions()
 {
   NO_FLAGS="$1"
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
-  local OPTLIST=""
+  local GENWORDS=()
+  local IFS=$'\n'
+  if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
+  then
+    GENWORDS=($("${COMP_WORDS[0]}" print --dump-placeholders vals))
+  fi
   if [[ $NO_FLAGS == 0 ]]
   then
-    OPTLIST="--help"
+    GENWORDS+=( "--help" )
   fi
-  # XXX Would do vals placeholders here. Only bother to query if CUR is
-  # empty or starts with a letter or + sign.
-  local POSLIST=""
-  COMPREPLY=( $(compgen -W "$POSLIST $OPTLIST" -- "$CUR") )
+  CANDIDATES=($(compgen -W "${GENWORDS[*]}" -- "$CUR"))
+  if [ ${#CANDIDATES[*]} -eq 0 ]
+  then
+    COMPREPLY=()
+  else
+    COMPREPLY=($(printf "%q\n" "${CANDIDATES[@]}"))
+  fi
 }
 
 # Main entry point for mbuild argument completions.
 _mbuild()
 {
+  COMPREPLY=()
+
   # Memo-ize the word we're trying to complete.
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
 
@@ -432,7 +462,7 @@ _mbuild()
 
   # Scan up to just before our current position.
   local NO_FLAGS=0
-  local FOUND_POSITIONAL=0
+  local FIRST_POSITIONAL_INDEX=0
   local CHECK_SKIP=0
   if [[ "$CMD_GROUP" == "seq" && "$OPERATION" == "run" ]]
   then
@@ -466,24 +496,29 @@ _mbuild()
           continue
         fi
       fi
-      FOUND_POSITIONAL=1
-      NO_FLAGS=1
+      if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
+      then
+        FIRST_POSITIONAL_INDEX=$INDEX
+        NO_FLAGS=1
+        # Since we're also setting NO_FLAGS here, we're done.
+        break
+      fi
     done
   fi
 
   # Use the scan results and generate completions.
   case "$CMD_GROUP" in
     cmd)
-      _mbuild_cmd_completions "$OPERATION" $NO_FLAGS $FOUND_POSITIONAL
+      _mbuild_cmd_completions "$OPERATION" $NO_FLAGS $FIRST_POSITIONAL_INDEX
       ;;
     seq)
-      _mbuild_seq_completions "$OPERATION" $NO_FLAGS $FOUND_POSITIONAL
+      _mbuild_seq_completions "$OPERATION" $NO_FLAGS $FIRST_POSITIONAL_INDEX
       ;;
     import)
-      _mbuild_import_export_completions "$CMD_GROUP" $NO_FLAGS $FOUND_POSITIONAL
+      _mbuild_import_export_completions "$CMD_GROUP" $NO_FLAGS $FIRST_POSITIONAL_INDEX
       ;;
     export)
-      _mbuild_import_export_completions "$CMD_GROUP" $NO_FLAGS $FOUND_POSITIONAL
+      _mbuild_import_export_completions "$CMD_GROUP" $NO_FLAGS $FIRST_POSITIONAL_INDEX
       ;;
     print)
       _mbuild_print_completions $NO_FLAGS
