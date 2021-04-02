@@ -81,7 +81,7 @@ _mbuild_cmd_completions()
         POSLIST=$("${COMP_WORDS[0]}" cmd list)
       fi
       ;;
-    info)
+    print)
       if [[ $NO_FLAGS == 0 ]]
       then
         OPTLIST="--help"
@@ -186,7 +186,7 @@ _mbuild_seq_completions()
         POSLIST=$("${COMP_WORDS[0]}" seq list)
       fi
       ;;
-    info)
+    print)
       if [[ $NO_FLAGS == 0 ]]
       then
         OPTLIST="--help"
@@ -299,8 +299,8 @@ _mbuild_import_export_completions()
   fi
 }
 
-# Subroutine to populate COMPREPLY for operations in the "info" commandgroup.
-_mbuild_info_completions()
+# Subroutine to populate COMPREPLY for operations in the "print" commandgroup.
+_mbuild_print_completions()
 {
   NO_FLAGS="$1"
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
@@ -338,14 +338,14 @@ _mbuild()
   # it can be is the help option or a commandgroup.
   if [[ $COMP_CWORD == 1 ]]
   then
-    COMPREPLY=( $(compgen -W "--help cmd seq info vals export import" -- "$CUR") )
+    COMPREPLY=( $(compgen -W "--help cmd seq print vals export import" -- "$CUR") )
     return 0
   fi
 
   # If this after the first word, bail out now if the first word was not a valid
   # commandgroup. (This includes if it was a help option.)
   local CMD_GROUP="${COMP_WORDS[1]}"
-  echo "cmd seq info vals export import" | grep -qw -- "$CMD_GROUP"
+  echo "cmd seq print vals export import" | grep -qw -- "$CMD_GROUP"
   if [[ $? -ne 0 ]]
   then
     return 0
@@ -358,13 +358,13 @@ _mbuild()
   then
     if [[ "$CMD_GROUP" == "cmd" || "$CMD_GROUP" == "seq" ]]
     then
-      COMPREPLY=( $(compgen -W "--help list set edit info del run vals" -- "$CUR") )
+      COMPREPLY=( $(compgen -W "--help list set edit print del run vals" -- "$CUR") )
     elif [[ "$CMD_GROUP" == "import" || "$CMD_GROUP" == "export" ]]
     then
       _mbuild_import_export_completions "$CMD_GROUP" 0 0
-    elif [[ "$CMD_GROUP" == "info" ]]
+    elif [[ "$CMD_GROUP" == "print" ]]
     then
-      _mbuild_info_completions 0
+      _mbuild_print_completions 0
     elif [[ "$CMD_GROUP" == "vals" ]]
     then
       _mbuild_vals_completions 0
@@ -383,7 +383,7 @@ _mbuild()
   if [[ "$CMD_GROUP" == "cmd" || "$CMD_GROUP" == "seq" ]]
   then
     local OPERATION="${COMP_WORDS[2]}"
-    echo "list set edit info del run vals" | grep -qw -- "$OPERATION"
+    echo "list set edit print del run vals" | grep -qw -- "$OPERATION"
     if [[ $? -ne 0 ]]
     then
       return 0
@@ -485,8 +485,8 @@ _mbuild()
     export)
       _mbuild_import_export_completions "$CMD_GROUP" $NO_FLAGS $FOUND_POSITIONAL
       ;;
-    info)
-      _mbuild_info_completions $NO_FLAGS
+    print)
+      _mbuild_print_completions $NO_FLAGS
       ;;
     vals)
       _mbuild_vals_completions $NO_FLAGS
