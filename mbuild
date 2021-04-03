@@ -471,10 +471,7 @@ def handle_dump_placeholders(commands, is_run):
     for k, v in placeholders_with_consistent_value.items():
         print("{}={}".format(k, v))
     for k in other_placeholders_set:
-        if is_run:
-            print("{}=".format(k))
-        else:
-            print("{}".format(k))
+        print("{}".format(k))
     for k, v in toggles_with_consistent_value.items():
         if is_run:
             print(k)

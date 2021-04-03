@@ -1,8 +1,38 @@
-#!/usr/bin/env bash
+# Bash-completions implementation for the mbuild tool. This file should be
+# sourced directly or indirectly by one of your startup scripts.
 
-# Bash completion implementation for the mbuild tool. Either paste all the
-# code below into a file that will be sourced such as ~/.bash_completion
-# or explicitly source this file from some other such file.
+# One way to do this would be to explicitly source it from such a script (e.g.
+# from your ~/.bashrc script).
+
+# Or if you have the "bash-completion" package installed, and active for your
+# account, then there will also be other locations where it looks for files
+# like this to source. The bash-completion docs identify where those locations
+# would be for your particular system:
+#     https://github.com/scop/bash-completion/blob/master/README.md
+# See the answer to the "Where should I install my own local completions?" FAQ
+# there. So if you're in this situation, you could put this file in one of
+# those locations.
+
+# ----------
+
+# Note that if you have an old version of bash that doesn't support the
+# "compopt" builtin, then some of the behaviors here won't be quite as nice.
+# Specifically there will be extraneous space characters after directory
+# completions and after some mbuild-placeholder completions, and when doing
+# file completions on a path that uses the "~" character it won't properly
+# detect when that path is a directory. Might be time to update to a recent
+# version of bash! Likely this will only be a problem if you are on macOS;
+# see: https://itnext.io/upgrading-bash-on-macos-7138bd1066ba
+
+# Final note that applies in general to bash completions (not just mbuild):
+# In an "ambiguous" case where multiple things could match what you have
+# typed so far before hitting TAB, by default you must hit TAB twice to see
+# all possible completions. This can get kinda old when you are trying to
+# explore the available options, so you may want to remove the requirement
+# for double-TABbing. You can do this by editing (or creating) your
+# ~/.inputrc file to include this line: set show-all-if-ambiguous on
+
+# ----------
 
 
 # Subroutine to populate COMPREPLY with file/directory completions.
@@ -16,8 +46,7 @@ _mbuild_file_completions()
     # are directories.
     COMPREPLY=( $(compgen -f -- "$CUR") )
   else
-    # If compopt failed, this is probably an old bash version. Likely to
-    # happen on macOS, cf. https://itnext.io/upgrading-bash-on-macos-7138bd1066ba
+    # This is probably an old bash version that doesn't support compopt.
     # We will try an alternate approach here; works pretty well but any
     # directory-name completions for import/export will have an annoying
     # space after the slash.
@@ -50,6 +79,7 @@ _mbuild_cmd_completions()
   local GENWORDS=()
   local IFS=$'\n'
   local MIGHT_MATCH_NAME=1
+  local GENWORDS_INCLUDE_PLACEHOLDERS=0
   if [[ "$CUR" == -* ]]
   then
     MIGHT_MATCH_NAME=0
@@ -113,6 +143,7 @@ _mbuild_cmd_completions()
         then
           local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
           GENWORDS=($("${COMP_WORDS[0]}" cmd print $CMDNAME --dump-placeholders run))
+          GENWORDS_INCLUDE_PLACEHOLDERS=1
         fi
       fi
       if [[ $NO_FLAGS == 0 ]]
@@ -132,6 +163,7 @@ _mbuild_cmd_completions()
         then
           local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
           GENWORDS=($("${COMP_WORDS[0]}" cmd print $CMDNAME --dump-placeholders vals))
+          GENWORDS_INCLUDE_PLACEHOLDERS=1
         fi
       fi
       if [[ $NO_FLAGS == 0 ]]
@@ -140,12 +172,22 @@ _mbuild_cmd_completions()
       fi
       ;;
   esac
-  CANDIDATES=($(compgen -W "${GENWORDS[*]}" -- "$CUR"))
-  if [ ${#CANDIDATES[*]} -eq 0 ]
+  if [[ $GENWORDS_INCLUDE_PLACEHOLDERS == 0 ]]
   then
-    COMPREPLY=()
+    COMPREPLY=($(compgen -W "${GENWORDS[*]}" -- "$CUR"))
   else
-    COMPREPLY=($(printf "%q\n" "${CANDIDATES[@]}"))
+    CANDIDATES=($(compgen -W "${GENWORDS[*]}" -- "$CUR"))
+    if [ ${#CANDIDATES[*]} -eq 0 ]
+    then
+      COMPREPLY=()
+    else
+      COMPREPLY=($(printf "%q\n" "${CANDIDATES[@]}"))
+      if [[ "$CUR" != -* && ( "$CUR" != +* || "$OPERATION" == "vals" ) ]]
+      then
+        compopt -o nospace 2> /dev/null
+      fi
+      COMPREPLY=($(echo "${COMPREPLY[*]}" | sed 's/^\([^=][^=]*=\)$/\1""/' | sed 's/^\([^+-][^=]*\)$/\1=/'))
+    fi
   fi
 }
 
@@ -160,6 +202,7 @@ _mbuild_seq_completions()
   local GENWORDS=()
   local IFS=$'\n'
   local MIGHT_MATCH_NAME=1
+  local GENWORDS_INCLUDE_PLACEHOLDERS=0
   if [[ "$CUR" == -* ]]
   then
     MIGHT_MATCH_NAME=0
@@ -219,8 +262,29 @@ _mbuild_seq_completions()
     run)
       if [[ $MIGHT_MATCH_NAME == 1 ]]
       then
-        if [[ $NO_FLAGS == 0 && ( "$BEFORE_CUR" == "-s" || "$BEFORE_CUR" == "--skip" ) ]]
+        local SKIP_VALUE=0
+        if [[ $NO_FLAGS == 0 ]]
         then
+          if [[ "$BEFORE_CUR" == "-s" || "$BEFORE_CUR" == "--skip" ]]
+          then
+            SKIP_VALUE=1
+          else
+            if [[ "$BEFORE_CUR" == "=" ]]
+            then
+              BEFORE_CUR="${COMP_WORDS[$COMP_CWORD-2]}"
+              if [[ "$BEFORE_CUR" == "-s" || "$BEFORE_CUR" == "--skip" ]]
+              then
+                SKIP_VALUE=1
+              fi
+            fi
+          fi
+        fi
+        if [[ $SKIP_VALUE == 1 ]]
+        then
+          if [[ "$CUR" == "=" ]]
+          then
+            CUR=""
+          fi
           GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
         else
           if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
@@ -231,13 +295,14 @@ _mbuild_seq_completions()
             then
               local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
               GENWORDS=($("${COMP_WORDS[0]}" seq print $SEQNAME --dump-placeholders run))
+              GENWORDS_INCLUDE_PLACEHOLDERS=1
             fi
           fi
         fi
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
-        GENWORDS+=( "--help" "--ignore-errors" "--skip" )
+        GENWORDS+=( "--help" "--ignore-errors" "--skip=" )
       fi
       ;;
     vals)
@@ -252,6 +317,7 @@ _mbuild_seq_completions()
         then
           local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
           GENWORDS=($("${COMP_WORDS[0]}" seq print $SEQNAME --dump-placeholders vals))
+          GENWORDS_INCLUDE_PLACEHOLDERS=1
         fi
       fi
       if [[ $NO_FLAGS == 0 ]]
@@ -260,12 +326,22 @@ _mbuild_seq_completions()
       fi
       ;;
   esac
-  CANDIDATES=($(compgen -W "${GENWORDS[*]}" -- "$CUR"))
-  if [ ${#CANDIDATES[*]} -eq 0 ]
+  if [[ $GENWORDS_INCLUDE_PLACEHOLDERS == 0 ]]
   then
-    COMPREPLY=()
+    COMPREPLY=($(compgen -W "${GENWORDS[*]}" -- "$CUR"))
   else
-    COMPREPLY=($(printf "%q\n" "${CANDIDATES[@]}"))
+    CANDIDATES=($(compgen -W "${GENWORDS[*]}" -- "$CUR"))
+    if [ ${#CANDIDATES[*]} -eq 0 ]
+    then
+      COMPREPLY=()
+    else
+      COMPREPLY=($(printf "%q\n" "${CANDIDATES[@]}"))
+      if [[ "$CUR" != -* && ( "$CUR" != +* || "$OPERATION" == "vals" ) ]]
+      then
+        compopt -o nospace 2> /dev/null
+      fi
+      COMPREPLY=($(echo "${COMPREPLY[*]}" | sed 's/^\([^=][^=]*=\)$/\1""/' | sed 's/^\([^+-][^=]*\)$/\1=/'))
+    fi
   fi
 }
 
@@ -352,7 +428,12 @@ _mbuild_vals_completions()
   then
     COMPREPLY=()
   else
+    if [[ "$CUR" != -* ]]
+    then
+      compopt -o nospace 2> /dev/null
+    fi
     COMPREPLY=($(printf "%q\n" "${CANDIDATES[@]}"))
+    COMPREPLY=($(echo "${COMPREPLY[*]}" | sed 's/^\([^=][^=]*=\)$/\1""/' | sed 's/^\([^+-][^=]*\)$/\1=/'))
   fi
 }
 
@@ -487,13 +568,24 @@ _mbuild()
         continue
       fi
       # Otherwise, we've probably found a positional arg. Only exception is
-      # the "skip" arguments for seq run.
+      # the "skip" arguments for seq run. Note that if the "option=value"
+      # format is used on the command line, rather than "option value",
+      # we'll be getting the = sign as its own word here so we need to check
+      # for that.
       if [[ $CHECK_SKIP == 1 ]]
       then
         local PREV_WORD="${COMP_WORDS[$INDEX-1]}"
         if [[ "$PREV_WORD" == "-s" || "$PREV_WORD" == "--skip" ]]
         then
           continue
+        fi
+        if [[ "$PREV_WORD" == "=" ]]
+        then
+          PREV_WORD="${COMP_WORDS[$INDEX-2]}"
+          if [[ "$PREV_WORD" == "-s" || "$PREV_WORD" == "--skip" ]]
+          then
+            continue
+          fi
         fi
       fi
       if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
@@ -527,6 +619,13 @@ _mbuild()
       _mbuild_vals_completions $NO_FLAGS
       ;;
   esac
+
+  # Set nospace if we've found the one completion and it ends with an = sign.
+  # Currently this really only catches the case of the --skip= option.
+  if [[ ${#COMPREPLY[@]} -eq 1 && ${COMPREPLY[0]} == *= ]]
+  then
+    compopt -o nospace 2> /dev/null
+  fi
 
   return 0
 }
