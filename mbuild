@@ -735,7 +735,7 @@ def handle_cmd_set(cmd, cmdline, overwrite, print_after_set, compact=False):
         return 0
     print("Command '{}' set.".format(cmd))
     if print_after_set:
-        handle_cmd_print(cmd, False)
+        handle_cmd_print(cmd, None)
     else:
         print()
     return 0
@@ -873,7 +873,7 @@ def handle_cmd_vals_internal(cmd, args, unused_args, print_after_set, compact=Fa
     write_cmd_doc(cmd, cmd_doc, 'w')
     print("Command '{}' updated.".format(cmd))
     if print_after_set:
-        handle_cmd_print(cmd, False)
+        handle_cmd_print(cmd, None)
     else:
         print()
     return 0
@@ -947,7 +947,7 @@ def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, c
         return 0
     print("Sequence '{}' set.".format(seq))
     if print_after_set:
-        handle_seq_print(seq, False)
+        handle_seq_print(seq, None)
     else:
         print()
     return 0
@@ -1158,7 +1158,7 @@ def handle_seq_vals(seq, args, print_after_set):
     if any_change:
         print("Sequence '{}' updated.".format(seq))
         if print_after_set:
-            handle_seq_print(seq, False)
+            handle_seq_print(seq, None)
         else:
             print()
     if unused_args:
