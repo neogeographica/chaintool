@@ -26,11 +26,12 @@ More description TBD.
 
 __version__ = "0.1.0"
 
+import argparse
 import atexit
 import copy
 import enum
 import errno
-import argparse
+import glob
 import os
 import re
 import readline
@@ -38,11 +39,14 @@ import shlex
 import string
 import subprocess
 import sys
+import time
 
-# Three nonstandard modules required: appdirs, colorama, and pyyaml.
+# Five nonstandard modules required
 import appdirs
 import colorama
-import yaml
+import filelock
+import psutil
+import yaml # from pyyaml
 
 from colorama import Fore
 
@@ -56,6 +60,10 @@ class PlaceholderArgsPurpose(enum.Enum):
     RUN = 1
     UPDATE = 2
 
+class LockType(enum.Enum):
+    READ = "read"
+    WRITE = "write"
+
 PLACEHOLDER_DEFAULT_RE = re.compile("^([^+][^=]*)=(.*)$")
 PLACEHOLDER_TOGGLE_RE = re.compile("^(\+[^=]+)=([^:]*):(.*)$")
 ALPHANUM_RE = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$")
@@ -65,6 +73,13 @@ APP_AUTHOR = "Joel Baxter"
 CONFIG_DIR = appdirs.user_config_dir(APP_NAME, APP_AUTHOR)
 CMD_DIR = os.path.join(CONFIG_DIR, "command")
 SEQ_DIR = os.path.join(CONFIG_DIR, "sequence")
+DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
+LOCKS_DIR = os.path.join(DATA_DIR, "locks")
+
+META_LOCK = filelock.FileLock(os.path.join(DATA_DIR, "metalock"))
+LOCKS_PREFIX = os.path.join(LOCKS_DIR, "")
+
+MY_PID = str(os.getpid())
 
 
 class SubparsersHelpAction(argparse.Action):
@@ -91,6 +106,81 @@ class SubparsersHelpAction(argparse.Action):
 
 def errprint(msg):
     sys.stderr.write(Fore.RED + msg + Fore.RESET + '\n')
+
+def locker_pid(lock_path):
+    return int(lock_path[lock_path.rindex('.') + 1:])
+
+def remove_lock(lock_path):
+    try:
+        os.remove(lock_path)
+    except FileNotFoundError:
+        pass
+
+def remove_dead_locks(lock_paths):
+    current_pids = psutil.pids()
+    for path in lock_paths:
+        if locker_pid(path) not in current_pids:
+            remove_lock(path)
+
+# This simple R/W lock implementation does not enforce all the guardrails
+# necessary to prevent deadlock. Because its usage is pretty simple in this
+# program, we just have to follow conventions to avoid deadlock (knock on
+# wood). The conventions are:
+# * lock acquisition order: seq inventory, seq item, cmd inventory, cmd item
+# * for holding multiple item locks, acquire in sorted item name order (this
+#    is actually enforced as long as you use multi_item_lock to do it)
+
+def lock_internal(lock_type, prefix):
+    if lock_type == LockType.WRITE:
+        conflict_pattern = prefix + ".*"
+    else:
+        conflict_pattern = '.'.join([prefix, LockType.WRITE.value, "*"])
+    first_try = True
+    while True:
+        with META_LOCK:
+            conflicting_locks = glob.glob(conflict_pattern)
+            conflicting_locks = [l for l in conflicting_locks if locker_pid(l) != MY_PID]
+            if not conflicting_locks:
+                lock_path = '.'.join([prefix, lock_type.value, MY_PID])
+                atexit.register(remove_lock, lock_path) 
+                with open(lock_path, 'w'):
+                    pass
+                return
+            remove_dead_locks(conflicting_locks)
+        if not first_try:
+            print("waiting on other mbuild process...")
+            time.sleep(5)
+        else:
+            first_try = False
+
+# Acquire WRITE inventory lock to create or delete item-of-type.
+# Other create/delete for item-of-type is prevented during WRITE or READ lock.
+
+def inventory_lock(item_type, lock_type):
+    prefix = LOCKS_PREFIX + "inventory-" + item_type
+    lock_internal(lock_type, prefix)
+
+def release_inventory_lock(item_type, lock_type):
+    prefix = LOCKS_PREFIX + "inventory-" + item_type
+    lock_path = '.'.join([prefix, lock_type.value, MY_PID])
+    try:
+        os.remove(lock_path)
+    except FileNotFoundError:
+        pass
+
+
+# Acquire WRITE item lock to create, delete,or modify an item.
+# Other create/delete/modify for that item is prevented during WRITE or READ lock.
+
+def item_lock(item_type, item_name, lock_type):
+    prefix = LOCKS_PREFIX + item_type + "-" + item_name
+    lock_internal(lock_type, prefix)
+
+def multi_item_lock(item_type, item_name_list, lock_type):
+    items = copy.deepcopy(item_name_list)
+    items.sort()
+    for i in items:
+        item_lock(item_type, i, lock_type)
 
 def is_valid_cmdseq_name(n):
     if not n:
@@ -608,6 +698,7 @@ def update_cmdline(cmd_dict):
     cmd_dict['cmdline'] = process_cmdline(cmd_dict['cmdline'], handle_placeholder)
 
 def handle_cmd_list(column):
+    # No locking needed. We just read a directory list and print it.
     print()
     command_names = os.listdir(CMD_DIR)
     if command_names:
@@ -618,7 +709,24 @@ def handle_cmd_list(column):
         print()
     return 0
 
-def handle_cmd_set(cmd, cmdline, overwrite, print_after_set, compact=False):
+def handle_cmd_set(cmd, cmdline, overwrite, print_after_set):
+    inventory_lock("seq", LockType.READ)
+    inventory_lock("cmd", LockType.WRITE)
+    item_lock("cmd", cmd, LockType.WRITE)
+    if os.path.exists(os.path.join(CMD_DIR, cmd)):
+        release_inventory_lock("seq", LockType.READ)
+    else:
+        # Check whether there's a seq of the same name.
+        if os.path.exists(os.path.join(SEQ_DIR, cmd)):
+            print()
+            errprint(
+                "Command '{}' cannot be created because a sequence exists with "
+                "the same name.".format(cmd))
+            print()
+            return 1
+    handle_cmd_set_internal(cmd, cmdline, overwrite, print_after_set, True)
+
+def handle_cmd_set_internal(cmd, cmdline, overwrite, print_after_set, compact):
     if not compact:
         print()
     if not is_valid_cmdseq_name(cmd):
@@ -732,22 +840,65 @@ def handle_cmd_set(cmd, cmdline, overwrite, print_after_set, compact=False):
         return 0
     print("Command '{}' set.".format(cmd))
     if print_after_set:
-        handle_cmd_print(cmd, None)
+        handle_cmd_print_internal(cmd, None)
     else:
         print()
     return 0
 
 def handle_cmd_edit(cmd, print_after_set):
-    print()
+    inventory_lock("seq", LockType.READ)
+    inventory_lock("cmd", LockType.WRITE)
+    item_lock("cmd", cmd, LockType.WRITE)
+    cleanup_placeholder_fun = None
     try:
         cmd_dict = read_cmd_dict(cmd)
         old_cmdline = cmd_dict['cmdline']
     except FileNotFoundError:
+        # Check whether there's a seq of the same name.
+        if os.path.exists(os.path.join(SEQ_DIR, cmd)):
+            print()
+            errprint(
+                "Command '{}' cannot be created because a sequence exists with "
+                "the same name.".format(cmd))
+            print()
+            return 1
+        # We want to release the inventory locks before we go into interactive
+        # edit. Let's create a placeholder command to edit here, so that any
+        # concurrent seq creation will see it when checking for name conflicts.
+        cmd_doc = yaml.dump(
+            {
+                'cmdline': "",
+                'format': "",
+                'args': dict(),
+                'toggle_args': dict()
+            },
+            default_flow_style=False
+        )
         old_cmdline = ""
+        cleanup_placeholder_fun = lambda: os.remove(os.path.join(CMD_DIR, cmd))
+        atexit.register(cleanup_placeholder_fun) 
+        write_cmd_doc(cmd, cmd_doc, 'w')
+    release_inventory_lock("cmd", LockType.WRITE)
+    release_inventory_lock("seq", LockType.READ)
+    print()
     new_cmdline = editline('commandline: ', old_cmdline)
-    return handle_cmd_set(cmd, new_cmdline, True, print_after_set)
+    status = handle_cmd_set_internal(cmd, new_cmdline, True, print_after_set, False)
+    if cleanup_placeholder_fun:
+        if status:
+            cleanup_placeholder_fun()
+        atexit.unregister(cleanup_placeholder_fun) 
+    return status
 
 def handle_cmd_print(cmd, dump_placeholders):
+    # No locking needed. We read a cmd yaml file and format/print it. If
+    # the file is being deleted right now that's fine, either we get in
+    # before the delete or after.
+    # Currently the top-level print op is the same as any internal print op,
+    # but let's maintain the invariant that top-level handle routines should
+    # not call each other.
+    handle_cmd_print_internal(cmd, dump_placeholders)
+
+def handle_cmd_print_internal(cmd, dump_placeholders):
     if dump_placeholders != None:
         return handle_dump_placeholders([cmd], dump_placeholders=="run")
     print()
@@ -790,6 +941,10 @@ def handle_cmd_print(cmd, dump_placeholders):
     return 0
 
 def handle_cmd_del(delcmds, ignore_seq_usage):
+    if not ignore_seq_usage:
+        inventory_lock("seq", LockType.READ)
+    inventory_lock("cmd", LockType.WRITE)
+    multi_item_lock("cmd", delcmds, LockType.WRITE)
     print()
     if not ignore_seq_usage:
         error = False
@@ -820,6 +975,11 @@ def handle_cmd_del(delcmds, ignore_seq_usage):
     return 0
 
 def handle_cmd_run(cmd, args):
+    # Arguably there's no locking needed here. But in the seq run case we
+    # do keep cmds locked until the run is over, so it's good to be consistent.
+    # Also it's not too surprising that we would block deleting a cmd while
+    # it is running.
+    item_lock("cmd", cmd, LockType.READ)
     unused_args = copy.deepcopy(args)
     status = handle_cmd_run_internal(cmd, args, unused_args)
     if unused_args:
@@ -844,8 +1004,9 @@ def handle_cmd_run_internal(cmd, args, unused_args):
     return status
 
 def handle_cmd_vals(cmd, args, print_after_set):
+    item_lock("cmd", cmd, LockType.WRITE)
     unused_args = copy.deepcopy(args)
-    status = handle_cmd_vals_internal(cmd, args, unused_args, print_after_set)
+    status = handle_cmd_vals_internal(cmd, args, unused_args, print_after_set, False)
     if status:
         return status
     if unused_args:
@@ -856,7 +1017,7 @@ def handle_cmd_vals(cmd, args, print_after_set):
         print()
     return 0
 
-def handle_cmd_vals_internal(cmd, args, unused_args, print_after_set, compact=False):
+def handle_cmd_vals_internal(cmd, args, unused_args, print_after_set, compact):
     if not compact:
         print()
     cmd_dict = command_with_values(cmd, args, unused_args, PlaceholderArgsPurpose.UPDATE)
@@ -870,7 +1031,7 @@ def handle_cmd_vals_internal(cmd, args, unused_args, print_after_set, compact=Fa
     write_cmd_doc(cmd, cmd_doc, 'w')
     print("Command '{}' updated.".format(cmd))
     if print_after_set:
-        handle_cmd_print(cmd, None)
+        handle_cmd_print_internal(cmd, None)
     else:
         print()
     return 0
@@ -893,6 +1054,7 @@ def handle_cmd(args):
     return 0
 
 def handle_seq_list(column):
+    # No locking needed. We just read a directory list and print it.
     print()
     sequence_names = os.listdir(SEQ_DIR)
     if sequence_names:
@@ -903,7 +1065,27 @@ def handle_seq_list(column):
         print()
     return 0
 
-def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, compact=False):
+def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set):
+    inventory_lock("seq", LockType.WRITE)
+    item_lock("seq", seq, LockType.WRITE)
+    if not os.path.exists(os.path.join(SEQ_DIR, seq)):
+        # Check whether there's a cmd of the same name.
+        inventory_lock("cmd", LockType.READ)
+        if os.path.exists(os.path.join(CMD_DIR, seq)):
+            print()
+            errprint(
+                "Sequence '{}' cannot be created because a command exists with "
+                "the same name.".format(cmd))
+            print()
+            return 1
+    # If ignore_missing_cmds is true then we will need the cmd inventory lock
+    # to check that out, whether or not we acquired it above. That lock will
+    # be (re)acquired later inside handle_seq_set_internal. That lock is done
+    # late because in the edit case we don't want to hold it while the
+    # interactive edit is going on.
+    handle_seq_set_internal(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, False)
+
+def handle_seq_set_internal(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, compact):
     if not compact:
         print()
     if not is_valid_cmdseq_name(seq):
@@ -920,6 +1102,7 @@ def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, c
             print()
             return 1
     if not ignore_missing_cmds:
+        inventory_lock("cmd", LockType.READ)
         current_cmds = os.listdir(CMD_DIR)
         invalid_cmds = set(cmds) - set(current_cmds)
         if invalid_cmds:
@@ -944,21 +1127,57 @@ def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, c
         return 0
     print("Sequence '{}' set.".format(seq))
     if print_after_set:
-        handle_seq_print(seq, None)
+        handle_seq_print_internal(cmds, None)
     else:
         print()
     return 0
 
 def handle_seq_edit(seq, ignore_missing_cmds, print_after_set):
-    print()
+    inventory_lock("seq", LockType.WRITE)
+    item_lock("seq", seq, LockType.WRITE)
+    cleanup_placeholder_fun = None
     try:
         seq_dict = read_seq_dict(seq)
         old_commands_str = ' '.join(seq_dict['commands'])
     except FileNotFoundError:
+        # Check whether there's a cmd of the same name.
+        inventory_lock("cmd", LockType.READ)
+        if os.path.exists(os.path.join(CMD_DIR, seq)):
+            print()
+            errprint(
+                "Sequence '{}' cannot be created because a command exists with "
+                "the same name.".format(seq))
+            print()
+            return 1
+        # We want to release the inventory locks before we go into interactive
+        # edit. Let's create a placeholder sequence to edit here, so that any
+        # concurrent cmd creation will see it when checking for name conflicts.
+        delete_on_error = True
+        seq_doc = yaml.dump(
+            {
+                'commands': []
+            },
+            default_flow_style=False
+        )
         old_commands_str = ""
+        cleanup_placeholder_fun = lambda: os.remove(os.path.join(SEQ_DIR, seq))
+        atexit.register(cleanup_placeholder_fun) 
+        write_seq_doc(seq, seq_doc, 'w')
+        release_inventory_lock("cmd", LockType.READ)
+    release_inventory_lock("seq", LockType.WRITE)
+    print()
     new_commands_str = editline('commands: ', old_commands_str)
     new_commands = new_commands_str.split()
-    return handle_seq_set(seq, new_commands, ignore_missing_cmds, True, print_after_set)
+    # If ignore_missing_cmds is true then we will need the cmd-type lock to
+    # check that out later; but we'll acquire that inside
+    # handle_seq_set_internal. That lock is done late because in the edit case
+    # we don't want to hold it while the interactive edit is going on.
+    status = handle_seq_set_internal(seq, new_commands, ignore_missing_cmds, True, print_after_set, False)
+    if cleanup_placeholder_fun:
+        if status:
+            cleanup_placeholder_fun()
+        atexit.unregister(cleanup_placeholder_fun) 
+    return status
 
 def handle_multi_print(commands):
     command_dicts = []
@@ -1080,7 +1299,14 @@ def handle_multi_print(commands):
     return 0
 
 def handle_seq_print(seq, dump_placeholders):
+    # We're going to skip locking if dump_placeholders is set. That's an
+    # internal/hidden flag used only for bash completion, and in the vanishingly
+    # small chance that something gets changed/deleted while a bash completion
+    # is being calculated, that's fine. Not worth incurring the extra work if
+    # someone is hitting TAB a lot on the command line.
     if dump_placeholders == None:
+        item_lock("seq", seq, LockType.READ)
+        inventory_lock("cmd", LockType.READ)
         print()
     try:
         seq_dict = read_seq_dict(seq)
@@ -1090,11 +1316,19 @@ def handle_seq_print(seq, dump_placeholders):
         print()
         return 1
     commands = seq_dict['commands']
+    if dump_placeholders == None:
+        multi_item_lock("cmd", commands, LockType.READ)
+        release_inventory_lock("cmd", LockType.READ)
+    handle_seq_print_internal(commands, dump_placeholders)
+
+def handle_seq_print_internal(commands, dump_placeholders):
     if dump_placeholders != None:
         return handle_dump_placeholders(commands, dump_placeholders=="run")
     return handle_multi_print(commands)
 
 def handle_seq_del(delseqs):
+    inventory_lock("seq", LockType.WRITE)
+    multi_item_lock("seq", delseqs, LockType.WRITE)
     print()
     for seq in delseqs:
         try:
@@ -1106,6 +1340,8 @@ def handle_seq_del(delseqs):
     return 0
 
 def handle_seq_run(seq, args, ignore_errors, skip_cmdnames):
+    item_lock("seq", seq, LockType.READ)
+    inventory_lock("cmd", LockType.READ)
     print()
     try:
         seq_dict = read_seq_dict(seq)
@@ -1113,8 +1349,10 @@ def handle_seq_run(seq, args, ignore_errors, skip_cmdnames):
         errprint("Sequence '{}' does not exist.".format(seq))
         print()
         return 1
-    unused_args = copy.deepcopy(args)
     cmd_list = seq_dict['commands']
+    multi_item_lock("cmd", cmd_list, LockType.READ)
+    release_inventory_lock("cmd", LockType.READ)
+    unused_args = copy.deepcopy(args)
     for cmd in cmd_list:
         if skip_cmdnames and cmd in skip_cmdnames:
             print(Fore.MAGENTA + "* SKIPPING command '{}'".format(cmd) + Fore.RESET)
@@ -1133,15 +1371,20 @@ def handle_seq_run(seq, args, ignore_errors, skip_cmdnames):
     return 0
 
 def handle_seq_vals(seq, args, print_after_set):
-    print()
+    item_lock("seq", seq, LockType.WRITE)
+    inventory_lock("cmd", LockType.READ)
     try:
         seq_dict = read_seq_dict(seq)
     except FileNotFoundError:
+        print()
         errprint("Sequence '{}' does not exist.".format(seq))
         print()
         return 1
-    unused_args = copy.deepcopy(args)
     cmd_list = seq_dict['commands']
+    multi_item_lock("cmd", cmd_list, LockType.WRITE)
+    release_inventory_lock("cmd", LockType.READ)
+    print()
+    unused_args = copy.deepcopy(args)
     print(Fore.MAGENTA + "* updating all commands in sequence" + Fore.RESET)
     print()
     error = False
@@ -1155,7 +1398,7 @@ def handle_seq_vals(seq, args, print_after_set):
     if any_change:
         print("Sequence '{}' updated.".format(seq))
         if print_after_set:
-            handle_seq_print(seq, None)
+            handle_seq_print_internal(cmd_list, None)
         else:
             print()
     if unused_args:
@@ -1187,16 +1430,22 @@ def handle_seq(args):
     return 0
 
 def handle_print(args):
+    if args.dump_placeholders == None:
+        inventory_lock("cmd", LockType.READ)
     commands = os.listdir(CMD_DIR)
+    if args.dump_placeholders == None:
+        multi_item_lock("cmd", cmd_list, LockType.READ)
     if args.dump_placeholders != None:
         return handle_dump_placeholders(commands, args.dump_placeholders=="run")
     print()
     return handle_multi_print(commands)
 
 def handle_vals(args):
+    inventory_lock("cmd", LockType.READ)
+    cmd_list = os.listdir(CMD_DIR)
+    multi_item_lock("cmd", cmd_list, LockType.WRITE)
     print()
     unused_args = copy.deepcopy(args.placeholder_args)
-    cmd_list = os.listdir(CMD_DIR)
     print(Fore.MAGENTA + "* updating all commands" + Fore.RESET)
     print()
     error = False
@@ -1215,6 +1464,12 @@ def handle_vals(args):
     return 0
 
 def handle_export(args):
+    inventory_lock("seq", LockType.READ)
+    inventory_lock("cmd", LockType.READ)
+    command_names = os.listdir(CMD_DIR)
+    sequence_names = os.listdir(SEQ_DIR)
+    multi_item_lock("cmd", command_names, LockType.READ)
+    multi_item_lock("seq", sequence_names, LockType.READ)
     print()
     export_dict = {
         'commands': [],
@@ -1222,7 +1477,6 @@ def handle_export(args):
     }
     print(Fore.MAGENTA + "* Exporting commands..." + Fore.RESET)
     print()
-    command_names = os.listdir(CMD_DIR)
     for cmd in command_names:
         try:
             cmd_dict = read_cmd_dict(cmd)
@@ -1238,7 +1492,6 @@ def handle_export(args):
         print()
     print(Fore.MAGENTA + "* Exporting sequences..." + Fore.RESET)
     print()
-    sequence_names = os.listdir(SEQ_DIR)
     for seq in sequence_names:
         try:
             seq_dict = read_seq_dict(seq)
@@ -1261,17 +1514,24 @@ def handle_export(args):
     return 0
 
 def handle_import(args):
+    inventory_lock("seq", LockType.WRITE)
+    inventory_lock("cmd", LockType.WRITE)
+    if args.overwrite:
+        command_names = os.listdir(CMD_DIR)
+        sequence_names = os.listdir(SEQ_DIR)
+        multi_item_lock("cmd", command_names, LockType.WRITE)
+        multi_item_lock("seq", sequence_names, LockType.WRITE)
     print()
     with open(args.file, 'r') as import_file:
         import_dict = yaml.safe_load(import_file)
     print(Fore.MAGENTA + "* Importing commands..." + Fore.RESET)
     print()
     for cmd_dict in import_dict['commands']:
-        handle_cmd_set(cmd_dict['name'], cmd_dict['cmdline'], args.overwrite, False, True)
+        handle_cmd_set_internal(cmd_dict['name'], cmd_dict['cmdline'], args.overwrite, False, True)
     print(Fore.MAGENTA + "* Importing sequences..." + Fore.RESET)
     print()
     for seq_dict in import_dict['sequences']:
-        handle_seq_set(seq_dict['name'], seq_dict['commands'], True, args.overwrite, False, True)
+        handle_seq_set_internal(seq_dict['name'], seq_dict['commands'], True, args.overwrite, False, True)
     return 0
 
 def main(argv):
@@ -1279,6 +1539,7 @@ def main(argv):
     atexit.register(lambda: colorama.deinit()) 
     os.makedirs(CMD_DIR, exist_ok=True)
     os.makedirs(SEQ_DIR, exist_ok=True)
+    os.makedirs(LOCKS_DIR, exist_ok=True)
     parser = argparse.ArgumentParser(add_help=False)
     group_subparsers = parser.add_subparsers(
         title="command groups",
