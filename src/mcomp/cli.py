@@ -24,8 +24,6 @@ to transform Quake 1/2/3 .map files into .bsp files.
 More description TBD.
 """
 
-__version__ = "0.1.0"
-
 import argparse
 import atexit
 import copy
@@ -1595,7 +1593,7 @@ def handle_import(args):
     write_all_aliases()
     return 0
 
-def main(argv):
+def main():
     colorama.init()
     atexit.register(lambda: colorama.deinit()) 
     os.makedirs(CMD_DIR, exist_ok=True)
@@ -1623,7 +1621,7 @@ def main(argv):
             group_parser_vals,
             group_parser_export,
             group_parser_import])
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     status = 0
     if args.commandgroup == "cmd":
         status = handle_cmd(args)
@@ -1640,4 +1638,4 @@ def main(argv):
     return status
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())

@@ -1,0 +1,3 @@
+include src/mcomp/bash_completion.d/python-mcomp
+include *.rst
+include LICENSE
