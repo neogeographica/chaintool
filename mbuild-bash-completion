@@ -630,5 +630,38 @@ _mbuild()
   return 0
 }
 
+# Entry point for "mbuild cmd/seq run whatever" alias argument completions.
+# Can be attached to an alias as: complete -F _mbuild_op_alias aliasname
+# Can be removed as: complete -r aliasname
+_mbuild_op_alias()
+{
+    # Need to find the path to mbuild and the name of the seq, in the alias
+    # string. Complicated a bit by the mbuild path possibly containing spaces,
+    # and of course possibly other arbitrary whitespace in the commandline.
+    # Fortunately we know that (for valid mbuild cmd/seq invocations) the
+    # cmdgroup, operation, and first positional arg will not contain spaces.
+    local ALIAS="${BASH_ALIASES[${COMP_WORDS[0]}]}"
+    local ALIAS_TOKENS=( $ALIAS )
+    local CMDGROUP=${ALIAS_TOKENS[-3]}
+    local OPERATION=${ALIAS_TOKENS[-2]}
+    local FIRST_POSITIONAL=${ALIAS_TOKENS[-1]}
+    local WS='[[:space:]][[:space:]]*'
+    if [[ $ALIAS =~ (.*)${WS}${CMDGROUP}${WS}${OPERATION}${WS}${FIRST_POSITIONAL}[[:space:]]* ]]
+    then
+      local MBUILD_PATH=${BASH_REMATCH[1]}
+      MBUILD_PATH="${MBUILD_PATH#"${MBUILD_PATH%%[![:space:]]*}"}"
+      MBUILD_PATH="${MBUILD_PATH%"${MBUILD_PATH##*[![:space:]]}"}"   
+      local IFS=$'\n'
+      local FIRST_WORDS=( "$MBUILD_PATH" "$CMDGROUP" "$OPERATION" "$FIRST_POSITIONAL" )
+      COMP_WORDS=( ${FIRST_WORDS[*]} ${COMP_WORDS[*]:1} )
+      let COMP_CWORD=$COMP_CWORD+3
+      _mbuild
+      return $?
+    else
+      COMPREPLY=()
+      return 0
+    fi
+}
+
 complete -F _mbuild mbuild
 
