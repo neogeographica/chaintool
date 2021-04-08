@@ -163,11 +163,7 @@ def inventory_lock(item_type, lock_type):
 def release_inventory_lock(item_type, lock_type):
     prefix = LOCKS_PREFIX + "inventory-" + item_type
     lock_path = '.'.join([prefix, lock_type.value, MY_PID])
-    try:
-        os.remove(lock_path)
-    except FileNotFoundError:
-        pass
-
+    remove_lock(lock_path)
 
 # Acquire WRITE item lock to create, delete,or modify an item.
 # Other create/delete/modify for that item is prevented during WRITE or READ lock.
@@ -724,7 +720,7 @@ def handle_cmd_set(cmd, cmdline, overwrite, print_after_set):
                 "the same name.".format(cmd))
             print()
             return 1
-    handle_cmd_set_internal(cmd, cmdline, overwrite, print_after_set, True)
+    handle_cmd_set_internal(cmd, cmdline, overwrite, print_after_set, False)
 
 def handle_cmd_set_internal(cmd, cmdline, overwrite, print_after_set, compact):
     if not compact:
@@ -839,10 +835,9 @@ def handle_cmd_set_internal(cmd, cmdline, overwrite, print_after_set, compact):
         print()
         return 0
     print("Command '{}' set.".format(cmd))
+    print()
     if print_after_set:
-        handle_cmd_print_internal(cmd, None)
-    else:
-        print()
+        handle_cmd_print_internal(cmd)
     return 0
 
 def handle_cmd_edit(cmd, print_after_set):
@@ -893,15 +888,12 @@ def handle_cmd_print(cmd, dump_placeholders):
     # No locking needed. We read a cmd yaml file and format/print it. If
     # the file is being deleted right now that's fine, either we get in
     # before the delete or after.
-    # Currently the top-level print op is the same as any internal print op,
-    # but let's maintain the invariant that top-level handle routines should
-    # not call each other.
-    handle_cmd_print_internal(cmd, dump_placeholders)
-
-def handle_cmd_print_internal(cmd, dump_placeholders):
     if dump_placeholders != None:
         return handle_dump_placeholders([cmd], dump_placeholders=="run")
     print()
+    handle_cmd_print_internal(cmd)
+
+def handle_cmd_print_internal(cmd):
     try:
         cmd_dict = read_cmd_dict(cmd)
     except FileNotFoundError:
@@ -1030,10 +1022,9 @@ def handle_cmd_vals_internal(cmd, args, unused_args, print_after_set, compact):
     )
     write_cmd_doc(cmd, cmd_doc, 'w')
     print("Command '{}' updated.".format(cmd))
+    print()
     if print_after_set:
-        handle_cmd_print_internal(cmd, None)
-    else:
-        print()
+        handle_cmd_print_internal(cmd)
     return 0
 
 def handle_cmd(args):
@@ -1103,8 +1094,8 @@ def handle_seq_set_internal(seq, cmds, ignore_missing_cmds, overwrite, print_aft
             return 1
     if not ignore_missing_cmds:
         inventory_lock("cmd", LockType.READ)
-        current_cmds = os.listdir(CMD_DIR)
-        invalid_cmds = set(cmds) - set(current_cmds)
+        command_names = os.listdir(CMD_DIR)
+        invalid_cmds = set(cmds) - set(command_names)
         if invalid_cmds:
             errprint("Nonexistent command(s): " + ' '.join(invalid_cmds))
             print()
@@ -1126,10 +1117,9 @@ def handle_seq_set_internal(seq, cmds, ignore_missing_cmds, overwrite, print_aft
         print()
         return 0
     print("Sequence '{}' set.".format(seq))
+    print()
     if print_after_set:
-        handle_seq_print_internal(cmds, None)
-    else:
-        print()
+        handle_multi_cmd_print_internal(cmds)
     return 0
 
 def handle_seq_edit(seq, ignore_missing_cmds, print_after_set):
@@ -1179,7 +1169,7 @@ def handle_seq_edit(seq, ignore_missing_cmds, print_after_set):
         atexit.unregister(cleanup_placeholder_fun) 
     return status
 
-def handle_multi_print(commands):
+def handle_multi_cmd_print_internal(commands):
     command_dicts = []
     command_dicts_by_cmd = dict()
     all_required_placeholders_set = set()
@@ -1307,11 +1297,11 @@ def handle_seq_print(seq, dump_placeholders):
     if dump_placeholders == None:
         item_lock("seq", seq, LockType.READ)
         inventory_lock("cmd", LockType.READ)
-        print()
     try:
         seq_dict = read_seq_dict(seq)
     except FileNotFoundError:
         if dump_placeholders == None:
+            print()
             errprint("Sequence '{}' does not exist.".format(seq))
         print()
         return 1
@@ -1319,12 +1309,10 @@ def handle_seq_print(seq, dump_placeholders):
     if dump_placeholders == None:
         multi_item_lock("cmd", commands, LockType.READ)
         release_inventory_lock("cmd", LockType.READ)
-    handle_seq_print_internal(commands, dump_placeholders)
-
-def handle_seq_print_internal(commands, dump_placeholders):
     if dump_placeholders != None:
         return handle_dump_placeholders(commands, dump_placeholders=="run")
-    return handle_multi_print(commands)
+    print()
+    handle_multi_cmd_print_internal(commands)
 
 def handle_seq_del(delseqs):
     inventory_lock("seq", LockType.WRITE)
@@ -1397,10 +1385,9 @@ def handle_seq_vals(seq, args, print_after_set):
             any_change = True
     if any_change:
         print("Sequence '{}' updated.".format(seq))
+        print()
         if print_after_set:
-            handle_seq_print_internal(cmd_list, None)
-        else:
-            print()
+            handle_multi_cmd_print_internal(cmd_list)
     if unused_args:
         print(
             Fore.YELLOW + "Warning:" + Fore.RESET +
@@ -1432,24 +1419,24 @@ def handle_seq(args):
 def handle_print(args):
     if args.dump_placeholders == None:
         inventory_lock("cmd", LockType.READ)
-    commands = os.listdir(CMD_DIR)
+    command_names = os.listdir(CMD_DIR)
     if args.dump_placeholders == None:
-        multi_item_lock("cmd", cmd_list, LockType.READ)
+        multi_item_lock("cmd", command_names, LockType.READ)
     if args.dump_placeholders != None:
-        return handle_dump_placeholders(commands, args.dump_placeholders=="run")
+        return handle_dump_placeholders(command_names, args.dump_placeholders=="run")
     print()
-    return handle_multi_print(commands)
+    return handle_multi_cmd_print_internal(command_names)
 
 def handle_vals(args):
     inventory_lock("cmd", LockType.READ)
-    cmd_list = os.listdir(CMD_DIR)
-    multi_item_lock("cmd", cmd_list, LockType.WRITE)
+    command_names = os.listdir(CMD_DIR)
+    multi_item_lock("cmd", command_names, LockType.WRITE)
     print()
     unused_args = copy.deepcopy(args.placeholder_args)
     print(Fore.MAGENTA + "* updating all commands" + Fore.RESET)
     print()
     error = False
-    for cmd in cmd_list:
+    for cmd in command_names:
         status = handle_cmd_vals_internal(cmd, args.placeholder_args, unused_args, False, True)
         if status:
             error = True
