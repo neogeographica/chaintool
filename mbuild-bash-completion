@@ -2,7 +2,7 @@
 # sourced directly or indirectly by one of your startup scripts.
 
 # One way to do this would be to explicitly source it from such a script (e.g.
-# from your ~/.bashrc script).
+# from your ~/.bash_profile script).
 
 # Or if you have the "bash-completion" package installed, and active for your
 # account, then there will also be other locations where it looks for files
@@ -34,6 +34,7 @@
 
 # ----------
 
+export MBUILD_BASH_COMPLETIONS=1
 
 # Subroutine to populate COMPREPLY with file/directory completions.
 _mbuild_file_completions()

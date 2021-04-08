@@ -76,6 +76,7 @@ SEQ_DIR = os.path.join(CONFIG_DIR, "sequence")
 DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
 LOCKS_DIR = os.path.join(DATA_DIR, "locks")
 
+ALIASES_FILE = os.path.join(CONFIG_DIR, "aliases")
 META_LOCK = filelock.FileLock(os.path.join(DATA_DIR, "metalock"))
 LOCKS_PREFIX = os.path.join(LOCKS_DIR, "")
 
@@ -106,6 +107,56 @@ class SubparsersHelpAction(argparse.Action):
 
 def errprint(msg):
     sys.stderr.write(Fore.RED + msg + Fore.RESET + '\n')
+
+def write_alias_for_item(outstream, mbuild_path, item_type, item_name):
+    alias_str = "{} {} run {}".format(
+        shlex.quote(mbuild_path), item_type, item_name)
+    outstream.write("alias {}={}\n".format(
+        item_name, shlex.quote(alias_str)))
+    outstream.write(
+        "type _mbuild_op_alias > /dev/null 2>&1 && "
+        "complete -F _mbuild_op_alias {}\n".format(item_name))
+
+def write_aliases(item_type, nag=True):
+    cmd_aliases_file = ALIASES_FILE + "-cmd"
+    seq_aliases_file = ALIASES_FILE + "-seq"
+    if not os.path.exists(ALIASES_FILE):
+        with open(ALIASES_FILE, 'w') as main_file:
+            main_file.write("export MBUILD_ALIASES_NO_NAG=1\n")
+            main_file.write("[[ -f {0} ]] && source {0}\n".format(
+                shlex.quote(cmd_aliases_file)))
+            main_file.write("[[ -f {0} ]] && source {0}\n".format(
+                shlex.quote(seq_aliases_file)))
+    mbuild_path = os.path.abspath(sys.argv[0])
+    if item_type == "cmd":
+        item_names = os.listdir(CMD_DIR)
+        outfile = cmd_aliases_file
+    else:
+        item_names = os.listdir(SEQ_DIR)
+        outfile = seq_aliases_file
+    with open(outfile, 'w') as outstream:
+        for name in item_names:
+            write_alias_for_item(outstream, mbuild_path, item_type, name)
+    if nag and "MBUILD_ALIASES_NO_NAG" not in os.environ:
+        print(
+            "mbuild aliases updated. You can make these aliases available by putting the\n"
+            "following line into your .bashrc file:")
+        print("  source " + shlex.quote(ALIASES_FILE))
+        print()
+        if "MBUILD_BASH_COMPLETIONS" not in os.environ:
+            print(
+                "If you want bash completion support, the mbuild-bash-completion file must be\n"
+                "sourced BEFORE that aliases file.")
+            print()
+        print(
+            "If you'd rather not worry about any of this and instead just want to disable\n"
+            "this message, you can do so with:")
+        print("  export MBUILD_ALIASES_NO_NAG=1")
+        print()
+
+def write_all_aliases():
+    write_aliases("cmd", False)
+    write_aliases("seq", True)
 
 def locker_pid(lock_path):
     return int(lock_path[lock_path.rindex('.') + 1:])
@@ -709,9 +760,11 @@ def handle_cmd_set(cmd, cmdline, overwrite, print_after_set):
     inventory_lock("seq", LockType.READ)
     inventory_lock("cmd", LockType.WRITE)
     item_lock("cmd", cmd, LockType.WRITE)
+    creating = False
     if os.path.exists(os.path.join(CMD_DIR, cmd)):
         release_inventory_lock("seq", LockType.READ)
     else:
+        creating = True
         # Check whether there's a seq of the same name.
         if os.path.exists(os.path.join(SEQ_DIR, cmd)):
             print()
@@ -720,7 +773,10 @@ def handle_cmd_set(cmd, cmdline, overwrite, print_after_set):
                 "the same name.".format(cmd))
             print()
             return 1
-    handle_cmd_set_internal(cmd, cmdline, overwrite, print_after_set, False)
+    status = handle_cmd_set_internal(cmd, cmdline, overwrite, print_after_set, False)
+    if creating and not status:
+        write_aliases("cmd")
+    return status
 
 def handle_cmd_set_internal(cmd, cmdline, overwrite, print_after_set, compact):
     if not compact:
@@ -881,6 +937,8 @@ def handle_cmd_edit(cmd, print_after_set):
     if cleanup_placeholder_fun:
         if status:
             cleanup_placeholder_fun()
+        else:
+            write_aliases("cmd")
         atexit.unregister(cleanup_placeholder_fun) 
     return status
 
@@ -957,13 +1015,17 @@ def handle_cmd_del(delcmds, ignore_seq_usage):
         if error:
             print()
             return 1
+    any_deleted = False
     for cmd in delcmds:
         try:
             os.remove(os.path.join(CMD_DIR, cmd))
             print("Command '{}' deleted.".format(cmd))
+            any_deleted = True
         except FileNotFoundError:
             print("Command '{}' does not exist.".format(cmd))
     print()
+    if any_deleted:
+        write_aliases("cmd")
     return 0
 
 def handle_cmd_run(cmd, args):
@@ -1059,7 +1121,9 @@ def handle_seq_list(column):
 def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set):
     inventory_lock("seq", LockType.WRITE)
     item_lock("seq", seq, LockType.WRITE)
+    creating = False
     if not os.path.exists(os.path.join(SEQ_DIR, seq)):
+        creating = True
         # Check whether there's a cmd of the same name.
         inventory_lock("cmd", LockType.READ)
         if os.path.exists(os.path.join(CMD_DIR, seq)):
@@ -1074,7 +1138,10 @@ def handle_seq_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set):
     # be (re)acquired later inside handle_seq_set_internal. That lock is done
     # late because in the edit case we don't want to hold it while the
     # interactive edit is going on.
-    handle_seq_set_internal(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, False)
+    status = handle_seq_set_internal(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, False)
+    if creating and not status:
+        write_aliases("seq")
+    return status
 
 def handle_seq_set_internal(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, compact):
     if not compact:
@@ -1166,6 +1233,8 @@ def handle_seq_edit(seq, ignore_missing_cmds, print_after_set):
     if cleanup_placeholder_fun:
         if status:
             cleanup_placeholder_fun()
+        else:
+            write_aliases("seq")
         atexit.unregister(cleanup_placeholder_fun) 
     return status
 
@@ -1318,13 +1387,17 @@ def handle_seq_del(delseqs):
     inventory_lock("seq", LockType.WRITE)
     multi_item_lock("seq", delseqs, LockType.WRITE)
     print()
+    any_deleted = False
     for seq in delseqs:
         try:
             os.remove(os.path.join(SEQ_DIR, seq))
             print("Sequence '{}' deleted.".format(seq))
+            any_deleted = True
         except FileNotFoundError:
             print("Sequence '{}' does not exist.".format(seq))
     print()
+    if any_deleted:
+        write_aliases("seq")
     return 0
 
 def handle_seq_run(seq, args, ignore_errors, skip_cmdnames):
@@ -1519,6 +1592,7 @@ def handle_import(args):
     print()
     for seq_dict in import_dict['sequences']:
         handle_seq_set_internal(seq_dict['name'], seq_dict['commands'], True, args.overwrite, False, True)
+    write_all_aliases()
     return 0
 
 def main(argv):
