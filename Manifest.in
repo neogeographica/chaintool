@@ -1,3 +1,3 @@
-include src/mcomp/bash_completion.d/python-mcomp
+include src/chaintool/bash_completion/python-chaintool
 include *.rst
 include LICENSE

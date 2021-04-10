@@ -10,7 +10,7 @@ devinstall: readme
 	python3 -m pip install -e .
 
 uninstall:
-	python3 -m pip uninstall mcomp -y
+	python3 -m pip uninstall chaintool -y
 
 dist: readme
 	python3 -m build

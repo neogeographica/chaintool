@@ -1,6 +1,6 @@
 .. _header_section:
 
-mcomp: XXX blah blah blah XXX
+chaintool: XXX blah blah blah XXX
 ===============================================================
 
 .. image:: http://img.shields.io/pypi/v/expak.svg
@@ -9,7 +9,7 @@ mcomp: XXX blah blah blah XXX
 
 .. _blurb_section:
 
-**mcomp** is a GPLv3_-licensed tool to do stuff blah blah blah
+**chaintool** is a GPLv3_-licensed tool to do stuff blah blah blah
 
 XXX This file should eventually be 'include'-d as the blurb source for both the
 README and the generated docs.

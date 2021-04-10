@@ -36,7 +36,7 @@ for readme_line in readme_orig.splitlines(True):
         include_line = False
         continue
     if section == 'header_section':
-        if readme_line.startswith('mcomp:'):
+        if readme_line.startswith('chaintool:'):
             description = readme_line[6:].strip()
     if include_line:
         readme = readme + readme_line
@@ -47,14 +47,14 @@ for readme_line in readme_orig.splitlines(True):
 long_description = readme + read('HISTORY.rst')
 
 setuptools.setup(
-    name = "mcomp",
-    version = find_version("src/mcomp/__init__.py"),
+    name = "chaintool",
+    version = find_version("src/chaintool/__init__.py"),
     package_dir = {"": "src"},
     packages = setuptools.find_packages(where="src"),
     include_package_data = True,
     author = 'Joel Baxter',
     author_email = 'joel.baxter@neogeographica.com',
-    url = 'https://github.com/neogeographica/mcomp',
+    url = 'https://github.com/neogeographica/chaintool',
     description = description,
     long_description = long_description,
     long_description_content_type = 'text/x-rst',
@@ -88,7 +88,7 @@ setuptools.setup(
     ],
     entry_points = {
         'console_scripts': [
-            'mcomp = mcomp.cli:main',
+            'chaintool = chaintool.cli:main',
         ],
     },
     keywords = [''], # ???

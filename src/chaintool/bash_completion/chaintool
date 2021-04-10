@@ -1,4 +1,4 @@
-# Bash-completions implementation for the mcomp tool. This file should be
+# Bash-completions implementation for the chaintool utility. This file should be
 # sourced directly or indirectly by one of your startup scripts.
 
 # One way to do this would be to explicitly source it from such a script (e.g.
@@ -18,13 +18,13 @@
 # Note that if you have an old version of bash that doesn't support the
 # "compopt" builtin, then some of the behaviors here won't be quite as nice.
 # Specifically there will be extraneous space characters after directory
-# completions and after some mcomp-placeholder completions, and when doing
+# completions and after some chaintool-placeholder completions, and when doing
 # file completions on a path that uses the "~" character it won't properly
 # detect when that path is a directory. Might be time to update to a recent
 # version of bash! Likely this will only be a problem if you are on macOS;
 # see: https://itnext.io/upgrading-bash-on-macos-7138bd1066ba
 
-# Final note that applies in general to bash completions (not just mcomp):
+# Final note that applies in general to bash completions (not just chaintool):
 # In an "ambiguous" case where multiple things could match what you have
 # typed so far before hitting TAB, by default you must hit TAB twice to see
 # all possible completions. This can get kinda old when you are trying to
@@ -34,10 +34,10 @@
 
 # ----------
 
-export MCOMP_BASH_COMPLETIONS=1
+export CHAINTOOL_BASH_COMPLETIONS=1
 
 # Subroutine to populate COMPREPLY with file/directory completions.
-_mcomp_file_completions()
+_chaintool_file_completions()
 {
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
   if compopt -o filenames 2> /dev/null
@@ -71,7 +71,7 @@ _mcomp_file_completions()
 }
 
 # Subroutine to populate COMPREPLY for operations in the "cmd" commandgroup.
-_mcomp_cmd_completions()
+_chaintool_cmd_completions()
 {
   OPERATION="$1"
   NO_FLAGS="$2"
@@ -193,7 +193,7 @@ _mcomp_cmd_completions()
 }
 
 # Subroutine to populate COMPREPLY for operations in the "seq" commandgroup.
-_mcomp_seq_completions()
+_chaintool_seq_completions()
 {
   OPERATION="$1"
   NO_FLAGS="$2"
@@ -348,7 +348,7 @@ _mcomp_seq_completions()
 
 # Subroutine to populate COMPREPLY for operations in the "import" and
 # "export" commandgroups.
-_mcomp_import_export_completions()
+_chaintool_import_export_completions()
 {
   OPERATION="$1"
   NO_FLAGS="$2"
@@ -376,7 +376,7 @@ _mcomp_import_export_completions()
   # against options, so provide file matches.
   if [[ $NO_FLAGS == 1 ]]
   then
-    _mcomp_file_completions
+    _chaintool_file_completions
     return
   fi
   if [[ "$CUR" == "" ]]
@@ -392,12 +392,12 @@ _mcomp_import_export_completions()
     COMPREPLY=( $(compgen -W "$OPTLIST" -- "$CUR") )
   else
     # The first char is not a hyphen. Do the filename completions.
-    _mcomp_file_completions
+    _chaintool_file_completions
   fi
 }
 
 # Subroutine to populate COMPREPLY for operations in the "print" commandgroup.
-_mcomp_print_completions()
+_chaintool_print_completions()
 {
   NO_FLAGS="$1"
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
@@ -410,7 +410,7 @@ _mcomp_print_completions()
 }
 
 # Subroutine to populate COMPREPLY for operations in the "vals" commandgroup.
-_mcomp_vals_completions()
+_chaintool_vals_completions()
 {
   NO_FLAGS="$1"
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
@@ -438,8 +438,8 @@ _mcomp_vals_completions()
   fi
 }
 
-# Main entry point for mcomp argument completions.
-_mcomp()
+# Main entry point for chaintool argument completions.
+_chaintool()
 {
   COMPREPLY=()
 
@@ -473,13 +473,13 @@ _mcomp()
       COMPREPLY=( $(compgen -W "--help list set edit print del run vals" -- "$CUR") )
     elif [[ "$CMD_GROUP" == "import" || "$CMD_GROUP" == "export" ]]
     then
-      _mcomp_import_export_completions "$CMD_GROUP" 0 0
+      _chaintool_import_export_completions "$CMD_GROUP" 0 0
     elif [[ "$CMD_GROUP" == "print" ]]
     then
-      _mcomp_print_completions 0
+      _chaintool_print_completions 0
     elif [[ "$CMD_GROUP" == "vals" ]]
     then
-      _mcomp_vals_completions 0
+      _chaintool_vals_completions 0
     fi
     return 0
   fi
@@ -526,7 +526,7 @@ _mcomp()
   # depending on the prior args and the position of the argument. So we need
   # to look through the arguments now.
 
-  # Also, let's talk about the way argparse is used by mcomp. You can't put
+  # Also, let's talk about the way argparse is used by chaintool. You can't put
   # an option in the middle of a "varying number" positional arglist. Those
   # arglists appear in:
   #   cmd del, with the list of cmdnames to delete
@@ -602,22 +602,22 @@ _mcomp()
   # Use the scan results and generate completions.
   case "$CMD_GROUP" in
     cmd)
-      _mcomp_cmd_completions "$OPERATION" $NO_FLAGS $FIRST_POSITIONAL_INDEX
+      _chaintool_cmd_completions "$OPERATION" $NO_FLAGS $FIRST_POSITIONAL_INDEX
       ;;
     seq)
-      _mcomp_seq_completions "$OPERATION" $NO_FLAGS $FIRST_POSITIONAL_INDEX
+      _chaintool_seq_completions "$OPERATION" $NO_FLAGS $FIRST_POSITIONAL_INDEX
       ;;
     import)
-      _mcomp_import_export_completions "$CMD_GROUP" $NO_FLAGS $FIRST_POSITIONAL_INDEX
+      _chaintool_import_export_completions "$CMD_GROUP" $NO_FLAGS $FIRST_POSITIONAL_INDEX
       ;;
     export)
-      _mcomp_import_export_completions "$CMD_GROUP" $NO_FLAGS $FIRST_POSITIONAL_INDEX
+      _chaintool_import_export_completions "$CMD_GROUP" $NO_FLAGS $FIRST_POSITIONAL_INDEX
       ;;
     print)
-      _mcomp_print_completions $NO_FLAGS
+      _chaintool_print_completions $NO_FLAGS
       ;;
     vals)
-      _mcomp_vals_completions $NO_FLAGS
+      _chaintool_vals_completions $NO_FLAGS
       ;;
   esac
 
@@ -631,15 +631,15 @@ _mcomp()
   return 0
 }
 
-# Entry point for "mcomp cmd/seq run whatever" alias argument completions.
-# Can be attached to an alias as: complete -F _mcomp_op_alias aliasname
+# Entry point for "chaintool cmd/seq run whatever" alias argument completions.
+# Can be attached to an alias as: complete -F _chaintool_op_alias aliasname
 # Can be removed as: complete -r aliasname
-_mcomp_op_alias()
+_chaintool_op_alias()
 {
-    # Need to find the path to mcomp and the name of the seq, in the alias
-    # string. Complicated a bit by the mcomp path possibly containing spaces,
+    # Need to find the path to chaintool and the name of the seq, in the alias
+    # string. Complicated a bit by the chaintool path possibly containing spaces,
     # and of course possibly other arbitrary whitespace in the commandline.
-    # Fortunately we know that (for valid mcomp cmd/seq invocations) the
+    # Fortunately we know that (for valid chaintool cmd/seq invocations) the
     # cmdgroup, operation, and first positional arg will not contain spaces.
     local ALIAS="${BASH_ALIASES[${COMP_WORDS[0]}]}"
     local ALIAS_TOKENS=( $ALIAS )
@@ -649,14 +649,14 @@ _mcomp_op_alias()
     local WS='[[:space:]][[:space:]]*'
     if [[ $ALIAS =~ (.*)${WS}${CMDGROUP}${WS}${OPERATION}${WS}${FIRST_POSITIONAL}[[:space:]]* ]]
     then
-      local MCOMP_PATH=${BASH_REMATCH[1]}
-      MCOMP_PATH="${MCOMP_PATH#"${MCOMP_PATH%%[![:space:]]*}"}"
-      MCOMP_PATH="${MCOMP_PATH%"${MCOMP_PATH##*[![:space:]]}"}"   
+      local CHAINTOOL_PATH=${BASH_REMATCH[1]}
+      CHAINTOOL_PATH="${CHAINTOOL_PATH#"${CHAINTOOL_PATH%%[![:space:]]*}"}"
+      CHAINTOOL_PATH="${CHAINTOOL_PATH%"${CHAINTOOL_PATH##*[![:space:]]}"}"   
       local IFS=$'\n'
-      local FIRST_WORDS=( "$MCOMP_PATH" "$CMDGROUP" "$OPERATION" "$FIRST_POSITIONAL" )
+      local FIRST_WORDS=( "$CHAINTOOL_PATH" "$CMDGROUP" "$OPERATION" "$FIRST_POSITIONAL" )
       COMP_WORDS=( ${FIRST_WORDS[*]} ${COMP_WORDS[*]:1} )
       let COMP_CWORD=$COMP_CWORD+3
-      _mcomp
+      _chaintool
       return $?
     else
       COMPREPLY=()
@@ -664,5 +664,5 @@ _mcomp_op_alias()
     fi
 }
 
-complete -F _mcomp mcomp
+complete -F _chaintool chaintool
 

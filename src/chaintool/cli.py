@@ -66,7 +66,7 @@ PLACEHOLDER_DEFAULT_RE = re.compile("^([^+][^=]*)=(.*)$")
 PLACEHOLDER_TOGGLE_RE = re.compile("^(\+[^=]+)=([^:]*):(.*)$")
 ALPHANUM_RE = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$")
 
-APP_NAME = "mcomp"
+APP_NAME = "chaintool"
 APP_AUTHOR = "Joel Baxter"
 CONFIG_DIR = appdirs.user_config_dir(APP_NAME, APP_AUTHOR)
 CMD_DIR = os.path.join(CONFIG_DIR, "command")
@@ -106,26 +106,26 @@ class SubparsersHelpAction(argparse.Action):
 def errprint(msg):
     sys.stderr.write(Fore.RED + msg + Fore.RESET + '\n')
 
-def write_alias_for_item(outstream, mcomp_path, item_type, item_name):
+def write_alias_for_item(outstream, chaintool_path, item_type, item_name):
     alias_str = "{} {} run {}".format(
-        shlex.quote(mcomp_path), item_type, item_name)
+        shlex.quote(chaintool_path), item_type, item_name)
     outstream.write("alias {}={}\n".format(
         item_name, shlex.quote(alias_str)))
     outstream.write(
-        "type _mcomp_op_alias > /dev/null 2>&1 && "
-        "complete -F _mcomp_op_alias {}\n".format(item_name))
+        "type _chaintool_op_alias > /dev/null 2>&1 && "
+        "complete -F _chaintool_op_alias {}\n".format(item_name))
 
 def write_aliases(item_type, nag=True):
     cmd_aliases_file = ALIASES_FILE + "-cmd"
     seq_aliases_file = ALIASES_FILE + "-seq"
     if not os.path.exists(ALIASES_FILE):
         with open(ALIASES_FILE, 'w') as main_file:
-            main_file.write("export MCOMP_ALIASES_NO_NAG=1\n")
+            main_file.write("export CHAINTOOL_ALIASES_NO_NAG=1\n")
             main_file.write("[[ -f {0} ]] && source {0}\n".format(
                 shlex.quote(cmd_aliases_file)))
             main_file.write("[[ -f {0} ]] && source {0}\n".format(
                 shlex.quote(seq_aliases_file)))
-    mcomp_path = os.path.abspath(sys.argv[0])
+    chaintool_path = os.path.abspath(sys.argv[0])
     if item_type == "cmd":
         item_names = os.listdir(CMD_DIR)
         outfile = cmd_aliases_file
@@ -134,22 +134,22 @@ def write_aliases(item_type, nag=True):
         outfile = seq_aliases_file
     with open(outfile, 'w') as outstream:
         for name in item_names:
-            write_alias_for_item(outstream, mcomp_path, item_type, name)
-    if nag and "MCOMP_ALIASES_NO_NAG" not in os.environ:
+            write_alias_for_item(outstream, chaintool_path, item_type, name)
+    if nag and "CHAINTOOL_ALIASES_NO_NAG" not in os.environ:
         print(
-            "mcomp aliases updated. You can make these aliases available by putting the\n"
+            "chaintool aliases updated. You can make these aliases available by putting the\n"
             "following line into your .bashrc file:")
         print("  source " + shlex.quote(ALIASES_FILE))
         print()
-        if "MCOMP_BASH_COMPLETIONS" not in os.environ:
+        if "CHAINTOOL_BASH_COMPLETIONS" not in os.environ:
             print(
-                "If you want bash completion support, the mcomp-bash-completion file must be\n"
+                "If you want bash completion support, the chaintool-bash-completion file must be\n"
                 "sourced BEFORE that aliases file.")
             print()
         print(
             "If you'd rather not worry about any of this and instead just want to disable\n"
             "this message, you can do so with:")
-        print("  export MCOMP_ALIASES_NO_NAG=1")
+        print("  export CHAINTOOL_ALIASES_NO_NAG=1")
         print()
 
 def write_all_aliases():
@@ -197,7 +197,7 @@ def lock_internal(lock_type, prefix):
                 return
             remove_dead_locks(conflicting_locks)
         if not first_try:
-            print("waiting on other mcomp process...")
+            print("waiting on other chaintool process...")
             time.sleep(5)
         else:
             first_try = False

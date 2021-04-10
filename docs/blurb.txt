@@ -1,4 +1,4 @@
-**mcomp** is a GPLv3_-licensed tool to do stuff blah blah blah
+**chaintool** is a GPLv3_-licensed tool to do stuff blah blah blah
 
 XXX This file should eventually be 'include'-d as the blurb source for both the
 README and the generated docs.
