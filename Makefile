@@ -1,4 +1,4 @@
-.PHONY: readme install devinstall uninstall dist pub testpub clean distclean
+.PHONY: readme install devinstall uninstall dist pub testpub lint megalint clean distclean
 
 readme:
 	./make_readme.py
@@ -20,6 +20,14 @@ pub: dist
 
 testpub: dist
 	twine upload -r testpypi dist/*
+
+lint:
+	# Eventually should restore E501,E731. W503 should stay suppressed.
+	flake8 --ignore E501,E731,W503 src/chaintool
+
+megalint:
+	# Eventually should restore C0301,C0114,C0115,C0116.
+	pylint -d C0301,C0114,C0115,C0116 src/chaintool
 
 clean:
 	-rm -rf build

@@ -18,12 +18,14 @@
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import atexit
-import colorama
+__all__ = ['CACHE_DIR',
+           'DATA_DIR']
 
 
-__version__ = "0.1.0"
+import appdirs
 
 
-colorama.init()
-atexit.register(colorama.deinit)
+APP_NAME = "chaintool"
+APP_AUTHOR = "Joel Baxter"
+CACHE_DIR = appdirs.user_config_dir(APP_NAME, APP_AUTHOR)
+DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
