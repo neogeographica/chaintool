@@ -46,11 +46,11 @@ sequences:
   - q3light-simple
   - q3copy
   - q3launch
-  name: q3b-s
+  name: q3build-simple
 - commands:
   - q3bsp
   - q3vis
   - q3light
   - q3copy
   - q3launch
-  name: q3b
+  name: q3build
