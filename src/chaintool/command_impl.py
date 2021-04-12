@@ -49,7 +49,7 @@ PLACEHOLDER_DEFAULT_RE = re.compile(r"^([^+][^=]*)=(.*)$")
 PLACEHOLDER_TOGGLE_RE = re.compile(r"^(\+[^=]+)=([^:]*):(.*)$")
 ALPHANUM_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*$")
 
-CMD_DIR = os.path.join(DATA_DIR, "command")
+CMD_DIR = os.path.join(DATA_DIR, "commands")
 
 os.makedirs(CMD_DIR, exist_ok=True)
 

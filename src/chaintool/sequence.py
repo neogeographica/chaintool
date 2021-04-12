@@ -77,7 +77,7 @@ def cli_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set):
     # interactive edit is going on.
     status = sequence_impl.define(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, False)
     if creating and not status:
-        shortcuts.write_aliases("seq", sequence_impl.all_names())
+        shortcuts.create_seq_shortcut(seq)
     return status
 
 
@@ -127,7 +127,7 @@ def cli_edit(seq, ignore_missing_cmds, print_after_set):
         if status:
             cleanup_placeholder_fun()
         else:
-            shortcuts.write_aliases("seq", sequence_impl.all_names())
+            shortcuts.create_seq_shortcut(seq)
         atexit.unregister(cleanup_placeholder_fun)
     return status
 
@@ -163,17 +163,14 @@ def cli_del(delseqs):
     locks.inventory_lock("seq", locks.LockType.WRITE)
     locks.multi_item_lock("seq", delseqs, locks.LockType.WRITE)
     print()
-    any_deleted = False
     for seq in delseqs:
         try:
             sequence_impl.delete(seq, False)
             print("Sequence '{}' deleted.".format(seq))
-            any_deleted = True
+            shortcuts.delete_seq_shortcut(seq)
         except FileNotFoundError:
             print("Sequence '{}' does not exist.".format(seq))
     print()
-    if any_deleted:
-        shortcuts.write_aliases("seq", sequence_impl.all_names())
     return 0
 
 

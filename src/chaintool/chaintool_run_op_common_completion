@@ -1,0 +1,18 @@
+# Entry point for command completions for "chaintool cmd/seq run whatever"
+# generated shortcut scripts.
+# Can be attached as: complete -F _chaintool_run_op <script-basename>
+# Can be removed as: complete -r <script-basename>
+_chaintool_run_op()
+{
+    # We'll assume that chaintool and the shortcut script itself are both
+    # on the PATH.
+    local SHORTCUT="${COMP_WORDS[0]}"
+    local ITEM_NAME=$(basename "$SHORTCUT")
+    local CMDGROUP=$($ITEM_NAME --cmdgroup)  
+    local IFS=$'\n'
+    local FIRST_WORDS=( "chaintool" "$CMDGROUP" "run" "$ITEM_NAME" )
+    COMP_WORDS=( ${FIRST_WORDS[*]} ${COMP_WORDS[*]:1} )
+    let COMP_CWORD=$COMP_CWORD+3
+    _chaintool
+    return $?
+}

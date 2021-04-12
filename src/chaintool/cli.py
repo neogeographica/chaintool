@@ -38,6 +38,7 @@ from colorama import Fore
 
 from . import command
 from . import sequence
+from . import shortcuts
 from . import xfer
 
 
@@ -387,6 +388,18 @@ def set_import_options(group_subparsers):
     return group_parser_import
 
 
+def set_extended_options(group_subparsers):
+    group_parser_extended = group_subparsers.add_parser(
+        "x",
+        help="Configure extended functionality (shortcut commands and bash completions).",
+        description="Configure extended functionality (shortcut commands and bash completions).")
+    group_parser_extended.add_argument(
+        "functionality",
+        choices=["shortcuts", "completions"],
+        help="Functionality to enable/configure.")
+    return group_parser_extended
+
+
 CMD_DISPATCH = {
     "list": lambda args: command.cli_list(
         args.column
@@ -482,6 +495,25 @@ def handle_import(args):
     return xfer.cli_import(args.file, args.overwrite)
 
 
+def handle_extended(args):
+    if args.functionality == "shortcuts":
+        return shortcuts.enable()
+    # XXX
+    print("TBD")
+    return 1
+
+
+CMDGROUP_DISPATCH = {
+    "cmd": handle_cmd,
+    "seq": handle_seq,
+    "print": handle_print,
+    "vals": handle_vals,
+    "export": handle_export,
+    "import": handle_import,
+    "x": handle_extended
+}
+
+
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     group_subparsers = parser.add_subparsers(
@@ -494,6 +526,7 @@ def main():
     group_parser_vals = set_vals_options(group_subparsers)
     group_parser_export = set_export_options(group_subparsers)
     group_parser_import = set_import_options(group_subparsers)
+    group_parser_extended = set_extended_options(group_subparsers)
     parser.add_argument(
         "-h", "--help",
         action=SubparsersHelpAction,
@@ -504,19 +537,7 @@ def main():
             group_parser_print,
             group_parser_vals,
             group_parser_export,
-            group_parser_import])
+            group_parser_import,
+            group_parser_extended])
     args = parser.parse_args()
-    status = 0
-    if args.commandgroup == "cmd":
-        status = handle_cmd(args)
-    elif args.commandgroup == "seq":
-        status = handle_seq(args)
-    elif args.commandgroup == "print":
-        status = handle_print(args)
-    elif args.commandgroup == "vals":
-        status = handle_vals(args)
-    elif args.commandgroup == "export":
-        status = handle_export(args)
-    elif args.commandgroup == "import":
-        status = handle_import(args)
-    return status
+    return CMDGROUP_DISPATCH[args.commandgroup](args)

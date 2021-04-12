@@ -18,69 +18,140 @@
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
 
-# XXX going to change all this...
-
-
-__all__ = ['write_aliases',
-           'write_all_aliases']
+__all__ = ['enable',
+           'create_cmd_shortcut',
+           'delete_cmd_shortcut',
+           'create_seq_shortcut',
+           'delete_seq_shortcut']
 
 
 import os
+import re
 import shlex
-import sys
+
+from . import shared
 
 from .constants import DATA_DIR
 
 
-ALIASES_FILE = os.path.join(DATA_DIR, "aliases")
+SHORTCUTS_DIR = os.path.join(DATA_DIR, "shortcuts")
+PATH_RE = re.compile(r"(?m)^.*export PATH=.*" + shlex.quote(SHORTCUTS_DIR))
+
+os.makedirs(SHORTCUTS_DIR, exist_ok=True)
 
 
-def write_alias_for_item(outstream, chaintool_path, item_type, item_name):
-    alias_str = "{} {} run {}".format(
-        shlex.quote(chaintool_path), item_type, item_name)
-    outstream.write("alias {}={}\n".format(
-        item_name, shlex.quote(alias_str)))
-    outstream.write(
-        "type _chaintool_op_alias > /dev/null 2>&1 && "
-        "complete -F _chaintool_op_alias {}\n".format(item_name))
+# Snippet from Jonathon Reinhart to add executable perm where read perm
+# exists. Does nothing on Windows of course.
+def make_executable(path):
+    mode = os.stat(path).st_mode
+    mode |= (mode & 0o444) >> 2
+    os.chmod(path, mode)
 
 
-def write_aliases(item_type, item_names, nag=True):
-    cmd_aliases_file = ALIASES_FILE + "-cmd"
-    seq_aliases_file = ALIASES_FILE + "-seq"
-    if not os.path.exists(ALIASES_FILE):
-        with open(ALIASES_FILE, 'w') as main_file:
-            main_file.write("export CHAINTOOL_ALIASES_NO_NAG=1\n")
-            main_file.write("[[ -f {0} ]] && source {0}\n".format(
-                shlex.quote(cmd_aliases_file)))
-            main_file.write("[[ -f {0} ]] && source {0}\n".format(
-                shlex.quote(seq_aliases_file)))
-    chaintool_path = os.path.abspath(sys.argv[0])
-    if item_type == "cmd":
-        outfile = cmd_aliases_file
+def create_shortcut(item_type, item_name):
+    shortcut_path = os.path.join(SHORTCUTS_DIR, item_name)
+    # XXX create batch file instead if on Windows?
+    sh_hashbang = "#!/usr/bin/env sh\n"
+    if "CHAINTOOL_SHORTCUT_SHELL" in os.environ:
+        hashbang = "#!" + shlex.quote(os.environ["CHAINTOOL_SHORTCUT_SHELL"]) + "\n"
+    elif "SHELL" in os.environ:
+        hashbang = "#!" + shlex.quote(os.environ["SHELL"]) + "\n"
     else:
-        outfile = seq_aliases_file
-    with open(outfile, 'w') as outstream:
-        for name in item_names:
-            write_alias_for_item(outstream, chaintool_path, item_type, name)
-    if nag and "CHAINTOOL_ALIASES_NO_NAG" not in os.environ:
-        print(
-            "chaintool aliases updated. You can make these aliases available "
-            "by putting the\nfollowing line into your .bashrc file:")
-        print("  source " + shlex.quote(ALIASES_FILE))
-        print()
-        if "CHAINTOOL_BASH_COMPLETIONS" not in os.environ:
-            print(
-                "If you want bash completion support, the chaintool-bash-"
-                "completion file must be\nsourced BEFORE that aliases file.")
-            print()
-        print(
-            "If you'd rather not worry about any of this and instead just "
-            "want to disable\nthis message, you can do so with:")
-        print("  export CHAINTOOL_ALIASES_NO_NAG=1")
-        print()
+        hashbang = sh_hashbang
+    with open(shortcut_path, 'w') as outstream:
+        outstream.write(hashbang)
+        outstream.write(
+            "if [ \"$1\" = \"--cmdgroup\" ]; then echo {}; exit 0; fi\n".format(
+                item_type))
+        outstream.write(
+            "$CHAINTOOL_SHORTCUT_PYTHON chaintool {} run {} \"$@\"\n".format(
+                item_type, item_name))
+    make_executable(shortcut_path)
 
 
-def write_all_aliases(cmd_item_names, seq_item_names):
-    write_aliases("cmd", cmd_item_names, False)
-    write_aliases("seq", seq_item_names, True)
+def delete_shortcut(item_name):
+    try:
+        os.remove(os.path.join(SHORTCUTS_DIR, item_name))
+    except FileNotFoundError:
+        pass
+
+
+def enable():
+    print()
+    shortcuts_dir_on_path = False
+    if "PATH" in os.environ:
+        if SHORTCUTS_DIR in os.environ["PATH"]:
+            shortcuts_dir_on_path = True
+    if shortcuts_dir_on_path:
+        print(
+            "The shortcuts directory is already in your PATH. Command and "
+            "sequence names\nshould be available to run.")
+        print()
+        return
+    print(
+        "For shortcuts, this directory must be in your PATH:\n"
+        "    {}".format(SHORTCUTS_DIR))
+    print()
+    bash_shell = False
+    startup_script_path = ""
+    if "SHELL" in os.environ:
+        bash_shell = os.environ["SHELL"].endswith("/bash")
+        print(
+            "Modify startup script to insert this PATH setting? [Y/n] ", end='')
+        choice_default = 'y'
+    else:
+        print(
+            "It doesn't look like you're running in a shell, so there may not "
+            "be an\nappropriate startup script file in which to add this PATH "
+            "setting. Is there\na file where you do want the PATH setting to "
+            "be inserted? [y/N] ", end='')
+        choice_default = 'n'
+    choice = input()
+    print()
+    if not choice:
+        choice = choice_default
+    if choice.lower() != 'y':
+        return
+    if bash_shell:
+        startup_script_path = os.path.expanduser(os.path.join("~", ".bashrc"))
+    startup_script_path = shared.editline(
+        "Path to startup script: ",
+        startup_script_path)
+    startup_script_path = os.path.expanduser(startup_script_path)
+    print()
+    if not os.path.exists(startup_script_path):
+        print("File does not exist.")
+        print()
+        return
+    with open(startup_script_path, 'r') as instream:
+        startup_script = instream.read()
+    if PATH_RE.search(startup_script):
+        print(
+            "Script already includes a line to set the PATH appropriately. "
+            "Shortcuts\nshould be active next time a shell is started.")
+        print()
+        return
+    with open(startup_script_path, 'a') as outstream:
+        outstream.write("\n# for chaintool shortcut scripts:\n")
+        outstream.write("export PATH=$PATH:{}\n".format(shlex.quote(SHORTCUTS_DIR)))
+    print(
+        "File modified. Shortcuts should be active next time a shell is "
+        "started.")
+    print()
+    return
+
+
+def create_cmd_shortcut(cmd_name):
+    create_shortcut("cmd", cmd_name)
+
+
+def delete_cmd_shortcut(cmd_name):
+    delete_shortcut(cmd_name)
+
+
+def create_seq_shortcut(seq_name):
+    create_shortcut("seq", seq_name)
+
+
+def delete_seq_shortcut(seq_name):
+    delete_shortcut(seq_name)

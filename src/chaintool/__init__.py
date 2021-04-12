@@ -19,11 +19,22 @@
 
 
 import atexit
+import os
+
 import colorama
+
+from . import completions
+from .constants import DATA_DIR
 
 
 __version__ = "0.1.0"
 
+FIRST_RUN_MARKER = os.path.join(DATA_DIR, "firstrun-" + __version__)
+if not os.path.exists(FIRST_RUN_MARKER):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(FIRST_RUN_MARKER, 'w'):
+        pass
+    completions.init()
 
 colorama.init()
 atexit.register(colorama.deinit)

@@ -76,7 +76,7 @@ def cli_set(cmd, cmdline, overwrite, print_after_set):
             return 1
     status = command_impl.define(cmd, cmdline, overwrite, print_after_set, False)
     if creating and not status:
-        shortcuts.write_aliases("cmd", command_impl.all_names())
+        shortcuts.create_cmd_shortcut(cmd)
     return status
 
 
@@ -124,7 +124,7 @@ def cli_edit(cmd, print_after_set):
         if status:
             cleanup_placeholder_fun()
         else:
-            shortcuts.write_aliases("cmd", command_impl.all_names())
+            shortcuts.create_cmd_shortcut(cmd)
         atexit.unregister(cleanup_placeholder_fun)
     return status
 
@@ -176,17 +176,14 @@ def cli_del(delcmds, ignore_seq_usage):
         if error:
             print()
             return 1
-    any_deleted = False
     for cmd in delcmds:
         try:
             command_impl.delete(cmd, False)
             print("Command '{}' deleted.".format(cmd))
-            any_deleted = True
+            shortcuts.delete_cmd_shortcut(cmd)
         except FileNotFoundError:
             print("Command '{}' does not exist.".format(cmd))
     print()
-    if any_deleted:
-        shortcuts.write_aliases("cmd", command_impl.all_names())
     return 0
 
 

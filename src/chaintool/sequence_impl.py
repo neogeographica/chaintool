@@ -36,7 +36,7 @@ from . import shared
 from .constants import DATA_DIR
 
 
-SEQ_DIR = os.path.join(DATA_DIR, "sequence")
+SEQ_DIR = os.path.join(DATA_DIR, "sequences")
 
 os.makedirs(SEQ_DIR, exist_ok=True)
 

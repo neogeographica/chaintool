@@ -28,8 +28,8 @@ from colorama import Fore
 
 from . import command_impl
 from . import sequence_impl
-from . import shortcuts
 from . import locks
+from . import shortcuts
 
 
 def cli_export(export_file):
@@ -97,12 +97,15 @@ def cli_import(import_file, overwrite):
     print(Fore.MAGENTA + "* Importing commands..." + Fore.RESET)
     print()
     for cmd_dict in import_dict['commands']:
-        command_impl.define(cmd_dict['name'], cmd_dict['cmdline'], overwrite, False, True)
+        cmd = cmd_dict['name']
+        status = command_impl.define(cmd, cmd_dict['cmdline'], overwrite, False, True)
+        if not status:
+            shortcuts.create_cmd_shortcut(cmd)
     print(Fore.MAGENTA + "* Importing sequences..." + Fore.RESET)
     print()
     for seq_dict in import_dict['sequences']:
-        sequence_impl.define(seq_dict['name'], seq_dict['commands'], True, overwrite, False, True)
-    new_command_names = command_impl.all_names()
-    new_sequence_names = sequence_impl.all_names()
-    shortcuts.write_all_aliases(new_command_names, new_sequence_names)
+        seq = seq_dict['name']
+        status = sequence_impl.define(seq_dict['name'], seq_dict['commands'], True, overwrite, False, True)
+        if not status:
+            shortcuts.create_seq_shortcut(seq)
     return 0
