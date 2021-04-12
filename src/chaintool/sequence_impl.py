@@ -60,11 +60,19 @@ def write_doc(seq, seq_doc, mode):
         seq_file.write(seq_doc)
 
 
-def define(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, compact):
+def define(
+        seq,
+        cmds,
+        ignore_missing_cmds,
+        overwrite,
+        print_after_set,
+        compact):  # pylint: disable=too-many-arguments
     if not compact:
         print()
     if not shared.is_valid_name(seq):
-        shared.errprint("seqname '{}' contains whitespace, which is not allowed.".format(seq))
+        shared.errprint(
+            "seqname '{}' contains whitespace, "
+            "which is not allowed.".format(seq))
         print()
         return 1
     if not cmds:
@@ -73,7 +81,9 @@ def define(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, compact):
         return 1
     for cmd_name in cmds:
         if not shared.is_valid_name(cmd_name):
-            shared.errprint("cmdname '{}' contains whitespace, which is not allowed.".format(cmd_name))
+            shared.errprint(
+                "cmdname '{}' contains whitespace, "
+                "which is not allowed.".format(cmd_name))
             print()
             return 1
     if not ignore_missing_cmds:

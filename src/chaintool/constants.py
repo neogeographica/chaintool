@@ -19,13 +19,18 @@
 
 
 __all__ = ['CACHE_DIR',
-           'DATA_DIR']
+           'DATA_DIR',
+           'MSG_WARN_PREFIX']
 
 
 import appdirs
+
+from colorama import Fore
 
 
 APP_NAME = "chaintool"
 APP_AUTHOR = "Joel Baxter"
 CACHE_DIR = appdirs.user_config_dir(APP_NAME, APP_AUTHOR)
 DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
+
+MSG_WARN_PREFIX = Fore.YELLOW + "Warning:" + Fore.RESET

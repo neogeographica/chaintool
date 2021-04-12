@@ -59,8 +59,16 @@ class PlaceholderArgsPurpose(enum.Enum):
     UPDATE = 2
 
 
+def explode_literal_braces(value):
+    return value.replace("{", "{{").replace("}", "}}")
+
+
+def collapse_literal_braces(value):
+    return value.replace("{{", "{").replace("}}", "}")
+
+
 def update_values_from_args(values_for_names, togglevalues_for_names, all_args, unused_args, purpose):
-    all_values_keys = list(values_for_names.keys())
+    valid_non_toggles = list(values_for_names.keys())
     unactivated_toggles = list(togglevalues_for_names.keys())
     for arg in all_args:
         default_match = PLACEHOLDER_DEFAULT_RE.match(arg)
@@ -68,7 +76,7 @@ def update_values_from_args(values_for_names, togglevalues_for_names, all_args, 
             # Changing a placeholder default is always OK and always handled
             # the same way.
             key = default_match.group(1)
-            if key in all_values_keys:
+            if key in valid_non_toggles:
                 values_for_names[key] = default_match.group(2)
                 if arg in unused_args:
                     unused_args.remove(arg)
@@ -112,7 +120,7 @@ def update_values_from_args(values_for_names, togglevalues_for_names, all_args, 
     if purpose == PlaceholderArgsPurpose.RUN:
         for key in unactivated_toggles:
             values_for_names[key] = togglevalues_for_names[key][0]
-        unspecified = [k for k in all_values_keys if values_for_names[k] is None]
+        unspecified = [k for k in valid_non_toggles if values_for_names[k] is None]
         if unspecified:
             shared.errprint("Not all placeholders in the commandline have been given a value.")
             shared.errprint("Placeholders that still need a value: " + ' '.join(unspecified))
@@ -160,10 +168,7 @@ def process_cmdline(cmdline, handle_placeholder_fun):
 
 def update_cmdline(cmd_dict):
 
-    def explode_literal_braces(value):
-        return value.replace("{", "{{").replace("}", "}}")
-
-    def handle_placeholder(placeholder):
+    def handle_update_placeholder(placeholder):
         toggle_match = PLACEHOLDER_TOGGLE_RE.match(placeholder)
         if toggle_match:
             key = toggle_match.group(1)
@@ -186,7 +191,10 @@ def update_cmdline(cmd_dict):
         value = explode_literal_braces(cmd_dict['args'][key])
         return key + "=" + value
 
-    cmd_dict['cmdline'] = process_cmdline(cmd_dict['cmdline'], handle_placeholder)
+    cmd_dict['cmdline'] = process_cmdline(
+        cmd_dict['cmdline'],
+        handle_update_placeholder
+    )
 
 
 def exists(cmd):
@@ -273,10 +281,7 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
     toggles_without_values = set()
     toggle_dup_names = set()
 
-    def collapse_literal_braces(value):
-        return value.replace("{{", "{").replace("}}", "}")
-
-    def handle_placeholder(placeholder):
+    def handle_set_placeholder(placeholder):
         toggle_match = PLACEHOLDER_TOGGLE_RE.match(placeholder)
         if toggle_match:
             key = toggle_match.group(1)
@@ -314,7 +319,7 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
         values_for_names[key] = value
         return key
 
-    cmdline_format = process_cmdline(cmdline, handle_placeholder)
+    cmdline_format = process_cmdline(cmdline, handle_set_placeholder)
     error = False
     if non_alphanum_names:
         error = True
@@ -465,6 +470,13 @@ def print_multi(commands):
     all_toggle_placeholders_set = set()
     commands_by_placeholder = dict()
     commands_display = ""
+
+    def record_placeholder(cmd, placeholder):
+        if placeholder in commands_by_placeholder:
+            commands_by_placeholder[placeholder].append(cmd)
+        else:
+            commands_by_placeholder[placeholder] = [cmd]
+
     for cmd in commands:
         try:
             cmd_dict = read_dict(cmd)
@@ -472,21 +484,14 @@ def print_multi(commands):
             cmd_dict['name'] = cmd
             command_dicts.append(cmd_dict)
             command_dicts_by_cmd[cmd] = cmd_dict
-
-            def record_placeholder(p):
-                if p in commands_by_placeholder:
-                    commands_by_placeholder[p].append(cmd)
-                else:
-                    commands_by_placeholder[p] = [cmd]
-
             for k, v in cmd_dict['args'].items():
-                record_placeholder(k)
+                record_placeholder(cmd, k)
                 if v is None:
                     all_required_placeholders_set.add(k)
                 else:
                     all_optional_placeholders_set.add(k)
             for k in cmd_dict['toggle_args'].keys():
-                record_placeholder(k)
+                record_placeholder(cmd, k)
                 all_toggle_placeholders_set.add(k)
         except FileNotFoundError:
             commands_display += " " + Fore.RED + cmd + Fore.RESET
@@ -497,35 +502,42 @@ def print_multi(commands):
     for d in command_dicts:
         print(Fore.CYAN + "* " + d['name'] + Fore.RESET)
         print(d['cmdline'])
+    num_commands = len(commands)
+
     # This sort function aims to list bigger command-groups first; and among
     # command-groups of the same size, order them by how early their first
     # command appears in the sequence.
-    num_commands = len(commands)
-
-    def cga_sort_keyvalue(cga):
-        group = cga[0]
+    def cga_sort_keyvalue(cmd_group_args):
+        group = cmd_group_args[0]
         return (
             num_commands
             * len(group)
             + (num_commands - commands.index(group[0]) - 1)
         )
 
+    def args_updater(arg, oldargs, update_checker):
+        oldargs.append(arg)
+        update_checker.append(True)
+        return oldargs
+
+    def format_parts(args_dict, v, c):
+        if args_dict == 'args':
+            return ("{} ({})", [shlex.quote(v), c])
+        v0 = shlex.quote(v[0])
+        v1 = shlex.quote(v[1])
+        return ("{}:{} ({})", [v0, v1, c])
+
     def print_command_groups(argset):
         cmd_group_args = []
-        for a in argset:
-            cmd_group = commands_by_placeholder[a]
+        for arg in argset:
+            cmd_group = commands_by_placeholder[arg]
             update_checker = []
-
-            def args_updater(oldargs):
-                oldargs.append(a)
-                update_checker.append(True)
-                return oldargs
-
             cmd_group_args = [
-                (group, args_updater(args)) if group == cmd_group else (group, args)
-                for (group, args) in cmd_group_args]
+                (group, args_updater(arg, group_args, update_checker))
+                if group == cmd_group else (group, group_args)
+                for (group, group_args) in cmd_group_args]
             if not update_checker:
-                newentry = (cmd_group, [a])
+                newentry = (cmd_group, [arg])
                 cmd_group_args.append(newentry)
         cmd_group_args.sort(key=cga_sort_keyvalue, reverse=True)
         for group, args in cmd_group_args:
@@ -547,13 +559,7 @@ def print_multi(commands):
                     has_common_value = True
                     first_value = command_dicts_by_cmd[first_cmd][args_dict][a]
 
-                    def format_parts(v, c):
-                        if args_dict == 'args':
-                            return ("{} ({})", [shlex.quote(v), c])
-                        v0 = shlex.quote(v[0])
-                        v1 = shlex.quote(v[1])
-                        return ("{}:{} ({})", [v0, v1, c])
-                    (format_suffix, added_args) = format_parts(first_value, first_cmd)
+                    (format_suffix, added_args) = format_parts(args_dict, first_value, first_cmd)
                     format_str += format_suffix
                     format_args += added_args
                     for cmd in group[1:]:
@@ -563,7 +569,7 @@ def print_multi(commands):
                             format_str = "{}"
                             format_args = [a]
                             break
-                        (format_suffix, added_args) = format_parts(this_value, cmd)
+                        (format_suffix, added_args) = format_parts(args_dict, this_value, cmd)
                         format_str += ", " + format_suffix
                         format_args += added_args
                         if this_value != first_value:

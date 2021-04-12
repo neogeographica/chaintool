@@ -35,6 +35,7 @@ import yaml  # from pyyaml
 from colorama import Fore
 
 from . import command_impl
+from . import constants
 from . import sequence_impl
 from . import shared
 from . import shortcuts
@@ -201,9 +202,7 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
             return status
     if unused_args:
         print(
-            Fore.YELLOW
-            + "Warning:"
-            + Fore.RESET
+            constants.MSG_WARN_PREFIX
             + " the following args don't apply to any commandline "
             "in this sequence:",
             ' '.join(unused_args))
@@ -243,9 +242,7 @@ def cli_vals(seq, args, print_after_set):
             command_impl.print_multi(cmd_list)
     if unused_args:
         print(
-            Fore.YELLOW
-            + "Warning:"
-            + Fore.RESET
+            constants.MSG_WARN_PREFIX
             + " the following args don't apply to any commandline "
             "in this sequence:",
             ' '.join(unused_args))
