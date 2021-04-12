@@ -45,10 +45,10 @@ import copy
 import enum
 import glob
 import os
-import psutil
 import time
 
 import filelock
+import psutil
 
 from .constants import CACHE_DIR
 

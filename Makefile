@@ -26,8 +26,8 @@ lint:
 	flake8 --ignore E501,E731,W503 src/chaintool
 
 megalint:
-	# Eventually should restore C0301,C0114,C0115,C0116.
-	pylint -d C0301,C0114,C0115,C0116 src/chaintool
+	# Eventually should restore all of these.
+	pylint -d C0301,C0114,C0115,C0116,C0103 src/chaintool
 
 clean:
 	-rm -rf build

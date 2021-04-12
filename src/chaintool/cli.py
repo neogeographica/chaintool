@@ -36,17 +36,22 @@ import sys
 
 from colorama import Fore
 
-from . import ops
+from . import command
+from . import sequence
+from . import xfer
 
 
 class SubparsersHelpAction(argparse.Action):
+    # Pylint doesn't like the "help" argument in  __init__, but that's what we
+    # get from argparse.
+    # pylint: disable=redefined-builtin
 
     def __init__(self, option_strings, dest, help=None, subparsers=None):
         if subparsers is None:
             self.subparsers = []
         else:
             self.subparsers = subparsers
-        super(SubparsersHelpAction, self).__init__(
+        super().__init__(
             option_strings=option_strings,
             dest=argparse.SUPPRESS,
             default=argparse.SUPPRESS,
@@ -56,13 +61,13 @@ class SubparsersHelpAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         cut_prefix = os.path.basename(sys.argv[0]) + ' '
         print()
-        for p in self.subparsers:
-            desc = p.prog
+        for subp in self.subparsers:
+            desc = subp.prog
             if desc.startswith(cut_prefix):
                 desc = desc[len(cut_prefix):]
             print(Fore.MAGENTA + "* '{}' help:".format(desc) + Fore.RESET)
             print()
-            p.print_help()
+            subp.print_help()
             print()
         parser.exit()
 
@@ -382,56 +387,99 @@ def set_import_options(group_subparsers):
     return group_parser_import
 
 
+CMD_DISPATCH = {
+    "list": lambda args: command.cli_list(
+        args.column
+    ),
+    "set": lambda args: command.cli_set(
+        args.cmdname,
+        args.cmdline,
+        True,
+        not args.quiet
+    ),
+    "edit": lambda args: command.cli_edit(
+        args.cmdname,
+        not args.quiet
+    ),
+    "print": lambda args: command.cli_print(
+        args.cmdname,
+        args.dump_placeholders
+    ),
+    "del": lambda args: command.cli_del(
+        args.cmdnames,
+        args.force
+    ),
+    "run": lambda args: command.cli_run(
+        args.cmdname,
+        args.placeholder_args
+    ),
+    "vals": lambda args: command.cli_vals(
+        args.cmdname,
+        args.placeholder_args,
+        not args.quiet
+    )
+}
+
+
 def handle_cmd(args):
-    if args.operation == "list":
-        return ops.handle_cmd_list(args.column)
-    if args.operation == "set":
-        return ops.handle_cmd_set(args.cmdname, args.cmdline, True, not args.quiet)
-    if args.operation == "edit":
-        return ops.handle_cmd_edit(args.cmdname, not args.quiet)
-    if args.operation == "print":
-        return ops.handle_cmd_print(args.cmdname, args.dump_placeholders)
-    if args.operation == "del":
-        return ops.handle_cmd_del(args.cmdnames, args.force)
-    if args.operation == "run":
-        return ops.handle_cmd_run(args.cmdname, args.placeholder_args)
-    if args.operation == "vals":
-        return ops.handle_cmd_vals(args.cmdname, args.placeholder_args, not args.quiet)
-    return 0
+    return CMD_DISPATCH[args.operation](args)
+
+
+SEQ_DISPATCH = {
+    "list": lambda args: sequence.cli_list(
+        args.column
+    ),
+    "set": lambda args: sequence.cli_set(
+        args.seqname,
+        args.cmdnames,
+        args.force,
+        True,
+        not args.quiet
+    ),
+    "edit": lambda args: sequence.cli_edit(
+        args.seqname,
+        args.force,
+        not args.quiet
+    ),
+    "print": lambda args: sequence.cli_print(
+        args.seqname,
+        args.dump_placeholders
+    ),
+    "del": lambda args: sequence.cli_del(
+        args.seqnames
+    ),
+    "run": lambda args: sequence.cli_run(
+        args.seqname,
+        args.placeholder_args,
+        args.ignore_errors,
+        args.skip_cmdnames
+    ),
+    "vals": lambda args: sequence.cli_vals(
+        args.seqname,
+        args.placeholder_args,
+        not args.quiet
+    )
+}
 
 
 def handle_seq(args):
-    if args.operation == "list":
-        return ops.handle_seq_list(args.column)
-    if args.operation == "set":
-        return ops.handle_seq_set(args.seqname, args.cmdnames, args.force, True, not args.quiet)
-    if args.operation == "edit":
-        return ops.handle_seq_edit(args.seqname, args.force, not args.quiet)
-    if args.operation == "print":
-        return ops.handle_seq_print(args.seqname, args.dump_placeholders)
-    if args.operation == "del":
-        return ops.handle_seq_del(args.seqnames)
-    if args.operation == "run":
-        return ops.handle_seq_run(args.seqname, args.placeholder_args, args.ignore_errors, args.skip_cmdnames)
-    if args.operation == "vals":
-        return ops.handle_seq_vals(args.seqname, args.placeholder_args, not args.quiet)
-    return 0
+    return SEQ_DISPATCH[args.operation](args)
 
 
 def handle_print(args):
-    return ops.handle_print(args.dump_placeholders)
+    return command.cli_print_all(args.dump_placeholders)
 
 
 def handle_vals(args):
-    return ops.handle_vals(args.placeholder_args)
+    return command.cli_vals_all(args.placeholder_args)
 
 
 def handle_export(args):
-    return ops.handle_export(args.file)
+    return xfer.cli_export(args.file)
 
 
 def handle_import(args):
-    return ops.handle_import(args.file, args.overwrite)
+    return xfer.cli_import(args.file, args.overwrite)
 
 
 def main():
