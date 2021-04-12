@@ -22,7 +22,8 @@ README and the generated docs.
 Prerequisites
 -------------
 
-XXX blah blah Python 3 ... maybe skip this section this time?
+XXX generally need to cover: Python 3.7 required, bash is useful,
+    a RECENT version of bash even more useful, bash_completion also nice
 
 .. _installation_section:
 
