@@ -3,8 +3,8 @@
 chaintool: XXX blah blah blah XXX
 ===============================================================
 
-.. image:: http://img.shields.io/pypi/v/expak.svg
-    :target: https://pypi.python.org/pypi/expak
+.. image:: http://img.shields.io/pypi/v/chaintool.svg
+    :target: https://pypi.python.org/pypi/chaintool
     :alt: current version
 
 .. _blurb_section:
