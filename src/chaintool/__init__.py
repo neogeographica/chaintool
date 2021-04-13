@@ -20,6 +20,7 @@
 
 import atexit
 import os
+import sys
 
 import colorama
 
@@ -28,6 +29,10 @@ from .constants import DATA_DIR
 
 
 __version__ = "0.1.0"
+
+if sys.version_info < (3, 7):
+    sys.stderr.write("Python version 3.7 or later is required.\n")
+    sys.exit(1)
 
 FIRST_RUN_MARKER = os.path.join(DATA_DIR, "firstrun-" + __version__)
 if not os.path.exists(FIRST_RUN_MARKER):
