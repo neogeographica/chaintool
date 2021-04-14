@@ -35,6 +35,7 @@ import yaml  # from pyyaml
 from colorama import Fore
 
 from . import command_impl
+from . import completions
 from . import constants
 from . import sequence_impl
 from . import shared
@@ -78,6 +79,7 @@ def cli_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set):
     status = sequence_impl.define(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, False)
     if creating and not status:
         shortcuts.create_seq_shortcut(seq)
+        completions.create_completion(seq)
     return status
 
 
@@ -128,6 +130,7 @@ def cli_edit(seq, ignore_missing_cmds, print_after_set):
             cleanup_placeholder_fun()
         else:
             shortcuts.create_seq_shortcut(seq)
+            completions.create_completion(seq)
         atexit.unregister(cleanup_placeholder_fun)
     return status
 
@@ -168,6 +171,7 @@ def cli_del(delseqs):
             sequence_impl.delete(seq, False)
             print("Sequence '{}' deleted.".format(seq))
             shortcuts.delete_seq_shortcut(seq)
+            completions.delete_completion(seq)
         except FileNotFoundError:
             print("Sequence '{}' does not exist.".format(seq))
     print()

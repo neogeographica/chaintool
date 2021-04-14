@@ -34,6 +34,7 @@
 
 
 __all__ = ['LockType',
+           'init',
            'inventory_lock',
            'release_inventory_lock',
            'item_lock',
@@ -50,6 +51,7 @@ import time
 import filelock
 import psutil
 
+from . import shared
 from .constants import CACHE_DIR
 
 
@@ -60,30 +62,25 @@ LOCKS_PREFIX = os.path.join(LOCKS_DIR, "")
 
 MY_PID = str(os.getpid())
 
-os.makedirs(LOCKS_DIR, exist_ok=True)
-
 
 class LockType(enum.Enum):
     READ = "read"
     WRITE = "write"
 
 
+def init():
+    os.makedirs(LOCKS_DIR, exist_ok=True)
+
+
 def locker_pid(lock_path):
     return int(lock_path[lock_path.rindex('.') + 1:])
-
-
-def remove_lock(lock_path):
-    try:
-        os.remove(lock_path)
-    except FileNotFoundError:
-        pass
 
 
 def remove_dead_locks(lock_paths):
     current_pids = psutil.pids()
     for path in lock_paths:
         if locker_pid(path) not in current_pids:
-            remove_lock(path)
+            shared.delete_if_exists(path)
 
 
 def lock_internal(lock_type, prefix):
@@ -100,7 +97,7 @@ def lock_internal(lock_type, prefix):
                 if locker_pid(lck) != MY_PID]
             if not conflicting_locks:
                 lock_path = '.'.join([prefix, lock_type.value, MY_PID])
-                atexit.register(remove_lock, lock_path)
+                atexit.register(shared.delete_if_exists, lock_path)
                 with open(lock_path, 'w'):
                     pass
                 return
@@ -120,7 +117,7 @@ def inventory_lock(item_type, lock_type):
 def release_inventory_lock(item_type, lock_type):
     prefix = LOCKS_PREFIX + "inventory-" + item_type
     lock_path = '.'.join([prefix, lock_type.value, MY_PID])
-    remove_lock(lock_path)
+    shared.delete_if_exists(lock_path)
 
 
 def item_lock(item_type, item_name, lock_type):

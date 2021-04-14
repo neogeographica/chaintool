@@ -20,10 +20,18 @@
 
 __all__ = ['errprint',
            'is_valid_name',
-           'editline']
+           'editline',
+           'check_shell',
+           'delete_if_exists',
+           'read_choicefile',
+           'write_choicefile',
+           'get_startup_script_path',
+           'remove_script_additions']
 
 
+import os
 import readline
+import shutil
 import sys
 import string
 
@@ -54,3 +62,97 @@ def editline(prompt, oldline):
     newline = input(prompt)
     readline.set_startup_hook()
     return newline
+
+
+def check_shell():
+    is_shell = ("SHELL" in os.environ)
+    is_bash_login_shell = False
+    if is_shell:
+        is_bash_login_shell = os.environ["SHELL"].endswith("/bash")
+    return is_shell, is_bash_login_shell
+
+
+def delete_if_exists(filepath):
+    try:
+        os.remove(filepath)
+    except FileNotFoundError:
+        pass
+
+
+def read_choicefile(choicefile_path):
+    if not os.path.exists(choicefile_path):
+        return None
+    with open(choicefile_path, 'r') as instream:
+        return instream.read()
+
+
+def write_choicefile(choicefile_path, choice):
+    if choice is None:
+        delete_if_exists(choicefile_path)
+        return
+    with open(choicefile_path, 'w') as outstream:
+        outstream.write(choice)
+
+
+def default_startup_script():
+    _, is_bash_login_shell = check_shell()
+    if is_bash_login_shell:
+        return os.path.expanduser(
+            os.path.expandvars(os.path.join("~", ".bashrc")))
+    return ""
+
+
+def get_startup_script_path():
+    startup_script_path = editline(
+        "Path to your shell startup script: ",
+        default_startup_script())
+    startup_script_path = os.path.expanduser(
+        os.path.expandvars(startup_script_path))
+    print()
+    if not os.path.exists(startup_script_path):
+        print("File does not exist.")
+        print()
+        return None
+    return startup_script_path
+
+
+def remove_script_additions(script_path, begin_mark, end_mark, expected_lines):
+    try:
+        with open(script_path, 'r') as instream:
+            script_lines = instream.readlines()
+    except FileNotFoundError:
+        print("That file no longer exists.")
+        print()
+        return True
+    new_script_lines = []
+    to_remove = []
+    removing = False
+    for line in script_lines:
+        if begin_mark in line:
+            removing = True
+            to_remove.append(line)
+        elif end_mark in line:
+            removing = False
+            to_remove.append(line)
+        elif not removing:
+            new_script_lines.append(line)
+        else:
+            to_remove.append(line)
+    if len(to_remove) != expected_lines:
+        print(
+            "It doesn't look like this program can safely auto-remove the "
+            "configuration\nfrom that file. If you want to use this program to "
+            "help put the configuration\nin some other file, first you will "
+            "need to manually remove it from this\ncurrent location.")
+        print()
+        return False
+    backup_path = script_path + ".bak"
+    shutil.copy2(script_path, backup_path)
+    with open(script_path, 'w') as outstream:
+        outstream.writelines(new_script_lines)
+    shutil.copystat(backup_path, script_path)
+    print(
+        "Current configuration has been removed. The previous version of the "
+        "file has\nbeen saved at:\n  " + backup_path)
+    print()
+    return True

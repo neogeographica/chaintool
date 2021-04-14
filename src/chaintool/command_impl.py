@@ -18,7 +18,8 @@
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
 
-__all__ = ['exists',
+__all__ = ['init',
+           'exists',
            'all_names',
            'read_dict',
            'write_doc',
@@ -51,7 +52,9 @@ ALPHANUM_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*$")
 
 CMD_DIR = os.path.join(DATA_DIR, "commands")
 
-os.makedirs(CMD_DIR, exist_ok=True)
+
+def init():
+    os.makedirs(CMD_DIR, exist_ok=True)
 
 
 class PlaceholderArgsPurpose(enum.Enum):

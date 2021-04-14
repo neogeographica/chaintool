@@ -27,6 +27,7 @@ import yaml  # from pyyaml
 from colorama import Fore
 
 from . import command_impl
+from . import completions
 from . import sequence_impl
 from . import locks
 from . import shortcuts
@@ -101,6 +102,7 @@ def cli_import(import_file, overwrite):
         status = command_impl.define(cmd, cmd_dict['cmdline'], overwrite, False, True)
         if not status:
             shortcuts.create_cmd_shortcut(cmd)
+            completions.create_completion(cmd)
     print(Fore.MAGENTA + "* Importing sequences..." + Fore.RESET)
     print()
     for seq_dict in import_dict['sequences']:
@@ -108,4 +110,5 @@ def cli_import(import_file, overwrite):
         status = sequence_impl.define(seq_dict['name'], seq_dict['commands'], True, overwrite, False, True)
         if not status:
             shortcuts.create_seq_shortcut(seq)
+            completions.create_completion(seq)
     return 0

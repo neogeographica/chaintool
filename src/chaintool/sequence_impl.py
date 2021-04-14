@@ -18,7 +18,8 @@
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
 
-__all__ = ['exists',
+__all__ = ['init',
+           'exists',
            'all_names',
            'read_dict',
            'write_doc',
@@ -38,7 +39,9 @@ from .constants import DATA_DIR
 
 SEQ_DIR = os.path.join(DATA_DIR, "sequences")
 
-os.makedirs(SEQ_DIR, exist_ok=True)
+
+def init():
+    os.makedirs(SEQ_DIR, exist_ok=True)
 
 
 def exists(seq):

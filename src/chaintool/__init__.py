@@ -19,13 +19,15 @@
 
 
 import atexit
-import os
 import sys
 
 import colorama
 
+from . import command_impl
 from . import completions
-from .constants import DATA_DIR
+from . import locks
+from . import sequence_impl
+from . import shortcuts
 
 
 __version__ = "0.1.0"
@@ -34,12 +36,11 @@ if sys.version_info < (3, 7):
     sys.stderr.write("Python version 3.7 or later is required.\n")
     sys.exit(1)
 
-FIRST_RUN_MARKER = os.path.join(DATA_DIR, "firstrun-" + __version__)
-if not os.path.exists(FIRST_RUN_MARKER):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(FIRST_RUN_MARKER, 'w'):
-        pass
-    completions.init()
-
 colorama.init()
 atexit.register(colorama.deinit)
+
+command_impl.init()
+completions.init()
+locks.init()
+sequence_impl.init()
+shortcuts.init()

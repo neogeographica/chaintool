@@ -18,38 +18,105 @@
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
 
-__all__ = ['init']
-
-# XXX These individual functions need to:
-# - create or delete the script that: sources the helper (if necessary) and
-#   invokes complete -F
-# - update the omnibus script for all cmds/seqs (non-lazy-load support)
-# - if configured for lazy load (via marker file), symlink into that dir
-
-# __all__ = ['init',
-#            'create_cmd_completion',
-#            'delete_cmd_completion',
-#            'create_seq_completion',
-#            'delete_seq_completion']
+__all__ = ['init',
+           'create_lazyload',
+           'delete_lazyload',
+           'create_completion',
+           'delete_completion']
 
 
 import importlib.resources
 import os
+import shlex
 
+from . import shared
 from .constants import DATA_DIR
 
 
 COMPLETIONS_DIR = os.path.join(DATA_DIR, "completions")
-
-os.makedirs(COMPLETIONS_DIR, exist_ok=True)
+SHORTCUTS_COMPLETIONS_DIR = os.path.join(COMPLETIONS_DIR, "shortcuts")
+MAIN_SCRIPT = "chaintool"
+MAIN_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, MAIN_SCRIPT)
+HELPER_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, "chaintool_run_op_common")
+OMNIBUS_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, "omnibus")
+SOURCESCRIPT_LOCATION = os.path.join(COMPLETIONS_DIR, "sourcescript_location")
+USERDIR_LOCATION = os.path.join(COMPLETIONS_DIR, "userdir_location")
 
 
 def init():
-    main_script = importlib.resources.read_text(__package__, "chaintool_completion")
-    helper_script = importlib.resources.read_text(__package__, "chaintool_run_op_common_completion")
-    main_script_out = os.path.join(COMPLETIONS_DIR, "chaintool")
-    helper_script_out = os.path.join(COMPLETIONS_DIR, "chaintool_run_op_common")
-    with open(main_script_out, 'w') as outstream:
-        outstream.write(main_script)
-    with open(helper_script_out, 'w') as outstream:
-        outstream.write(helper_script)
+    os.makedirs(COMPLETIONS_DIR, exist_ok=True)
+    os.makedirs(SHORTCUTS_COMPLETIONS_DIR, exist_ok=True)
+    if not os.path.exists(MAIN_SCRIPT_PATH):
+        script = importlib.resources.read_text(__package__, "chaintool_completion")
+        with open(MAIN_SCRIPT_PATH, 'w') as outstream:
+            outstream.write(script)
+    if not os.path.exists(HELPER_SCRIPT_PATH):
+        script = importlib.resources.read_text(__package__, "chaintool_run_op_common_completion")
+        with open(HELPER_SCRIPT_PATH, 'w') as outstream:
+            outstream.write(script)
+    if not os.path.exists(OMNIBUS_SCRIPT_PATH):
+        with open(OMNIBUS_SCRIPT_PATH, 'w') as outstream:
+            outstream.write(
+                "source {}\n".format(shlex.quote(MAIN_SCRIPT_PATH)))
+            outstream.write(
+                "source {}\n".format(shlex.quote(HELPER_SCRIPT_PATH)))
+            outstream.write(
+                "for s in {}/*\n".format(shlex.quote(SHORTCUTS_COMPLETIONS_DIR)))
+            outstream.write(
+                "do\n")
+            outstream.write(
+                "  source \"$s\"\n")
+            outstream.write(
+                "done\n")
+
+
+def write_complete_invoke(outstream, item_name):
+    outstream.write("complete -F _chaintool_run_op {}\n".format(item_name))
+
+
+def create_static(item_name):
+    shortcut_path = os.path.join(SHORTCUTS_COMPLETIONS_DIR, item_name)
+    with open(shortcut_path, 'w') as outstream:
+        write_complete_invoke(outstream, item_name)
+
+
+def delete_static(item_name):
+    shortcut_path = os.path.join(SHORTCUTS_COMPLETIONS_DIR, item_name)
+    shared.delete_if_exists(shortcut_path)
+
+
+def create_lazyload(item_name):
+    userdir = shared.read_choicefile(USERDIR_LOCATION)
+    shortcut_path = os.path.join(userdir, item_name)
+    with open(shortcut_path, 'w') as outstream:
+        outstream.write(
+            "if type _chaintool_run_op >/dev/null 2>&1\n")
+        outstream.write(
+            "then\n")
+        outstream.write(
+            "  true\n")
+        outstream.write(
+            "else\n")
+        outstream.write(
+            "  source {}\n".format(shlex.quote(HELPER_SCRIPT_PATH)))
+        outstream.write(
+            "fi\n")
+        write_complete_invoke(outstream, item_name)
+
+
+def delete_lazyload(item_name):
+    userdir = shared.read_choicefile(USERDIR_LOCATION)
+    shortcut_path = os.path.join(userdir, item_name)
+    shared.delete_if_exists(shortcut_path)
+
+
+def create_completion(cmd):
+    create_static(cmd)
+    if os.path.exists(USERDIR_LOCATION):
+        create_lazyload(cmd)
+
+
+def delete_completion(cmd):
+    delete_static(cmd)
+    if os.path.exists(USERDIR_LOCATION):
+        delete_lazyload(cmd)

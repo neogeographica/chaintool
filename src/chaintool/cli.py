@@ -37,8 +37,9 @@ import sys
 from colorama import Fore
 
 from . import command
+from . import completions_setup
 from . import sequence
-from . import shortcuts
+from . import shortcuts_setup
 from . import xfer
 
 
@@ -497,10 +498,8 @@ def handle_import(args):
 
 def handle_extended(args):
     if args.functionality == "shortcuts":
-        return shortcuts.enable()
-    # XXX
-    print("TBD")
-    return 1
+        return shortcuts_setup.configure()
+    return completions_setup.configure()
 
 
 CMDGROUP_DISPATCH = {
