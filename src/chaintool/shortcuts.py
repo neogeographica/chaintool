@@ -31,10 +31,11 @@ import shlex
 from . import shared
 
 from .constants import DATA_DIR
+from .shared import LOCATIONS_DIR
 
 
 SHORTCUTS_DIR = os.path.join(DATA_DIR, "shortcuts")
-PATHSCRIPT_LOCATION = os.path.join(SHORTCUTS_DIR, "pathscript_location")
+PATHSCRIPT_LOCATION = os.path.join(LOCATIONS_DIR, "shortcuts_path_setting_script")
 
 
 def init():

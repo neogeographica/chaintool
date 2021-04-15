@@ -36,8 +36,8 @@ PATH_RE = re.compile(r"(?m)^.*export PATH=.*" + shlex.quote(SHORTCUTS_DIR))
 
 
 def unconfigure(startup_script_path):
-    print("Do you want to leave this configuration as-is? [y/n] ", end='')
-    choice = input()
+    print("Do you want to leave this configuration as-is? ", end='')
+    choice = input("[y/n] ")
     print()
     if choice.lower() != 'n':
         return False
@@ -97,16 +97,17 @@ def early_bailout():
     is_shell, _ = shared.check_shell()
     if is_shell:
         print(
-            "Modify startup script to insert this PATH setting? [y/n] ", end='')
+            "Modify startup script to insert this PATH setting? ", end='')
         choice_default = 'y'
+        choice = input("[y/n] ")
     else:
         print(
             "It doesn't look like you're running in a shell, so there may not "
             "be an\nappropriate startup script file in which to add this PATH "
             "setting. Is there\na file where you do want the PATH setting to "
-            "be inserted? [n/y] ", end='')
+            "be inserted? ", end='')
         choice_default = 'n'
-    choice = input()
+        choice = input("[n/y] ")
     print()
     if not choice:
         choice = choice_default

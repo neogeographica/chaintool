@@ -31,6 +31,7 @@ import shlex
 
 from . import shared
 from .constants import DATA_DIR
+from .shared import LOCATIONS_DIR
 
 
 COMPLETIONS_DIR = os.path.join(DATA_DIR, "completions")
@@ -39,8 +40,8 @@ MAIN_SCRIPT = "chaintool"
 MAIN_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, MAIN_SCRIPT)
 HELPER_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, "chaintool_run_op_common")
 OMNIBUS_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, "omnibus")
-SOURCESCRIPT_LOCATION = os.path.join(COMPLETIONS_DIR, "sourcescript_location")
-USERDIR_LOCATION = os.path.join(COMPLETIONS_DIR, "userdir_location")
+SOURCESCRIPT_LOCATION = os.path.join(LOCATIONS_DIR, "completions_script_sourcing_script")
+USERDIR_LOCATION = os.path.join(LOCATIONS_DIR, "completions_lazy_load_userdir")
 
 
 def init():
@@ -61,7 +62,7 @@ def init():
             outstream.write(
                 "source {}\n".format(shlex.quote(HELPER_SCRIPT_PATH)))
             outstream.write(
-                "for s in {}/*\n".format(shlex.quote(SHORTCUTS_COMPLETIONS_DIR)))
+                "ls {0}/* >/dev/null 2>&1 && for s in {0}/*\n".format(shlex.quote(SHORTCUTS_COMPLETIONS_DIR)))
             outstream.write(
                 "do\n")
             outstream.write(

@@ -27,6 +27,7 @@ from . import command_impl
 from . import completions
 from . import locks
 from . import sequence_impl
+from . import shared
 from . import shortcuts
 
 
@@ -43,4 +44,5 @@ command_impl.init()
 completions.init()
 locks.init()
 sequence_impl.init()
+shared.init()
 shortcuts.init()

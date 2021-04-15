@@ -186,8 +186,8 @@ def keep_existing_config():
     else:
         return False
     print()
-    print("Do you want to leave this configuration as-is? [y/n] ", end='')
-    choice = input()
+    print("Do you want to leave this configuration as-is? ", end='')
+    choice = input("[y/n] ")
     print()
     if choice.lower() != 'n':
         return True
@@ -210,9 +210,9 @@ def early_bailout():
     else:
         print(
             "It doesn't look like you're running in a shell. bash completions "
-            "only work\nin the bash shell; are you sure you want to continue? "
-            "[n/y] ", end='')
-    choice = input()
+            "only work\nin the bash shell; are you sure you want to continue? ",
+            end='')
+    choice = input("[n/y] ")
     print()
     if choice.lower() != 'y':
         return True

@@ -18,7 +18,9 @@
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
 
-__all__ = ['errprint',
+__all__ = ['LOCATIONS_DIR',
+           'init',
+           'errprint',
            'is_valid_name',
            'editline',
            'check_shell',
@@ -36,6 +38,15 @@ import sys
 import string
 
 from colorama import Fore
+
+from .constants import CONFIG_DIR
+
+
+LOCATIONS_DIR = os.path.join(CONFIG_DIR, "locations")
+
+
+def init():
+    os.makedirs(LOCATIONS_DIR, exist_ok=True)
 
 
 def errprint(msg):

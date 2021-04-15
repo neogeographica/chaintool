@@ -363,7 +363,7 @@ _chaintool_import_export_completions()
   fi
   # If we've already got the filename, the only remaining valid things are
   # options.
-  if [[ $FIRST_POSITIONAL_INDEX == 1 ]]
+  if [[ $FIRST_POSITIONAL_INDEX != 0 ]]
   then
     if [[ $NO_FLAGS == 0 ]]
     then
@@ -450,14 +450,14 @@ _chaintool()
   # it can be is the help option or a commandgroup.
   if [[ $COMP_CWORD == 1 ]]
   then
-    COMPREPLY=( $(compgen -W "--help cmd seq print vals export import" -- "$CUR") )
+    COMPREPLY=( $(compgen -W "--help cmd seq print vals export import x" -- "$CUR") )
     return 0
   fi
 
   # If this after the first word, bail out now if the first word was not a valid
   # commandgroup. (This includes if it was a help option.)
   local CMD_GROUP="${COMP_WORDS[1]}"
-  echo "cmd seq print vals export import" | grep -qw -- "$CMD_GROUP"
+  echo "cmd seq print vals export import x" | grep -qw -- "$CMD_GROUP"
   if [[ $? -ne 0 ]]
   then
     return 0
@@ -480,7 +480,16 @@ _chaintool()
     elif [[ "$CMD_GROUP" == "vals" ]]
     then
       _chaintool_vals_completions 0
+    elif [[ "$CMD_GROUP" == "x" ]]
+    then
+      COMPREPLY=( $(compgen -W "--help shortcuts completions" -- "$CUR") )
     fi
+    return 0
+  fi
+
+  # For the special "x" group, we're done. No valid possibilities after word 2.
+  if [[ "$CMD_GROUP" == "x" ]]
+  then
     return 0
   fi
 
