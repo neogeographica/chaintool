@@ -513,8 +513,14 @@ CMDGROUP_DISPATCH = {
 }
 
 
-def main():
-    parser = argparse.ArgumentParser(add_help=False)
+def main(forced_progname=None):
+    if forced_progname is not None:
+        parser = argparse.ArgumentParser(
+            prog=forced_progname,
+            add_help=False)
+    else:
+        parser = argparse.ArgumentParser(
+            add_help=False)
     group_subparsers = parser.add_subparsers(
         title="command groups",
         dest="commandgroup",

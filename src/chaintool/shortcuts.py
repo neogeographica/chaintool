@@ -64,8 +64,19 @@ def create_shortcut(item_type, item_name):
             "if [ \"$1\" = \"--cmdgroup\" ]; then echo {}; exit 0; fi\n".format(
                 item_type))
         outstream.write(
-            "$CHAINTOOL_SHORTCUT_PYTHON chaintool {} run {} \"$@\"\n".format(
+            "if [ \"$CHAINTOOL_SHORTCUT_PYTHON\" = \"\" ]\n")
+        outstream.write(
+            "then\n")
+        outstream.write(
+            "  chaintool {} run {} \"$@\"\n".format(
                 item_type, item_name))
+        outstream.write(
+            "else\n")
+        outstream.write(
+            "  \"$CHAINTOOL_SHORTCUT_PYTHON\" -m chaintool {} run {} \"$@\"\n".format(
+                item_type, item_name))
+        outstream.write(
+            "fi\n")
     make_executable(shortcut_path)
 
 
