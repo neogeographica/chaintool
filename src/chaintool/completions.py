@@ -86,22 +86,27 @@ def delete_static(item_name):
     shared.delete_if_exists(shortcut_path)
 
 
+def write_source_if_needed(outstream, test_func_name, script_path):
+    outstream.write(
+        "if type {} >/dev/null 2>&1\n".format(test_func_name))
+    outstream.write(
+        "then\n")
+    outstream.write(
+        "  true\n")
+    outstream.write(
+        "else\n")
+    outstream.write(
+        "  source {}\n".format(shlex.quote(script_path)))
+    outstream.write(
+        "fi\n")
+
+
 def create_lazyload(item_name):
     userdir = shared.read_choicefile(USERDIR_LOCATION)
     shortcut_path = os.path.join(userdir, item_name)
     with open(shortcut_path, 'w') as outstream:
-        outstream.write(
-            "if type _chaintool_run_op >/dev/null 2>&1\n")
-        outstream.write(
-            "then\n")
-        outstream.write(
-            "  true\n")
-        outstream.write(
-            "else\n")
-        outstream.write(
-            "  source {}\n".format(shlex.quote(HELPER_SCRIPT_PATH)))
-        outstream.write(
-            "fi\n")
+        write_source_if_needed(outstream, "_chaintool", MAIN_SCRIPT_PATH)
+        write_source_if_needed(outstream, "_chaintool_run_op", HELPER_SCRIPT_PATH)
         write_complete_invoke(outstream, item_name)
 
 

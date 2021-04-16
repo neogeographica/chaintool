@@ -37,7 +37,6 @@ from .completions import SOURCESCRIPT_LOCATION, USERDIR_LOCATION
 BEGIN_MARK = "# begin bash completions support for chaintool"
 END_MARK = "# end bash completions support for chaintool"
 SOURCE_RE = re.compile(r"(?m)^.*source " + shlex.quote(OMNIBUS_SCRIPT_PATH))
-BC_PROBE_RE = re.compile(r"(?m)^__load_completion\(\)$")
 
 
 def default_userdir():
@@ -71,10 +70,6 @@ def get_userdir_path():
     userdir_path = os.path.expanduser(
         os.path.expandvars(userdir_path))
     print()
-    if not os.path.exists(userdir_path):
-        print("Directory does not exist.")
-        print()
-        return None
     return userdir_path
 
 
@@ -84,6 +79,7 @@ def enable_dynamic(userdir):
         return
     os.makedirs(userdir, exist_ok=True)
     userdir_script_path = os.path.join(userdir, MAIN_SCRIPT)
+    # XXX Actually should just generate a small file that sources MAIN_SCRIPT_PATH
     shutil.copy2(MAIN_SCRIPT_PATH, userdir_script_path)
     for item in os.listdir(SHORTCUTS_COMPLETIONS_DIR):
         completions.create_lazyload(item)
@@ -219,56 +215,24 @@ def early_bailout():
     return False
 
 
-def bash_completion_install_probe():
-    bc_path = None
-    bc_main_path = os.path.join(os.sep, "etc", "bash_completion")
-    if os.path.exists(bc_main_path):
-        bc_path = bc_main_path
-    else:
-        bc_alt_path = os.path.join(os.sep, "usr", "local", "etc", "bash_completion")
-        if os.path.exists(bc_alt_path):
-            bc_path = bc_alt_path
-    if bc_path is None:
-        return None
-    with open(bc_path, 'r') as instream:
-        bc_script = instream.read()
-    if BC_PROBE_RE.search(bc_script):
-        return True
-    return False
-
-
 def choose_method():
     print(
         "There are two ways to configure bash completions for chaintool. "
-        "The correct\nchoice depends on whether the bash_completions package "
+        "The correct\nchoice depends on whether the bash-completion package "
         "is installed (and\nactive for your environment), and what version it "
         "is. The rundown:")
     print()
     print(
-        "  1: If using bash_completion 2.2 or later, bash completions can "
+        "  1: If using bash-completion 2.2 or later, bash completions can "
         "be activated\n     for new shortcut commands as soon as they are "
         "created, in the same shell.\n")
     print(
         "  2: Otherwise, bash completions for a newly created shortcut "
         "command will\n     only be available when a new shell is started.")
     print()
-    probe_result = bash_completion_install_probe()
-    if probe_result is None:
-        print(
-            "It doesn't look like the bash_completion package is installed on "
-            "your system.")
-    elif probe_result is False:
-        print(
-            "It does appear that an older (pre-2.2) version of bash_completion "
-            "is installed\non your system.")
-    else:
-        print(
-            "It does appear that a recent (2.2 or later) version of "
-            "bash_completion is\ninstalled on your system.")
-    print()
     print(
         "Unfortunately it's difficult to discover (from within this program) "
-        "FOR SURE\nwhether a recent version of bash_completion is installed "
+        "FOR SURE\nwhether a recent version of bash-completion is installed "
         "AND is active in\nyour environment. If you want to test this "
         "yourself, run the following\ncommand in a new shell:\n")
     print(
@@ -276,12 +240,13 @@ def choose_method():
     print()
     print(
         "If you see \"yep\" printed when running that command, you have "
-        "bash_completion\n2.2 or later active.")
+        "bash-completion\n2.2 or later active.")
     print()
     print("Which configuration do you want to enable?")
     print(
         "  0: No bash completions\n  1: Use dynamic completions (requires "
-        "bash_completion 2.2 or later)\n  2: Use old-style completions")
+        "bash-completion 2.2 or later)\n  2: Use old-style completions "
+        "(doesn't depend on bash-completion package)")
     choice = input("choose [0/1/2] ")
     print()
     if choice == "1":
