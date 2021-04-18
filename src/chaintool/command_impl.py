@@ -62,6 +62,11 @@ class PlaceholderArgsPurpose(enum.Enum):
     UPDATE = 2
 
 
+def remove_if_present(element_to_remove, list_in):
+    if element_to_remove in list_in:
+        list_in.remove(element_to_remove)
+
+
 def explode_literal_braces(value):
     return value.replace("{", "{{").replace("}", "}}")
 
@@ -70,64 +75,75 @@ def collapse_literal_braces(value):
     return value.replace("{{", "{").replace("}}", "}")
 
 
-def update_values_from_args(values_for_names, togglevalues_for_names, all_args, unused_args, purpose):
+def update_runtime_values_from_args(
+        values_for_names,
+        togglevalues_for_names,
+        all_args,
+        unused_args):
     valid_non_toggles = list(values_for_names.keys())
     unactivated_toggles = list(togglevalues_for_names.keys())
     for arg in all_args:
         default_match = PLACEHOLDER_DEFAULT_RE.match(arg)
         if default_match:
-            # Changing a placeholder default is always OK and always handled
-            # the same way.
             key = default_match.group(1)
             if key in valid_non_toggles:
                 values_for_names[key] = default_match.group(2)
-                if arg in unused_args:
-                    unused_args.remove(arg)
+                remove_if_present(arg, unused_args)
         else:
-            # For default-clearing and toggles, we need more smarts.
             toggle_match = PLACEHOLDER_TOGGLE_RE.match(arg)
-            if purpose == PlaceholderArgsPurpose.RUN:
-                if arg[0] == '+':
-                    if arg in togglevalues_for_names:
-                        values_for_names[arg] = togglevalues_for_names[arg][1]
-                        if arg in unactivated_toggles:
-                            unactivated_toggles.remove(arg)
-                        if arg in unused_args:
-                            unused_args.remove(arg)
-                elif toggle_match:
-                    shared.errprint(
-                        "Can't specify values for 'toggle' style placeholders "
-                        "such as '{}' in this operation.".format(toggle_match.group(1)))
-                    return False
-                else:
-                    shared.errprint(
-                        "Placeholder '{}' specified in args without a value.".format(arg))
-                    return False
+            if arg[0] == '+':
+                if arg in togglevalues_for_names:
+                    values_for_names[arg] = togglevalues_for_names[arg][1]
+                    remove_if_present(arg, unactivated_toggles)
+                    remove_if_present(arg, unused_args)
+            elif toggle_match:
+                shared.errprint(
+                    "Can't specify values for 'toggle' style placeholders "
+                    "such as '{}' in this operation.".format(toggle_match.group(1)))
+                return False
             else:
-                if toggle_match:
-                    key = toggle_match.group(1)
-                    if key in togglevalues_for_names:
-                        togglevalues_for_names[key] = [toggle_match.group(2), toggle_match.group(3)]
-                        if arg in unused_args:
-                            unused_args.remove(arg)
-                elif arg[0] == '+':
-                    shared.errprint(
-                        "'Toggle' style placeholders such as '{}' require "
-                        "accompanying pre/post values in this operation.".format(arg))
-                    return False
-                else:
-                    if arg in values_for_names:
-                        values_for_names[arg] = None
-                        if arg in unused_args:
-                            unused_args.remove(arg)
-    if purpose == PlaceholderArgsPurpose.RUN:
-        for key in unactivated_toggles:
-            values_for_names[key] = togglevalues_for_names[key][0]
-        unspecified = [k for k in valid_non_toggles if values_for_names[k] is None]
-        if unspecified:
-            shared.errprint("Not all placeholders in the commandline have been given a value.")
-            shared.errprint("Placeholders that still need a value: " + ' '.join(unspecified))
-            return False
+                shared.errprint(
+                    "Placeholder '{}' specified in args without a value.".format(arg))
+                return False
+    for key in unactivated_toggles:
+        values_for_names[key] = togglevalues_for_names[key][0]
+    unspecified = [k for k in valid_non_toggles if values_for_names[k] is None]
+    if unspecified:
+        shared.errprint("Not all placeholders in the commandline have been given a value.")
+        shared.errprint("Placeholders that still need a value: " + ' '.join(unspecified))
+        return False
+    return True
+
+
+def update_default_values_from_args(
+        values_for_names,
+        togglevalues_for_names,
+        all_args,
+        unused_args):
+    valid_non_toggles = list(values_for_names.keys())
+    for arg in all_args:
+        default_match = PLACEHOLDER_DEFAULT_RE.match(arg)
+        if default_match:
+            key = default_match.group(1)
+            if key in valid_non_toggles:
+                values_for_names[key] = default_match.group(2)
+                remove_if_present(arg, unused_args)
+        else:
+            toggle_match = PLACEHOLDER_TOGGLE_RE.match(arg)
+            if toggle_match:
+                key = toggle_match.group(1)
+                if key in togglevalues_for_names:
+                    togglevalues_for_names[key] = [toggle_match.group(2), toggle_match.group(3)]
+                    remove_if_present(arg, unused_args)
+            elif arg[0] == '+':
+                shared.errprint(
+                    "'Toggle' style placeholders such as '{}' require "
+                    "accompanying pre/post values in this operation.".format(arg))
+                return False
+            else:
+                if arg in values_for_names:
+                    values_for_names[arg] = None
+                    remove_if_present(arg, unused_args)
     return True
 
 
@@ -139,7 +155,13 @@ def command_with_values(cmd, all_args, unused_args, purpose):
         return None
     values_for_names = cmd_dict['args']
     togglevalues_for_names = cmd_dict['toggle_args']
-    if update_values_from_args(values_for_names, togglevalues_for_names, all_args, unused_args, purpose):
+    if purpose == PlaceholderArgsPurpose.RUN:
+        update_success = update_runtime_values_from_args(
+            values_for_names, togglevalues_for_names, all_args, unused_args)
+    else:
+        update_success = update_default_values_from_args(
+            values_for_names, togglevalues_for_names, all_args, unused_args)
+    if update_success:
         return cmd_dict
     return None
 
@@ -169,34 +191,39 @@ def process_cmdline(cmdline, handle_placeholder_fun):
     return cmdline_format
 
 
-def update_cmdline(cmd_dict):
-
-    def handle_update_placeholder(placeholder):
-        toggle_match = PLACEHOLDER_TOGGLE_RE.match(placeholder)
-        if toggle_match:
-            key = toggle_match.group(1)
-            if key not in cmd_dict['toggle_args']:
-                # Weird, but we'll handle it.
-                return placeholder
-            untoggled_value = explode_literal_braces(cmd_dict['toggle_args'][key][0])
-            toggled_value = explode_literal_braces(cmd_dict['toggle_args'][key][1])
-            return key + "=" + untoggled_value + ":" + toggled_value
-        default_match = PLACEHOLDER_DEFAULT_RE.match(placeholder)
-        if default_match:
-            key = default_match.group(1)
-        else:
-            key = placeholder
-        if key not in cmd_dict['args']:
+def handle_update_placeholder(placeholder, args_dict, toggle_args_dict):
+    toggle_match = PLACEHOLDER_TOGGLE_RE.match(placeholder)
+    if toggle_match:
+        key = toggle_match.group(1)
+        if key not in toggle_args_dict:
             # Weird, but we'll handle it.
             return placeholder
-        if cmd_dict['args'][key] is None:
-            return key
-        value = explode_literal_braces(cmd_dict['args'][key])
-        return key + "=" + value
+        untoggled_value = explode_literal_braces(toggle_args_dict[key][0])
+        toggled_value = explode_literal_braces(toggle_args_dict[key][1])
+        return key + "=" + untoggled_value + ":" + toggled_value
+    default_match = PLACEHOLDER_DEFAULT_RE.match(placeholder)
+    if default_match:
+        key = default_match.group(1)
+    else:
+        key = placeholder
+    if key not in args_dict:
+        # Weird, but we'll handle it.
+        return placeholder
+    if args_dict[key] is None:
+        return key
+    value = explode_literal_braces(args_dict[key])
+    return key + "=" + value
+
+
+def update_cmdline(cmd_dict):
+
+    def handle_update_placeholder_wrapper(placeholder):
+        return handle_update_placeholder(
+            placeholder, cmd_dict['args'], cmd_dict['toggle_args'])
 
     cmd_dict['cmdline'] = process_cmdline(
         cmd_dict['cmdline'],
-        handle_update_placeholder
+        handle_update_placeholder_wrapper
     )
 
 
@@ -219,6 +246,20 @@ def write_doc(cmd, cmd_doc, mode):
         cmd_file.write(cmd_doc)
 
 
+def update_placeholders_collections(k, v, consistent_values_dict, other_set):
+    if k in other_set:
+        return
+    if v is None:
+        other_set.add(k)
+        return
+    if k not in consistent_values_dict:
+        consistent_values_dict[k] = v
+        return
+    if consistent_values_dict[k] != v:
+        del consistent_values_dict[k]
+        other_set.add(k)
+
+
 def dump_placeholders(commands, is_run):
     placeholders_with_consistent_value = dict()
     other_placeholders_set = set()
@@ -228,24 +269,17 @@ def dump_placeholders(commands, is_run):
         try:
             cmd_dict = read_dict(cmd)
             for k, v in cmd_dict['args'].items():
-                if v is None:
-                    other_placeholders_set.add(k)
-                else:
-                    if k not in other_placeholders_set:
-                        if k in placeholders_with_consistent_value:
-                            if placeholders_with_consistent_value[k] != v:
-                                del placeholders_with_consistent_value[k]
-                                other_placeholders_set.add(k)
-                        else:
-                            placeholders_with_consistent_value[k] = v
+                update_placeholders_collections(
+                    k,
+                    v,
+                    placeholders_with_consistent_value,
+                    other_placeholders_set)
             for k, v in cmd_dict['toggle_args'].items():
-                if k not in other_toggles_set:
-                    if k in toggles_with_consistent_value:
-                        if toggles_with_consistent_value[k] != v:
-                            del toggles_with_consistent_value[k]
-                            other_toggles_set.add(k)
-                    else:
-                        toggles_with_consistent_value[k] = v
+                update_placeholders_collections(
+                    k,
+                    v,
+                    toggles_with_consistent_value,
+                    other_toggles_set)
         except FileNotFoundError:
             pass
     for k, v in placeholders_with_consistent_value.items():
@@ -265,6 +299,108 @@ def dump_placeholders(commands, is_run):
     return 0
 
 
+def print_errors(error_sets):
+    error = False
+    if error_sets["non_alphanum_names"]:
+        error = True
+        shared.errprint(
+            "Bad placeholder format: " + ' '.join(error_sets["non_alphanum_names"]))
+        shared.errprint(
+            "Placeholder names must begin with a letter and be composed only "
+            "of letters, numbers, and underscores.")
+        shared.errprint(
+            "(Note that this error can also be triggered by syntax mistakes "
+            "when trying to specify placeholder default values or toggle values. "
+            "Also, if you need a literal brace character to appear in the "
+            "commandline, use a double brace.)")
+    if error_sets["multi_value_names"]:
+        error = True
+        shared.errprint(
+            "Placeholders occurring multiple times but with different "
+            "defaults: " + ' '.join(error_sets["multi_value_names"]))
+    if error_sets["multi_togglevalue_names"]:
+        error = True
+        shared.errprint(
+            "'Toggle' placeholders occurring multiple times but with different "
+            "values: " + ' '.join(error_sets["multi_togglevalue_names"]))
+    if error_sets["toggles_without_values"]:
+        error = True
+        shared.errprint(
+            "'Toggle' placeholders specified without values: "
+            + ' '.join(error_sets["toggles_without_values"]))
+    if error_sets["toggle_dup_names"]:
+        error = True
+        shared.errprint(
+            "Same placeholder name(s) used for both regular and 'toggle' "
+            "placeholders: " + ' '.join(error_sets["toggle_dup_names"]))
+    return error
+
+
+def check_toggle_errors(
+        key,
+        value,
+        values_for_names,
+        togglevalues_for_names,
+        error_sets):
+    if not ALPHANUM_RE.match(key[1:]):
+        error_sets["non_alphanum_names"].add(key)
+    if key[1:] in values_for_names:
+        error_sets["toggle_dup_names"].add(key[1:])
+    if key is not None:
+        if key in togglevalues_for_names:
+            if togglevalues_for_names[key] != value:
+                error_sets["multi_togglevalue_names"].add(key)
+    else:
+        error_sets["toggles_without_values"].add(key)
+
+
+def check_placeholder_errors(
+        key,
+        value,
+        values_for_names,
+        togglevalues_for_names,
+        error_sets):
+    if key[0] == '+':
+        check_toggle_errors(
+            key, value, values_for_names, togglevalues_for_names, error_sets)
+        return
+    if not ALPHANUM_RE.match(key):
+        error_sets["non_alphanum_names"].add(key)
+    if "+" + key in togglevalues_for_names:
+        error_sets["toggle_dup_names"].add(key)
+    if key in values_for_names:
+        if values_for_names[key] != value:
+            error_sets["multi_value_names"].add(key)
+
+
+def handle_set_placeholder(
+        placeholder,
+        values_for_names,
+        togglevalues_for_names,
+        error_sets):
+    toggle_match = PLACEHOLDER_TOGGLE_RE.match(placeholder)
+    if toggle_match:
+        key = toggle_match.group(1)
+        untoggled_value = collapse_literal_braces(toggle_match.group(2))
+        toggled_value = collapse_literal_braces(toggle_match.group(3))
+        value = [untoggled_value, toggled_value]
+        check_toggle_errors(
+            key, value, values_for_names, togglevalues_for_names, error_sets)
+        togglevalues_for_names[key] = value
+        return key
+    default_match = PLACEHOLDER_DEFAULT_RE.match(placeholder)
+    if default_match:
+        key = default_match.group(1)
+        value = collapse_literal_braces(default_match.group(2))
+    else:
+        key = placeholder
+        value = None
+    check_placeholder_errors(
+        key, value, values_for_names, togglevalues_for_names, error_sets)
+    values_for_names[key] = value
+    return key
+
+
 def define(cmd, cmdline, overwrite, print_after_set, compact):
     if not compact:
         print()
@@ -278,84 +414,20 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
         return 1
     values_for_names = dict()
     togglevalues_for_names = dict()
-    non_alphanum_names = set()
-    multi_value_names = set()
-    multi_togglevalue_names = set()
-    toggles_without_values = set()
-    toggle_dup_names = set()
+    error_sets = {
+        "non_alphanum_names": set(),
+        "multi_value_names": set(),
+        "multi_togglevalue_names": set(),
+        "toggles_without_values": set(),
+        "toggle_dup_names": set()
+    }
 
-    def handle_set_placeholder(placeholder):
-        toggle_match = PLACEHOLDER_TOGGLE_RE.match(placeholder)
-        if toggle_match:
-            key = toggle_match.group(1)
-            untoggled_value = collapse_literal_braces(toggle_match.group(2))
-            toggled_value = collapse_literal_braces(toggle_match.group(3))
-            value = [untoggled_value, toggled_value]
-            if not ALPHANUM_RE.match(key[1:]):
-                non_alphanum_names.add(key)
-            if key[1:] in values_for_names:
-                toggle_dup_names.add(key[1:])
-            if key in togglevalues_for_names:
-                if togglevalues_for_names[key] != value:
-                    multi_togglevalue_names.add(key)
-            togglevalues_for_names[key] = value
-            return key
-        default_match = PLACEHOLDER_DEFAULT_RE.match(placeholder)
-        if default_match:
-            key = default_match.group(1)
-            value = collapse_literal_braces(default_match.group(2))
-        else:
-            key = placeholder
-            value = None
-            if key[0] == '+':
-                if not ALPHANUM_RE.match(key[1:]):
-                    non_alphanum_names.add(key)
-                toggles_without_values.add(key)
-                return placeholder
-        if not ALPHANUM_RE.match(key):
-            non_alphanum_names.add(key)
-        if "+" + key in togglevalues_for_names:
-            toggle_dup_names.add(key)
-        if key in values_for_names:
-            if values_for_names[key] != value:
-                multi_value_names.add(key)
-        values_for_names[key] = value
-        return key
+    def handle_set_placeholder_wrapper(placeholder):
+        return handle_set_placeholder(
+            placeholder, values_for_names, togglevalues_for_names, error_sets)
 
-    cmdline_format = process_cmdline(cmdline, handle_set_placeholder)
-    error = False
-    if non_alphanum_names:
-        error = True
-        shared.errprint("Bad placeholder format: " + ' '.join(non_alphanum_names))
-        shared.errprint(
-            "Placeholder names must begin with a letter and be composed only "
-            "of letters, numbers, and underscores.")
-        shared.errprint(
-            "(Note that this error can also be triggered by syntax mistakes "
-            "when trying to specify placeholder default values or toggle values. "
-            "Also, if you need a literal brace character to appear in the "
-            "commandline, use a double brace.)")
-    if multi_value_names:
-        error = True
-        shared.errprint(
-            "Placeholders occurring multiple times but with different "
-            "defaults: " + ' '.join(multi_value_names))
-    if multi_togglevalue_names:
-        error = True
-        shared.errprint(
-            "'Toggle' placeholders occurring multiple times but with different "
-            "values: " + ' '.join(multi_togglevalue_names))
-    if toggles_without_values:
-        error = True
-        shared.errprint(
-            "'Toggle' placeholders specified without values: "
-            + ' '.join(toggles_without_values))
-    if toggle_dup_names:
-        error = True
-        shared.errprint(
-            "Same placeholder name(s) used for both regular and 'toggle' "
-            "placeholders: " + ' '.join(toggle_dup_names))
-    if error:
+    cmdline_format = process_cmdline(cmdline, handle_set_placeholder_wrapper)
+    if print_errors(error_sets):
         print()
         return 1
     cmd_doc = yaml.dump(
@@ -465,14 +537,12 @@ def print_one(cmd):
     return 0
 
 
-def print_multi(commands):
-    command_dicts = []
-    command_dicts_by_cmd = dict()
-    all_required_placeholders_set = set()
-    all_optional_placeholders_set = set()
-    all_toggle_placeholders_set = set()
-    commands_by_placeholder = dict()
-    commands_display = ""
+def init_print_info_collections(
+        commands,
+        command_dicts,
+        command_dicts_by_cmd,
+        commands_by_placeholder,
+        placeholders_sets):
 
     def record_placeholder(cmd, placeholder):
         if placeholder in commands_by_placeholder:
@@ -480,6 +550,7 @@ def print_multi(commands):
         else:
             commands_by_placeholder[placeholder] = [cmd]
 
+    commands_display = ""
     for cmd in commands:
         try:
             cmd_dict = read_dict(cmd)
@@ -490,22 +561,104 @@ def print_multi(commands):
             for k, v in cmd_dict['args'].items():
                 record_placeholder(cmd, k)
                 if v is None:
-                    all_required_placeholders_set.add(k)
+                    placeholders_sets["required"].add(k)
                 else:
-                    all_optional_placeholders_set.add(k)
+                    placeholders_sets["optional"].add(k)
             for k in cmd_dict['toggle_args'].keys():
                 record_placeholder(cmd, k)
-                all_toggle_placeholders_set.add(k)
+                placeholders_sets["toggle"].add(k)
         except FileNotFoundError:
             commands_display += " " + Fore.RED + cmd + Fore.RESET
-    print(Fore.MAGENTA + "** commands:" + Fore.RESET)
-    print(commands_display)
-    print()
-    print(Fore.MAGENTA + "** commandline formats:" + Fore.RESET)
-    for d in command_dicts:
-        print(Fore.CYAN + "* " + d['name'] + Fore.RESET)
-        print(d['cmdline'])
+    return commands_display
+
+
+def print_command_groups(cmd_group_args, command_dicts_by_cmd):
+
+    def format_parts(v, c):
+        if isinstance(v, str):
+            return ("{} ({})", [shlex.quote(v), c])
+        return ("{}:{} ({})", [shlex.quote(v[0]), shlex.quote(v[1]), c])
+
+    for group, args in cmd_group_args:
+        print(Fore.CYAN + "* " + ', '.join(group) + Fore.RESET)
+        args.sort()
+        first_cmd = group[0]
+        for a in args:
+            format_str = "{} = "
+            format_args = [a]
+            args_dict_name = None
+            if a in command_dicts_by_cmd[first_cmd]['args']:
+                if command_dicts_by_cmd[first_cmd]['args'][a] is not None:
+                    args_dict_name = 'args'
+                    common_format_str = "{} = {}"
+            else:
+                args_dict_name = 'toggle_args'
+                common_format_str = "{} = {}:{}"
+            if args_dict_name is not None:
+                has_common_value = True
+                first_value = command_dicts_by_cmd[first_cmd][args_dict_name][a]
+                (format_suffix, added_args) = format_parts(first_value, first_cmd)
+                format_str += format_suffix
+                format_args += added_args
+                for cmd in group[1:]:
+                    this_value = command_dicts_by_cmd[cmd][args_dict_name][a]
+                    if this_value is None:
+                        has_common_value = False
+                        format_str = "{}"
+                        format_args = [a]
+                        break
+                    (format_suffix, added_args) = format_parts(this_value, cmd)
+                    format_str += ", " + format_suffix
+                    format_args += added_args
+                    if this_value != first_value:
+                        has_common_value = False
+                if has_common_value:
+                    format_str = common_format_str
+            print(format_str.format(*format_args))
+
+
+def print_placeholders_set(
+        placeholders_set,
+        sortfunc,
+        command_dicts_by_cmd,
+        commands_by_placeholder):
+
+    def args_updater(arg, oldargs, update_checker):
+        oldargs.append(arg)
+        update_checker.append(True)
+        return oldargs
+
+    cmd_group_args = []
+    for arg in placeholders_set:
+        cmd_group = commands_by_placeholder[arg]
+        update_checker = []
+        cmd_group_args = [
+            (group, args_updater(arg, group_args, update_checker))
+            if group == cmd_group else (group, group_args)
+            for (group, group_args) in cmd_group_args]
+        if not update_checker:
+            newentry = (cmd_group, [arg])
+            cmd_group_args.append(newentry)
+    cmd_group_args.sort(key=sortfunc, reverse=True)
+    print_command_groups(cmd_group_args, command_dicts_by_cmd)
+
+
+def print_multi(commands):
     num_commands = len(commands)
+    command_dicts = []
+    command_dicts_by_cmd = dict()
+    commands_by_placeholder = dict()
+    placeholders_sets = {
+        "required": set(),
+        "optional": set(),
+        "toggle": set()
+    }
+    commands_display = init_print_info_collections(
+        commands,
+        command_dicts,
+        command_dicts_by_cmd,
+        commands_by_placeholder,
+        placeholders_sets)
 
     # This sort function aims to list bigger command-groups first; and among
     # command-groups of the same size, order them by how early their first
@@ -518,81 +671,36 @@ def print_multi(commands):
             + (num_commands - commands.index(group[0]) - 1)
         )
 
-    def args_updater(arg, oldargs, update_checker):
-        oldargs.append(arg)
-        update_checker.append(True)
-        return oldargs
-
-    def format_parts(args_dict, v, c):
-        if args_dict == 'args':
-            return ("{} ({})", [shlex.quote(v), c])
-        v0 = shlex.quote(v[0])
-        v1 = shlex.quote(v[1])
-        return ("{}:{} ({})", [v0, v1, c])
-
-    def print_command_groups(argset):
-        cmd_group_args = []
-        for arg in argset:
-            cmd_group = commands_by_placeholder[arg]
-            update_checker = []
-            cmd_group_args = [
-                (group, args_updater(arg, group_args, update_checker))
-                if group == cmd_group else (group, group_args)
-                for (group, group_args) in cmd_group_args]
-            if not update_checker:
-                newentry = (cmd_group, [arg])
-                cmd_group_args.append(newentry)
-        cmd_group_args.sort(key=cga_sort_keyvalue, reverse=True)
-        for group, args in cmd_group_args:
-            print(Fore.CYAN + "* " + ', '.join(group) + Fore.RESET)
-            args.sort()
-            first_cmd = group[0]
-            for a in args:
-                format_str = "{} = "
-                format_args = [a]
-                args_dict = None
-                if a in command_dicts_by_cmd[first_cmd]['args']:
-                    if command_dicts_by_cmd[first_cmd]['args'][a] is not None:
-                        args_dict = 'args'
-                        common_format_str = "{} = {}"
-                else:
-                    args_dict = 'toggle_args'
-                    common_format_str = "{} = {}:{}"
-                if args_dict is not None:
-                    has_common_value = True
-                    first_value = command_dicts_by_cmd[first_cmd][args_dict][a]
-
-                    (format_suffix, added_args) = format_parts(args_dict, first_value, first_cmd)
-                    format_str += format_suffix
-                    format_args += added_args
-                    for cmd in group[1:]:
-                        this_value = command_dicts_by_cmd[cmd][args_dict][a]
-                        if this_value is None:
-                            has_common_value = False
-                            format_str = "{}"
-                            format_args = [a]
-                            break
-                        (format_suffix, added_args) = format_parts(args_dict, this_value, cmd)
-                        format_str += ", " + format_suffix
-                        format_args += added_args
-                        if this_value != first_value:
-                            has_common_value = False
-                    if has_common_value:
-                        format_str = common_format_str
-
-                print(format_str.format(*format_args))
-
-    if all_required_placeholders_set:
+    print(Fore.MAGENTA + "** commands:" + Fore.RESET)
+    print(commands_display)
+    print()
+    print(Fore.MAGENTA + "** commandline formats:" + Fore.RESET)
+    for d in command_dicts:
+        print(Fore.CYAN + "* " + d['name'] + Fore.RESET)
+        print(d['cmdline'])
+    if placeholders_sets["required"]:
         print()
         print(Fore.MAGENTA + "** required values:" + Fore.RESET)
-        print_command_groups(all_required_placeholders_set)
-    if all_optional_placeholders_set:
+        print_placeholders_set(
+            placeholders_sets["required"],
+            cga_sort_keyvalue,
+            command_dicts_by_cmd,
+            commands_by_placeholder)
+    if placeholders_sets["optional"]:
         print()
         print(Fore.MAGENTA + "** optional values with default:" + Fore.RESET)
-        print_command_groups(all_optional_placeholders_set)
-    if all_toggle_placeholders_set:
+        print_placeholders_set(
+            placeholders_sets["optional"],
+            cga_sort_keyvalue,
+            command_dicts_by_cmd,
+            commands_by_placeholder)
+    if placeholders_sets["toggle"]:
         print()
         print(Fore.MAGENTA + "** toggles with untoggled:toggled values:" + Fore.RESET)
-        print_command_groups(all_toggle_placeholders_set)
+        print_placeholders_set(
+            placeholders_sets["toggle"],
+            cga_sort_keyvalue,
+            command_dicts_by_cmd,
+            commands_by_placeholder)
     print()
     return 0

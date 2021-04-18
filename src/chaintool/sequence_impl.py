@@ -63,13 +63,13 @@ def write_doc(seq, seq_doc, mode):
         seq_file.write(seq_doc)
 
 
-def define(
+def define(  # pylint: disable=too-many-arguments
         seq,
         cmds,
         ignore_missing_cmds,
         overwrite,
         print_after_set,
-        compact):  # pylint: disable=too-many-arguments
+        compact):
     if not compact:
         print()
     if not shared.is_valid_name(seq):
