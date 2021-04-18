@@ -562,8 +562,10 @@ def init_print_info_collections(
                 record_placeholder(cmd, k)
                 if v is None:
                     placeholders_sets["required"].add(k)
+                    placeholders_sets["optional"].discard(k)
                 else:
-                    placeholders_sets["optional"].add(k)
+                    if k not in placeholders_sets["required"]:
+                        placeholders_sets["optional"].add(k)
             for k in cmd_dict['toggle_args'].keys():
                 record_placeholder(cmd, k)
                 placeholders_sets["toggle"].add(k)
@@ -572,49 +574,58 @@ def init_print_info_collections(
     return commands_display
 
 
-def print_command_groups(cmd_group_args, command_dicts_by_cmd):
+def print_group_args(group, args, build_format_func):
+    first_cmd = group[0]
+    for a in args:
+        done, format_str, format_args = build_format_func(a, first_cmd)
+        if not done:
+            for cmd in group[1:]:
+                done, format_str, format_args = build_format_func(
+                    a, cmd, format_str, format_args)
+                if done:
+                    break
+        print(format_str.format(*format_args))
 
-    def format_parts(v, c):
-        if isinstance(v, str):
-            return ("{} ({})", [shlex.quote(v), c])
-        return ("{}:{} ({})", [shlex.quote(v[0]), shlex.quote(v[1]), c])
+
+def print_command_groups(cmd_group_args, command_dicts_by_cmd):
+    _, firstargs = cmd_group_args[0]
+    if firstargs[0][0] == '+':
+        args_dict_name = 'toggle_args'
+        vals_per_arg = 2
+        multival_str_suffix = "{}:{} ({})"
+        common_format_str = "{} = {}:{}"
+    else:
+        args_dict_name = 'args'
+        vals_per_arg = 1
+        multival_str_suffix = "{} ({})"
+        common_format_str = "{} = {}"
+
+    def build_format(arg, cmd, format_str=None, format_args=None):
+        value = command_dicts_by_cmd[cmd][args_dict_name][arg]
+        if value is None:
+            return True, "{}", [arg]
+        if vals_per_arg == 1:
+            args_suffix = [shlex.quote(value), cmd]
+        else:
+            args_suffix = [shlex.quote(value[0]), shlex.quote(value[1]), cmd]
+        if format_str is None:
+            format_args = [arg] + args_suffix + [value]
+            return False, common_format_str, format_args
+        actual_format_args, common_value = format_args[:-1], format_args[-1]
+        if value == common_value:
+            format_args = actual_format_args + args_suffix + [common_value]
+            return False, common_format_str, format_args
+        if common_value is not None:
+            catch_up_iters = (len(actual_format_args) - 1) // (vals_per_arg + 1)
+            format_str = "{} = " + ", ".join([multival_str_suffix] * catch_up_iters)
+        format_str = ", ".join([format_str, multival_str_suffix])
+        format_args = actual_format_args + args_suffix + [None]
+        return False, format_str, format_args
 
     for group, args in cmd_group_args:
         print(Fore.CYAN + "* " + ', '.join(group) + Fore.RESET)
         args.sort()
-        first_cmd = group[0]
-        for a in args:
-            format_str = "{} = "
-            format_args = [a]
-            args_dict_name = None
-            if a in command_dicts_by_cmd[first_cmd]['args']:
-                if command_dicts_by_cmd[first_cmd]['args'][a] is not None:
-                    args_dict_name = 'args'
-                    common_format_str = "{} = {}"
-            else:
-                args_dict_name = 'toggle_args'
-                common_format_str = "{} = {}:{}"
-            if args_dict_name is not None:
-                has_common_value = True
-                first_value = command_dicts_by_cmd[first_cmd][args_dict_name][a]
-                (format_suffix, added_args) = format_parts(first_value, first_cmd)
-                format_str += format_suffix
-                format_args += added_args
-                for cmd in group[1:]:
-                    this_value = command_dicts_by_cmd[cmd][args_dict_name][a]
-                    if this_value is None:
-                        has_common_value = False
-                        format_str = "{}"
-                        format_args = [a]
-                        break
-                    (format_suffix, added_args) = format_parts(this_value, cmd)
-                    format_str += ", " + format_suffix
-                    format_args += added_args
-                    if this_value != first_value:
-                        has_common_value = False
-                if has_common_value:
-                    format_str = common_format_str
-            print(format_str.format(*format_args))
+        print_group_args(group, args, build_format)
 
 
 def print_placeholders_set(
