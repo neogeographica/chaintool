@@ -17,6 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Top-level logic for "export" and "import" operations.
+
+Called from cli module. Handles locking and shortcuts/completions; delegates
+to command_impl and sequence_impl modules for most of the work.
+
+"""
+
 
 __all__ = ['cli_export',
            'cli_import']

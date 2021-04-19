@@ -17,20 +17,23 @@
 # You should have received a copy of the GNU General Public License
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Locking system to preserve consistency under simultaneous operations.
 
-# This simple R/W lock implementation does not enforce all the guardrails
-# necessary to prevent deadlock. Because its usage is pretty simple in this
-# program, we just have to follow conventions to avoid deadlock (knock on
-# wood). The conventions are:
-# * lock acquisition order: seq inventory, seq item, cmd inventory, cmd item
-# * for holding multiple item locks, acquire in sorted item name order (this
-#    is actually enforced as long as you use multi_item_lock to do it)
+This simple R/W lock implementation does not enforce all the guardrails
+necessary to prevent deadlock. Because its usage is pretty simple in this
+program, we just have to follow conventions to avoid deadlock (knock on
+wood). The conventions are:
+  * lock acquisition order: seq inventory, seq item, cmd inventory, cmd item
+  * for holding multiple item locks, acquire in sorted item name order (this
+    is actually enforced as long as you use multi_item_lock to do it)
 
-# Acquire WRITE inventory lock to create or delete item-of-type.
-# Any inventory lock prevents create/delete for item-of-type.
+Acquire WRITE inventory lock to create or delete item-of-type.
+Any inventory lock prevents create/delete for item-of-type.
 
-# Acquire WRITE item lock to create, delete,or modify an item.
-# Any item lock prevents other create/delete/modify for that item.
+Acquire WRITE item lock to create, delete, or modify an item.
+Any item lock prevents other create/delete/modify for that item.
+
+"""
 
 
 __all__ = ['LockType',

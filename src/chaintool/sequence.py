@@ -17,6 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Top-level logic for "seq" operations.
+
+Called from cli module. Handles locking and shortcuts/completions; delegates
+to sequence_impl module for most of the work.
+
+"""
+
 
 __all__ = ['cli_list',
            'cli_set',

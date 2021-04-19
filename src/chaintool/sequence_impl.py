@@ -17,6 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Low-level logic for "seq" operations.
+
+Called from sequence, command, command_impl, and xfer modules. Does the
+bulk of the work for reading/writing/modifying sequence definitions.
+
+"""
+
 
 __all__ = ['init',
            'exists',

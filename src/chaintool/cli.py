@@ -18,13 +18,7 @@
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Compose and run sequences of commandlines with tweakable parameters.
-
-Originally designed for managing the sequences of "compile" commands needed
-to transform Quake 1/2/3 .map files into .bsp files.
-
-More description TBD.
-"""
+"""Parse command-line args and invoke the requested operation."""
 
 
 __all__ = ['main']

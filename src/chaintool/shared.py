@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Utility functions shared by the package's modules."""
+
 
 __all__ = ['LOCATIONS_DIR',
            'init',
@@ -41,7 +43,7 @@ from colorama import Fore
 
 from .constants import CONFIG_DIR
 
-
+# XXX Move constants.py in here too?
 LOCATIONS_DIR = os.path.join(CONFIG_DIR, "locations")
 
 

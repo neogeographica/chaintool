@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Handle setting/unsetting the PATH modification for shortcuts."""
+
 
 __all__ = ['configure']
 

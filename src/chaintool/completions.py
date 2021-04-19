@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Create/delete bash completions for commands and sequences."""
+
 
 __all__ = ['init',
            'create_lazyload',

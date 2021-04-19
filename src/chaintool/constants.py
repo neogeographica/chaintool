@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Constants shared by the package's modules."""
+
 
 __all__ = ['CACHE_DIR',
            'CONFIG_DIR',
