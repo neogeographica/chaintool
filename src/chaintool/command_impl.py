@@ -32,7 +32,6 @@ __all__ = ['init',
            'print_multi']
 
 
-import enum
 import os
 import re
 import shlex
@@ -55,11 +54,6 @@ CMD_DIR = os.path.join(DATA_DIR, "commands")
 
 def init():
     os.makedirs(CMD_DIR, exist_ok=True)
-
-
-class PlaceholderArgsPurpose(enum.Enum):
-    RUN = 1
-    UPDATE = 2
 
 
 def remove_if_present(element_to_remove, list_in):
@@ -147,7 +141,7 @@ def update_default_values_from_args(
     return True
 
 
-def command_with_values(cmd, all_args, unused_args, purpose):
+def command_with_values(cmd, all_args, unused_args, is_run):
     try:
         cmd_dict = read_dict(cmd)
     except FileNotFoundError:
@@ -155,7 +149,7 @@ def command_with_values(cmd, all_args, unused_args, purpose):
         return None
     values_for_names = cmd_dict['args']
     togglevalues_for_names = cmd_dict['toggle_args']
-    if purpose == PlaceholderArgsPurpose.RUN:
+    if is_run:
         update_success = update_runtime_values_from_args(
             values_for_names, togglevalues_for_names, all_args, unused_args)
     else:
@@ -466,7 +460,7 @@ def delete(cmd, is_not_found_ok):
 
 def run(cmd, args, unused_args):
     print()
-    cmd_dict = command_with_values(cmd, args, unused_args, PlaceholderArgsPurpose.RUN)
+    cmd_dict = command_with_values(cmd, args, unused_args, True)
     if cmd_dict is None:
         print()
         return 1
@@ -481,7 +475,7 @@ def run(cmd, args, unused_args):
 def vals(cmd, args, unused_args, print_after_set, compact):
     if not compact:
         print()
-    cmd_dict = command_with_values(cmd, args, unused_args, PlaceholderArgsPurpose.UPDATE)
+    cmd_dict = command_with_values(cmd, args, unused_args, False)
     if cmd_dict is None:
         return 1
     update_cmdline(cmd_dict)
