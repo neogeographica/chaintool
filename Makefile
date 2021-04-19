@@ -28,7 +28,7 @@ lint:
 megalint:
 	# Eventually should restore almost all of these. R0801 is worth checking
 	# every now and then but can be too twitchy.
-	pylint -d C0301,C0114,C0115,C0116,C0103,R0801 src/chaintool
+	pylint -d C0301,C0114,C0115,C0116,R0801 src/chaintool
 
 clean:
 	-rm -rf build

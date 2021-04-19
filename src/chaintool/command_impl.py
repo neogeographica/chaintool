@@ -246,18 +246,18 @@ def write_doc(cmd, cmd_doc, mode):
         cmd_file.write(cmd_doc)
 
 
-def update_placeholders_collections(k, v, consistent_values_dict, other_set):
-    if k in other_set:
+def update_placeholders_collections(key, value, consistent_values_dict, other_set):
+    if key in other_set:
         return
-    if v is None:
-        other_set.add(k)
+    if value is None:
+        other_set.add(key)
         return
-    if k not in consistent_values_dict:
-        consistent_values_dict[k] = v
+    if key not in consistent_values_dict:
+        consistent_values_dict[key] = value
         return
-    if consistent_values_dict[k] != v:
-        del consistent_values_dict[k]
-        other_set.add(k)
+    if consistent_values_dict[key] != value:
+        del consistent_values_dict[key]
+        other_set.add(key)
 
 
 def dump_placeholders(commands, is_run):
@@ -268,34 +268,34 @@ def dump_placeholders(commands, is_run):
     for cmd in commands:
         try:
             cmd_dict = read_dict(cmd)
-            for k, v in cmd_dict['args'].items():
+            for key, value in cmd_dict['args'].items():
                 update_placeholders_collections(
-                    k,
-                    v,
+                    key,
+                    value,
                     placeholders_with_consistent_value,
                     other_placeholders_set)
-            for k, v in cmd_dict['toggle_args'].items():
+            for key, value in cmd_dict['toggle_args'].items():
                 update_placeholders_collections(
-                    k,
-                    v,
+                    key,
+                    value,
                     toggles_with_consistent_value,
                     other_toggles_set)
         except FileNotFoundError:
             pass
-    for k, v in placeholders_with_consistent_value.items():
-        print("{}={}".format(k, v))
-    for k in other_placeholders_set:
-        print("{}".format(k))
-    for k, v in toggles_with_consistent_value.items():
+    for key, value in placeholders_with_consistent_value.items():
+        print("{}={}".format(key, value))
+    for key in other_placeholders_set:
+        print("{}".format(key))
+    for key, value in toggles_with_consistent_value.items():
         if is_run:
-            print(k)
+            print(key)
         else:
-            print("{}={}:{}".format(k, v[0], v[1]))
-    for k in other_toggles_set:
+            print("{}={}:{}".format(key, value[0], value[1]))
+    for key in other_toggles_set:
         if is_run:
-            print(k)
+            print(key)
         else:
-            print("{}=".format(k))
+            print("{}=".format(key))
     return 0
 
 
@@ -506,11 +506,11 @@ def print_one(cmd):
         return 1
     all_required_placeholders = []
     all_optional_placeholders = []
-    for k, v in cmd_dict['args'].items():
-        if v is None:
-            all_required_placeholders.append(k)
+    for key, value in cmd_dict['args'].items():
+        if value is None:
+            all_required_placeholders.append(key)
         else:
-            all_optional_placeholders.append(k)
+            all_optional_placeholders.append(key)
     all_toggle_placeholders = list(cmd_dict['toggle_args'].keys())
     print(Fore.MAGENTA + "* commandline format:" + Fore.RESET)
     print(cmd_dict['cmdline'])
@@ -518,21 +518,26 @@ def print_one(cmd):
         print()
         print(Fore.MAGENTA + "* required values:" + Fore.RESET)
         all_required_placeholders.sort()
-        for p in all_required_placeholders:
-            print(p)
+        for placeholder in all_required_placeholders:
+            print(placeholder)
     if all_optional_placeholders:
         print()
         print(Fore.MAGENTA + "* optional values with default:" + Fore.RESET)
         all_optional_placeholders.sort()
-        for p in all_optional_placeholders:
-            print("{} = {}".format(p, shlex.quote(cmd_dict['args'][p])))
+        for placeholder in all_optional_placeholders:
+            print("{} = {}".format(
+                placeholder,
+                shlex.quote(cmd_dict['args'][placeholder])))
     if all_toggle_placeholders:
         print()
         print(Fore.MAGENTA + "* toggles with untoggled:toggled values:" + Fore.RESET)
         all_toggle_placeholders.sort()
-        for p in all_toggle_placeholders:
-            togglevals = cmd_dict['toggle_args'][p]
-            print("{} = {}:{}".format(p, shlex.quote(togglevals[0]), shlex.quote(togglevals[1])))
+        for placeholder in all_toggle_placeholders:
+            togglevals = cmd_dict['toggle_args'][placeholder]
+            print("{} = {}:{}".format(
+                placeholder,
+                shlex.quote(togglevals[0]),
+                shlex.quote(togglevals[1])))
     print()
     return 0
 
@@ -558,30 +563,30 @@ def init_print_info_collections(
             cmd_dict['name'] = cmd
             command_dicts.append(cmd_dict)
             command_dicts_by_cmd[cmd] = cmd_dict
-            for k, v in cmd_dict['args'].items():
-                record_placeholder(cmd, k)
-                if v is None:
-                    placeholders_sets["required"].add(k)
-                    placeholders_sets["optional"].discard(k)
+            for key, value in cmd_dict['args'].items():
+                record_placeholder(cmd, key)
+                if value is None:
+                    placeholders_sets["required"].add(key)
+                    placeholders_sets["optional"].discard(key)
                 else:
-                    if k not in placeholders_sets["required"]:
-                        placeholders_sets["optional"].add(k)
-            for k in cmd_dict['toggle_args'].keys():
-                record_placeholder(cmd, k)
-                placeholders_sets["toggle"].add(k)
+                    if key not in placeholders_sets["required"]:
+                        placeholders_sets["optional"].add(key)
+            for key in cmd_dict['toggle_args'].keys():
+                record_placeholder(cmd, key)
+                placeholders_sets["toggle"].add(key)
         except FileNotFoundError:
             commands_display += " " + Fore.RED + cmd + Fore.RESET
     return commands_display
 
 
-def print_group_args(group, args, build_format_func):
+def print_group_args(group, group_args, build_format_func):
     first_cmd = group[0]
-    for a in args:
-        done, format_str, format_args = build_format_func(a, first_cmd)
+    for arg in group_args:
+        done, format_str, format_args = build_format_func(arg, first_cmd)
         if not done:
             for cmd in group[1:]:
                 done, format_str, format_args = build_format_func(
-                    a, cmd, format_str, format_args)
+                    arg, cmd, format_str, format_args)
                 if done:
                     break
         print(format_str.format(*format_args))
@@ -686,9 +691,9 @@ def print_multi(commands):
     print(commands_display)
     print()
     print(Fore.MAGENTA + "** commandline formats:" + Fore.RESET)
-    for d in command_dicts:
-        print(Fore.CYAN + "* " + d['name'] + Fore.RESET)
-        print(d['cmdline'])
+    for cmd_dict in command_dicts:
+        print(Fore.CYAN + "* " + cmd_dict['name'] + Fore.RESET)
+        print(cmd_dict['cmdline'])
     if placeholders_sets["required"]:
         print()
         print(Fore.MAGENTA + "** required values:" + Fore.RESET)
