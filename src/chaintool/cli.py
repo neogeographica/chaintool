@@ -38,6 +38,15 @@ from . import xfer
 
 
 class SubparsersHelpAction(argparse.Action):
+    """Redefined help argument behavior for an args parser with subparsers.
+
+    Instead of showing help output for the parser itself, show the help
+    output for each of its subparsers. When adding the help argument that
+    uses this action, a "subparsers" argument must be specific that is the
+    list of subparsers.
+
+    """
+
     # Pylint doesn't like the "help" argument in  __init__, but that's what we
     # get from argparse.
     # pylint: disable=redefined-builtin

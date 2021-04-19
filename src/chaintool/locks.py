@@ -67,6 +67,8 @@ MY_PID = str(os.getpid())
 
 
 class LockType(enum.Enum):
+    """Enum used to differentiate readlocks and writelocks."""
+
     READ = "read"
     WRITE = "write"
 
