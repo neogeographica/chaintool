@@ -49,6 +49,7 @@ import yaml  # from pyyaml
 from colorama import Fore
 
 from . import shared
+from . import virtual_tools
 from .shared import DATA_DIR
 
 
@@ -487,6 +488,10 @@ def run(cmd, args, unused_args):
     cmdline = cmd_dict['format'].format(**cmd_dict['args'])
     print(Fore.CYAN + cmdline + Fore.RESET)
     print()
+    vtool_status = virtual_tools.dispatch(cmdline, args)
+    if vtool_status is not None:
+        print()
+        return vtool_status
     status = subprocess.call(cmdline, shell=True)
     print()
     return status
@@ -674,6 +679,16 @@ def print_placeholders_set(
 
 
 def print_multi(commands):
+    # XXX Need to figure out how to handle chaintool-env command effects
+    # here.
+    # If chaintool env does an assignment of the form foo=bar, then foo is
+    # essentially a constant for all following commands... any further
+    # appearances of foo should probably be discarded for the purposes of this
+    # op. Or we could include them but give them a special color?
+    # If chaintool env does an assignment of the form foo?=bar, then further
+    # appearances of foo should be treated as optional with a default of bar.
+    # Probably should give that a special color too, to indicate that bar
+    # will have any placeholder substitutions in it evaluated.
     num_commands = len(commands)
     command_dicts = []
     command_dicts_by_cmd = dict()

@@ -44,10 +44,10 @@ from colorama import Fore
 
 from . import command_impl
 from . import completions
+from . import locks
 from . import sequence_impl
 from . import shared
 from . import shortcuts
-from . import locks
 
 
 def undefined_cmds(cmds, ignore_undefined_cmds):
