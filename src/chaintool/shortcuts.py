@@ -54,7 +54,6 @@ def make_executable(path):
 
 def create_shortcut(item_type, item_name):
     shortcut_path = os.path.join(SHORTCUTS_DIR, item_name)
-    # XXX create batch file instead if on Windows?
     if "CHAINTOOL_SHORTCUT_SHELL" in os.environ:
         hashbang = "#!" + shlex.quote(os.environ["CHAINTOOL_SHORTCUT_SHELL"]) + "\n"
     elif "SHELL" in os.environ:

@@ -196,8 +196,6 @@ def keep_existing_config():
 
 def early_bailout():
     is_shell, is_bash_login_shell = shared.check_shell()
-    # XXX Actually there are ways to make bash completion work in some other
-    # shells (zsh, maybe others?), so these messages will need tweaking.
     if is_shell:
         if is_bash_login_shell:
             return False
