@@ -22,6 +22,9 @@
 Called from cli module. Handles locking and shortcuts/completions; delegates
 to sequence_impl module for most of the work.
 
+Note that most locks acquired here are released only when the program exits.
+Operations are meant to be invoked one per program instance, using the CLI.
+
 """
 
 
@@ -37,17 +40,21 @@ __all__ = ['cli_list',
 import atexit
 import copy
 
-import yaml  # from pyyaml
-
 from colorama import Fore
 
 from . import command_impl
 from . import completions
-from . import constants
 from . import sequence_impl
 from . import shared
 from . import shortcuts
 from . import locks
+
+
+def undefined_cmds(cmds, ignore_undefined_cmds):
+    if ignore_undefined_cmds:
+        return []
+    locks.inventory_lock("cmd", locks.LockType.READ)
+    return list(set(cmds) - set(command_impl.all_names()))
 
 
 def cli_list(column):
@@ -63,7 +70,7 @@ def cli_list(column):
     return 0
 
 
-def cli_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set):
+def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
     locks.inventory_lock("seq", locks.LockType.WRITE)
     locks.item_lock("seq", seq, locks.LockType.WRITE)
     creating = False
@@ -78,19 +85,20 @@ def cli_set(seq, cmds, ignore_missing_cmds, overwrite, print_after_set):
                 "the same name.".format(seq))
             print()
             return 1
-    # If ignore_missing_cmds is true then we will need the cmd inventory lock
-    # to check that out, whether or not we acquired it above. That lock will
-    # be (re)acquired later inside sequence_impl.define. That lock is done
-    # late because in the edit case we don't want to hold it while the
-    # interactive edit is going on.
-    status = sequence_impl.define(seq, cmds, ignore_missing_cmds, overwrite, print_after_set, False)
+    status = sequence_impl.define(
+        seq,
+        cmds,
+        undefined_cmds(cmds, ignore_undefined_cmds),
+        overwrite,
+        print_after_set,
+        False)
     if creating and not status:
         shortcuts.create_seq_shortcut(seq)
         completions.create_completion(seq)
     return status
 
 
-def cli_edit(seq, ignore_missing_cmds, print_after_set):
+def cli_edit(seq, ignore_undefined_cmds, print_after_set):
     locks.inventory_lock("seq", locks.LockType.WRITE)
     locks.item_lock("seq", seq, locks.LockType.WRITE)
     cleanup_placeholder_fun = None
@@ -108,30 +116,24 @@ def cli_edit(seq, ignore_missing_cmds, print_after_set):
             print()
             return 1
         # We want to release the inventory locks before we go into interactive
-        # edit. Let's create a placeholder sequence to edit here, so that any
+        # edit. Let's create a temp/empty sequence to edit here, so that any
         # concurrent cmd creation will see it when checking for name conflicts.
-        # XXX Should move this into impl somehow so this module doesn't need
-        # to know about doc structure.
-        seq_doc = yaml.dump(
-            {
-                'commands': []
-            },
-            default_flow_style=False
-        )
         old_commands_str = ""
         cleanup_placeholder_fun = lambda: sequence_impl.delete(seq, True)
         atexit.register(cleanup_placeholder_fun)
-        sequence_impl.write_doc(seq, seq_doc, 'w')
+        sequence_impl.create_temp(seq)
         locks.release_inventory_lock("cmd", locks.LockType.READ)
     locks.release_inventory_lock("seq", locks.LockType.WRITE)
     print()
     new_commands_str = shared.editline('commands: ', old_commands_str)
     new_commands = new_commands_str.split()
-    # If ignore_missing_cmds is true then we will need the cmd-type lock to
-    # check that out later; but we'll acquire that inside sequence_impl.define.
-    # That lock is done late because in the edit case we don't want to hold it
-    # while the interactive edit is going on.
-    status = sequence_impl.define(seq, new_commands, ignore_missing_cmds, True, print_after_set, False)
+    status = sequence_impl.define(
+        seq,
+        new_commands,
+        undefined_cmds(new_commands, ignore_undefined_cmds),
+        True,
+        print_after_set,
+        False)
     if cleanup_placeholder_fun:
         if status:
             cleanup_placeholder_fun()
@@ -210,7 +212,7 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
             return status
     if unused_args:
         print(
-            constants.MSG_WARN_PREFIX
+            shared.MSG_WARN_PREFIX
             + " the following args don't apply to any commandline "
             "in this sequence:",
             ' '.join(unused_args))
@@ -250,7 +252,7 @@ def cli_vals(seq, args, print_after_set):
             command_impl.print_multi(cmd_list)
     if unused_args:
         print(
-            constants.MSG_WARN_PREFIX
+            shared.MSG_WARN_PREFIX
             + " the following args don't apply to any commandline "
             "in this sequence:",
             ' '.join(unused_args))

@@ -29,7 +29,7 @@ __all__ = ['init',
            'exists',
            'all_names',
            'read_dict',
-           'write_doc',
+           'create_temp',
            'dump_placeholders',
            'define',
            'delete',
@@ -49,7 +49,7 @@ import yaml  # from pyyaml
 from colorama import Fore
 
 from . import shared
-from .constants import DATA_DIR
+from .shared import DATA_DIR
 
 
 PLACEHOLDER_DEFAULT_RE = re.compile(r"^([^+][^=]*)=(.*)$")
@@ -245,6 +245,19 @@ def read_dict(cmd):
 def write_doc(cmd, cmd_doc, mode):
     with open(os.path.join(CMD_DIR, cmd), mode) as cmd_file:
         cmd_file.write(cmd_doc)
+
+
+def create_temp(cmd):
+    cmd_doc = yaml.dump(
+        {
+            'cmdline': "",
+            'format': "",
+            'args': dict(),
+            'toggle_args': dict()
+        },
+        default_flow_style=False
+    )
+    write_doc(cmd, cmd_doc, 'w')
 
 
 def update_placeholders_collections(key, value, consistent_values_dict, other_set):
@@ -580,13 +593,13 @@ def init_print_info_collections(
     return commands_display
 
 
-def print_group_args(group, group_args, build_format_func):
+def print_group_args(group, group_args, build_format_fun):
     first_cmd = group[0]
     for arg in group_args:
-        done, format_str, format_args = build_format_func(arg, first_cmd)
+        done, format_str, format_args = build_format_fun(arg, first_cmd)
         if not done:
             for cmd in group[1:]:
-                done, format_str, format_args = build_format_func(
+                done, format_str, format_args = build_format_fun(
                     arg, cmd, format_str, format_args)
                 if done:
                     break

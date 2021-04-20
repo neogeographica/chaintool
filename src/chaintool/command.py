@@ -22,6 +22,9 @@
 Called from cli module. Handles locking and shortcuts/completions; delegates
 to command_impl module for most of the work.
 
+Note that most locks acquired here are released only when the program exits.
+Operations are meant to be invoked one per program instance, using the CLI.
+
 """
 
 
@@ -39,13 +42,10 @@ __all__ = ['cli_list',
 import atexit
 import copy
 
-import yaml  # from pyyaml
-
 from colorama import Fore
 
 from . import command_impl
 from . import completions
-from . import constants
 from . import sequence_impl
 from . import shared
 from . import shortcuts
@@ -107,23 +107,12 @@ def cli_edit(cmd, print_after_set):
             print()
             return 1
         # We want to release the inventory locks before we go into interactive
-        # edit. Let's create a placeholder command to edit here, so that any
+        # edit. Let's create a temp/empty command to edit here, so that any
         # concurrent seq creation will see it when checking for name conflicts.
-        # XXX Should move this into impl somehow so this module doesn't need
-        # to know about doc structure.
-        cmd_doc = yaml.dump(
-            {
-                'cmdline': "",
-                'format': "",
-                'args': dict(),
-                'toggle_args': dict()
-            },
-            default_flow_style=False
-        )
         old_cmdline = ""
         cleanup_placeholder_fun = lambda: command_impl.delete(cmd, True)
         atexit.register(cleanup_placeholder_fun)
-        command_impl.write_doc(cmd, cmd_doc, 'w')
+        command_impl.create_temp(cmd)
     locks.release_inventory_lock("cmd", locks.LockType.WRITE)
     locks.release_inventory_lock("seq", locks.LockType.READ)
     print()
@@ -208,7 +197,7 @@ def cli_run(cmd, args):
     status = command_impl.run(cmd, args, unused_args)
     if unused_args:
         print(
-            constants.MSG_WARN_PREFIX
+            shared.MSG_WARN_PREFIX
             + " the following args don't apply to this commandline:",
             ' '.join(unused_args))
         print()
@@ -223,7 +212,7 @@ def cli_vals(cmd, args, print_after_set):
         return status
     if unused_args:
         print(
-            constants.MSG_WARN_PREFIX
+            shared.MSG_WARN_PREFIX
             + " the following args don't apply to this commandline:",
             ' '.join(unused_args))
         print()
@@ -245,7 +234,7 @@ def cli_vals_all(placeholder_args):
             error = True
     if unused_args:
         print(
-            constants.MSG_WARN_PREFIX
+            shared.MSG_WARN_PREFIX
             + " the following args don't apply to any commandline:",
             ' '.join(unused_args))
         print()

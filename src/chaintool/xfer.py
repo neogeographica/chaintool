@@ -22,6 +22,9 @@
 Called from cli module. Handles locking and shortcuts/completions; delegates
 to command_impl and sequence_impl modules for most of the work.
 
+Note that most locks acquired here are released only when the program exits.
+Operations are meant to be invoked one per program instance, using the CLI.
+
 """
 
 
@@ -114,7 +117,7 @@ def cli_import(import_file, overwrite):
     print()
     for seq_dict in import_dict['sequences']:
         seq = seq_dict['name']
-        status = sequence_impl.define(seq_dict['name'], seq_dict['commands'], True, overwrite, False, True)
+        status = sequence_impl.define(seq_dict['name'], seq_dict['commands'], [], overwrite, False, True)
         if not status:
             shortcuts.create_seq_shortcut(seq)
             completions.create_completion(seq)

@@ -17,10 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Utility functions shared by the package's modules."""
+"""Constants and utility functions shared by the package's modules."""
 
 
-__all__ = ['LOCATIONS_DIR',
+__all__ = ['CACHE_DIR',
+           'CONFIG_DIR',
+           'DATA_DIR',
+           'LOCATIONS_DIR',
+           'MSG_WARN_PREFIX',
            'init',
            'errprint',
            'is_valid_name',
@@ -39,12 +43,19 @@ import shutil
 import sys
 import string
 
+import appdirs
+
 from colorama import Fore
 
-from .constants import CONFIG_DIR
 
-# XXX Move constants.py in here too?
+APP_NAME = "chaintool"
+APP_AUTHOR = "Joel Baxter"
+CACHE_DIR = appdirs.user_cache_dir(APP_NAME, APP_AUTHOR)
+CONFIG_DIR = appdirs.user_config_dir(APP_NAME, APP_AUTHOR)
+DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
 LOCATIONS_DIR = os.path.join(CONFIG_DIR, "locations")
+
+MSG_WARN_PREFIX = Fore.YELLOW + "Warning:" + Fore.RESET
 
 
 def init():

@@ -29,7 +29,7 @@ __all__ = ['init',
            'exists',
            'all_names',
            'read_dict',
-           'write_doc',
+           'create_temp',
            'define',
            'delete']
 
@@ -39,9 +39,8 @@ import os
 import yaml  # from pyyaml
 
 from . import command_impl
-from . import locks
 from . import shared
-from .constants import DATA_DIR
+from .shared import DATA_DIR
 
 
 SEQ_DIR = os.path.join(DATA_DIR, "sequences")
@@ -70,10 +69,20 @@ def write_doc(seq, seq_doc, mode):
         seq_file.write(seq_doc)
 
 
+def create_temp(seq):
+    seq_doc = yaml.dump(
+        {
+            'commands': []
+        },
+        default_flow_style=False
+    )
+    write_doc(seq, seq_doc, 'w')
+
+
 def define(  # pylint: disable=too-many-arguments
         seq,
         cmds,
-        ignore_missing_cmds,
+        undefined_cmds,
         overwrite,
         print_after_set,
         compact):
@@ -96,15 +105,10 @@ def define(  # pylint: disable=too-many-arguments
                 "which is not allowed.".format(cmd_name))
             print()
             return 1
-    if not ignore_missing_cmds:
-        # XXX Kind of annoying to have to deal with locks in an impl module.
-        locks.inventory_lock("cmd", locks.LockType.READ)
-        command_names = command_impl.all_names()
-        invalid_cmds = set(cmds) - set(command_names)
-        if invalid_cmds:
-            shared.errprint("Nonexistent command(s): " + ' '.join(invalid_cmds))
-            print()
-            return 1
+    if undefined_cmds:
+        shared.errprint("Nonexistent command(s): " + ' '.join(undefined_cmds))
+        print()
+        return 1
     seq_doc = yaml.dump(
         {
             'commands': cmds

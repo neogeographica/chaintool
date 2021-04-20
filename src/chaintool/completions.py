@@ -32,7 +32,7 @@ import os
 import shlex
 
 from . import shared
-from .constants import DATA_DIR
+from .shared import DATA_DIR
 from .shared import LOCATIONS_DIR
 
 

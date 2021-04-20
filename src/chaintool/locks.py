@@ -19,6 +19,12 @@
 
 """Locking system to preserve consistency under simultaneous operations.
 
+Acquire WRITE inventory lock to create or delete item-of-type.
+Any inventory lock prevents create/delete for item-of-type.
+
+Acquire WRITE item lock to create, delete, or modify an item.
+Any item lock prevents other create/delete/modify for that item.
+
 This simple R/W lock implementation does not enforce all the guardrails
 necessary to prevent deadlock. Because its usage is pretty simple in this
 program, we just have to follow conventions to avoid deadlock (knock on
@@ -27,11 +33,9 @@ wood). The conventions are:
   * for holding multiple item locks, acquire in sorted item name order (this
     is actually enforced as long as you use multi_item_lock to do it)
 
-Acquire WRITE inventory lock to create or delete item-of-type.
-Any inventory lock prevents create/delete for item-of-type.
-
-Acquire WRITE item lock to create, delete, or modify an item.
-Any item lock prevents other create/delete/modify for that item.
+Also note that item locks (and in some cases inventory locks) are released
+only when the program exits, using an atexit handler. Operations are meant
+to be invoked one per program instance, using the CLI.
 
 """
 
@@ -55,7 +59,7 @@ import filelock
 import psutil
 
 from . import shared
-from .constants import CACHE_DIR
+from .shared import CACHE_DIR
 
 
 LOCKS_DIR = os.path.join(CACHE_DIR, "locks")
