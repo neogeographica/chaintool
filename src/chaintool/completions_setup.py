@@ -26,7 +26,6 @@ __all__ = ['configure']
 import os
 import re
 import shlex
-import shutil
 
 from . import completions
 from . import shared
@@ -81,8 +80,9 @@ def enable_dynamic(userdir):
         return
     os.makedirs(userdir, exist_ok=True)
     userdir_script_path = os.path.join(userdir, MAIN_SCRIPT)
-    # XXX Actually should just generate a small file that sources MAIN_SCRIPT_PATH
-    shutil.copy2(MAIN_SCRIPT_PATH, userdir_script_path)
+    with open(userdir_script_path, 'w') as outstream:
+        outstream.write(
+            "source {}\n".format(shlex.quote(MAIN_SCRIPT_PATH)))
     for item in os.listdir(SHORTCUTS_COMPLETIONS_DIR):
         completions.create_lazyload(item)
     print("bash completions installed for chaintool and its shortcut scripts.")
