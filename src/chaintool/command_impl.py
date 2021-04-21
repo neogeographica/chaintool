@@ -53,7 +53,7 @@ from . import virtual_tools
 from .shared import DATA_DIR
 
 
-PLACEHOLDER_DEFAULT_RE = re.compile(r"^([^+][^=]*)=(.*)$")
+PLACEHOLDER_RE = re.compile(r"^((?:[^/+=]+/)*)([^+][^=]*)(?:=(.*))?$")
 PLACEHOLDER_TOGGLE_RE = re.compile(r"^(\+[^=]+)=([^:]*):(.*)$")
 ALPHANUM_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*$")
 
@@ -77,36 +77,80 @@ def collapse_literal_braces(value):
     return value.replace("{{", "{").replace("}}", "}")
 
 
+def stem_modifier(value):
+    dotpos = value.rfind('.')
+    if dotpos == -1:
+        return value
+    slashpos = value.rfind(os.sep)
+    if slashpos > dotpos:
+        return value
+    return value[:dotpos]
+
+
+MODIFIERS_DISPATCH = {
+    "dirname": os.path.dirname,
+    "basename": os.path.basename,
+    "stem": stem_modifier
+}
+
+
+def valid_modifiers(modifiers):
+    for mod in modifiers:
+        if mod not in MODIFIERS_DISPATCH:
+            return False
+    return True
+
+
+def populated_modified_values(modifiers_for_names, values_for_names):
+    for name, modlist_list in modifiers_for_names.items():
+        if name in values_for_names:
+            for modlist in modlist_list:
+                modified_value = values_for_names[name]
+                modifiers_prefix = '/'.join(modlist) + "/"
+                for modifier in reversed(modlist):
+                    modified_value = MODIFIERS_DISPATCH[modifier](modified_value)
+                values_for_names[modifiers_prefix + name] = modified_value
+
+
 def update_runtime_values_from_args(
         values_for_names,
+        modifiers_for_names,
         togglevalues_for_names,
         all_args,
         unused_args):
     valid_non_toggles = list(values_for_names.keys())
     unactivated_toggles = list(togglevalues_for_names.keys())
     for arg in all_args:
-        default_match = PLACEHOLDER_DEFAULT_RE.match(arg)
-        if default_match:
-            key = default_match.group(1)
-            if key in valid_non_toggles:
-                values_for_names[key] = default_match.group(2)
+        toggle_match = PLACEHOLDER_TOGGLE_RE.match(arg)
+        if toggle_match:
+            shared.errprint(
+                "Can't specify values for 'toggle' style placeholders "
+                "such as '{}' in this operation.".format(toggle_match.group(1)))
+            return False
+        if arg[0] == '+':
+            if arg in togglevalues_for_names:
+                values_for_names[arg] = togglevalues_for_names[arg][1]
+                remove_if_present(arg, unactivated_toggles)
                 remove_if_present(arg, unused_args)
-        else:
-            toggle_match = PLACEHOLDER_TOGGLE_RE.match(arg)
-            if arg[0] == '+':
-                if arg in togglevalues_for_names:
-                    values_for_names[arg] = togglevalues_for_names[arg][1]
-                    remove_if_present(arg, unactivated_toggles)
-                    remove_if_present(arg, unused_args)
-            elif toggle_match:
-                shared.errprint(
-                    "Can't specify values for 'toggle' style placeholders "
-                    "such as '{}' in this operation.".format(toggle_match.group(1)))
-                return False
-            else:
-                shared.errprint(
-                    "Placeholder '{}' specified in args without a value.".format(arg))
-                return False
+            continue
+        nontoggle_match = PLACEHOLDER_RE.match(arg)
+        if nontoggle_match is None:
+            continue
+        modifiers_prefix = nontoggle_match.group(1)
+        key = nontoggle_match.group(2)
+        value = nontoggle_match.group(3)
+        if modifiers_prefix:
+            shared.errprint(
+                "Can't specify modifiers (such as '{}') for placeholders "
+                "in this operation.".format(modifiers_prefix))
+            return False
+        if value is None:
+            shared.errprint(
+                "Placeholder '{}' specified in args without a value.".format(key))
+            return False
+        if key in valid_non_toggles:
+            values_for_names[key] = value
+            remove_if_present(arg, unused_args)
     for key in unactivated_toggles:
         values_for_names[key] = togglevalues_for_names[key][0]
     unspecified = [k for k in valid_non_toggles if values_for_names[k] is None]
@@ -114,6 +158,7 @@ def update_runtime_values_from_args(
         shared.errprint("Not all placeholders in the commandline have been given a value.")
         shared.errprint("Placeholders that still need a value: " + ' '.join(unspecified))
         return False
+    populated_modified_values(modifiers_for_names, values_for_names)
     return True
 
 
@@ -124,28 +169,34 @@ def update_default_values_from_args(
         unused_args):
     valid_non_toggles = list(values_for_names.keys())
     for arg in all_args:
-        default_match = PLACEHOLDER_DEFAULT_RE.match(arg)
-        if default_match:
-            key = default_match.group(1)
-            if key in valid_non_toggles:
-                values_for_names[key] = default_match.group(2)
+        toggle_match = PLACEHOLDER_TOGGLE_RE.match(arg)
+        if toggle_match:
+            key = toggle_match.group(1)
+            if key in togglevalues_for_names:
+                togglevalues_for_names[key] = [
+                    toggle_match.group(2),
+                    toggle_match.group(3)]
                 remove_if_present(arg, unused_args)
-        else:
-            toggle_match = PLACEHOLDER_TOGGLE_RE.match(arg)
-            if toggle_match:
-                key = toggle_match.group(1)
-                if key in togglevalues_for_names:
-                    togglevalues_for_names[key] = [toggle_match.group(2), toggle_match.group(3)]
-                    remove_if_present(arg, unused_args)
-            elif arg[0] == '+':
-                shared.errprint(
-                    "'Toggle' style placeholders such as '{}' require "
-                    "accompanying pre/post values in this operation.".format(arg))
-                return False
-            else:
-                if arg in values_for_names:
-                    values_for_names[arg] = None
-                    remove_if_present(arg, unused_args)
+            continue
+        if arg[0] == '+':
+            shared.errprint(
+                "'Toggle' style placeholders such as '{}' require "
+                "accompanying pre/post values in this operation.".format(arg))
+            return False
+        nontoggle_match = PLACEHOLDER_RE.match(arg)
+        if nontoggle_match is None:
+            continue
+        modifiers_prefix = nontoggle_match.group(1)
+        key = nontoggle_match.group(2)
+        value = nontoggle_match.group(3)
+        if modifiers_prefix:
+            shared.errprint(
+                "Can't specify modifiers (such as '{}') for placeholders "
+                "in this operation.".format(modifiers_prefix))
+            return False
+        if key in valid_non_toggles:
+            values_for_names[key] = value
+            remove_if_present(arg, unused_args)
     return True
 
 
@@ -156,13 +207,21 @@ def command_with_values(cmd, all_args, unused_args, is_run):
         shared.errprint("Command '{}' does not exist.".format(cmd))
         return None
     values_for_names = cmd_dict['args']
+    modifiers_for_names = cmd_dict['args_modifiers']
     togglevalues_for_names = cmd_dict['toggle_args']
     if is_run:
         update_success = update_runtime_values_from_args(
-            values_for_names, togglevalues_for_names, all_args, unused_args)
+            values_for_names,
+            modifiers_for_names,
+            togglevalues_for_names,
+            all_args,
+            unused_args)
     else:
         update_success = update_default_values_from_args(
-            values_for_names, togglevalues_for_names, all_args, unused_args)
+            values_for_names,
+            togglevalues_for_names,
+            all_args,
+            unused_args)
     if update_success:
         return cmd_dict
     return None
@@ -203,18 +262,21 @@ def handle_update_placeholder(placeholder, args_dict, toggle_args_dict):
         untoggled_value = explode_literal_braces(toggle_args_dict[key][0])
         toggled_value = explode_literal_braces(toggle_args_dict[key][1])
         return key + "=" + untoggled_value + ":" + toggled_value
-    default_match = PLACEHOLDER_DEFAULT_RE.match(placeholder)
-    if default_match:
-        key = default_match.group(1)
-    else:
+    nontoggle_match = PLACEHOLDER_RE.match(placeholder)
+    if nontoggle_match is None:
+        # Shouldn't happen if our input vetting was correct.
+        modifiers_prefix = ""
         key = placeholder
+    else:
+        modifiers_prefix = nontoggle_match.group(1)
+        key = nontoggle_match.group(2)
     if key not in args_dict:
         # Weird, but we'll handle it.
         return placeholder
     if args_dict[key] is None:
-        return key
+        return modifiers_prefix + key
     value = explode_literal_braces(args_dict[key])
-    return key + "=" + value
+    return modifiers_prefix + key + "=" + value
 
 
 def update_cmdline(cmd_dict):
@@ -328,6 +390,14 @@ def print_errors(error_sets):
             "when trying to specify placeholder default values or toggle values. "
             "Also, if you need a literal brace character to appear in the "
             "commandline, use a double brace.)")
+    if error_sets["invalid_modifiers"]:
+        error = True
+        shared.errprint(
+            "Invalid modifiers on these placeholders: "
+            + ' '.join(error_sets["invalid_modifiers"]))
+        shared.errprint(
+            "Each modifier must be one of: "
+            + ", ".join(MODIFIERS_DISPATCH.keys()))
     if error_sets["multi_value_names"]:
         error = True
         shared.errprint(
@@ -369,8 +439,9 @@ def check_toggle_errors(
         error_sets["toggles_without_values"].add(key)
 
 
-def check_placeholder_errors(
+def check_placeholder_errors(  # pylint: disable=too-many-arguments
         key,
+        modifiers,
         value,
         values_for_names,
         togglevalues_for_names,
@@ -381,6 +452,8 @@ def check_placeholder_errors(
         return
     if not ALPHANUM_RE.match(key):
         error_sets["non_alphanum_names"].add(key)
+    if not valid_modifiers(modifiers):
+        error_sets["invalid_modifiers"].add(key)
     if "+" + key in togglevalues_for_names:
         error_sets["toggle_dup_names"].add(key)
     if key in values_for_names:
@@ -391,6 +464,7 @@ def check_placeholder_errors(
 def handle_set_placeholder(
         placeholder,
         values_for_names,
+        modifiers_for_names,
         togglevalues_for_names,
         error_sets):
     toggle_match = PLACEHOLDER_TOGGLE_RE.match(placeholder)
@@ -403,17 +477,28 @@ def handle_set_placeholder(
             key, value, values_for_names, togglevalues_for_names, error_sets)
         togglevalues_for_names[key] = value
         return key
-    default_match = PLACEHOLDER_DEFAULT_RE.match(placeholder)
-    if default_match:
-        key = default_match.group(1)
-        value = collapse_literal_braces(default_match.group(2))
-    else:
+    nontoggle_match = PLACEHOLDER_RE.match(placeholder)
+    if nontoggle_match is None:
+        # Placeholder name format error checks will trigger later.
+        modifiers_prefix = ""
         key = placeholder
         value = None
+    else:
+        modifiers_prefix = nontoggle_match.group(1)
+        key = nontoggle_match.group(2)
+        value = nontoggle_match.group(3)
+        if value is not None:
+            value = collapse_literal_braces(value)
+    modifiers = modifiers_prefix.split('/')[:-1]
     check_placeholder_errors(
-        key, value, values_for_names, togglevalues_for_names, error_sets)
+        key, modifiers, value, values_for_names, togglevalues_for_names, error_sets)
     values_for_names[key] = value
-    return key
+    if modifiers:
+        if key in modifiers_for_names:
+            modifiers_for_names[key].append(modifiers)
+        else:
+            modifiers_for_names[key] = [modifiers]
+    return modifiers_prefix + key
 
 
 def define(cmd, cmdline, overwrite, print_after_set, compact):
@@ -428,9 +513,11 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
         print()
         return 1
     values_for_names = dict()
+    modifiers_for_names = dict()
     togglevalues_for_names = dict()
     error_sets = {
         "non_alphanum_names": set(),
+        "invalid_modifiers": set(),
         "multi_value_names": set(),
         "multi_togglevalue_names": set(),
         "toggles_without_values": set(),
@@ -439,7 +526,11 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
 
     def handle_set_placeholder_wrapper(placeholder):
         return handle_set_placeholder(
-            placeholder, values_for_names, togglevalues_for_names, error_sets)
+            placeholder,
+            values_for_names,
+            modifiers_for_names,
+            togglevalues_for_names,
+            error_sets)
 
     cmdline_format = process_cmdline(cmdline, handle_set_placeholder_wrapper)
     if print_errors(error_sets):
@@ -450,6 +541,7 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
             'cmdline': cmdline,
             'format': cmdline_format,
             'args': values_for_names,
+            'args_modifiers': modifiers_for_names,
             'toggle_args': togglevalues_for_names
         },
         default_flow_style=False
