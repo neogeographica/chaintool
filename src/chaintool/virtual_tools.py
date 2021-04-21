@@ -28,7 +28,8 @@ that run in Python code here rather than in a subprocess shell on the OS.
 __all__ = ['copytool',
            'deltool',
            'envtool',
-           'dispatch']
+           'dispatch',
+           'update_env']
 
 
 import os
@@ -120,3 +121,19 @@ def dispatch(cmdline, args):
     if tokens[0] not in VTOOL_DISPATCH:
         return None
     return VTOOL_DISPATCH[tokens[0]](tokens[1:], args)
+
+
+def update_env(cmdline, env_constant_values, env_optional_values):
+    tokens = shlex.split(cmdline)
+    if tokens[0] != "chaintool-env":
+        return
+    env_args = tokens[1:]
+    ops = [env_op_parse(arg) for arg in env_args]
+    if None in ops:
+        return
+    for env_op in ops:
+        (dst_name, only_if_dst_unset, src_value) = env_op
+        if only_if_dst_unset:
+            env_optional_values[dst_name] = src_value
+        else:
+            env_constant_values.append(dst_name)
