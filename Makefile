@@ -22,8 +22,8 @@ testpub: dist
 	twine upload -r testpypi dist/*
 
 lint:
-	# Eventually should restore E731. W503 should stay suppressed.
-	flake8 --ignore E731,W503 src/chaintool
+	# W503 should stay suppressed.
+	flake8 --ignore W503 src/chaintool
 
 megalint:
 	# Eventually should restore C0116. R0801 is worth checking

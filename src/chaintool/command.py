@@ -98,7 +98,7 @@ def cli_edit(cmd, print_after_set):
     locks.inventory_lock("seq", locks.LockType.READ)
     locks.inventory_lock("cmd", locks.LockType.WRITE)
     locks.item_lock("cmd", cmd, locks.LockType.WRITE)
-    cleanup_placeholder_fun = None
+    cleanup_fun = None
     try:
         cmd_dict = command_impl.read_dict(cmd)
         old_cmdline = cmd_dict['cmdline']
@@ -115,8 +115,8 @@ def cli_edit(cmd, print_after_set):
         # edit. Let's create a temp/empty command to edit here, so that any
         # concurrent seq creation will see it when checking for name conflicts.
         old_cmdline = ""
-        cleanup_placeholder_fun = lambda: command_impl.delete(cmd, True)
-        atexit.register(cleanup_placeholder_fun)
+        cleanup_fun = lambda: command_impl.delete(cmd, True)  # noqa: E731
+        atexit.register(cleanup_fun)
         command_impl.create_temp(cmd)
     locks.release_inventory_lock("cmd", locks.LockType.WRITE)
     locks.release_inventory_lock("seq", locks.LockType.READ)
@@ -128,13 +128,13 @@ def cli_edit(cmd, print_after_set):
         True,
         print_after_set,
         False)
-    if cleanup_placeholder_fun:
+    if cleanup_fun:
         if status:
-            cleanup_placeholder_fun()
+            cleanup_fun()
         else:
             shortcuts.create_cmd_shortcut(cmd)
             completions.create_completion(cmd)
-        atexit.unregister(cleanup_placeholder_fun)
+        atexit.unregister(cleanup_fun)
     return status
 
 

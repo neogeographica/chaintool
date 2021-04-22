@@ -101,7 +101,7 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
 def cli_edit(seq, ignore_undefined_cmds, print_after_set):
     locks.inventory_lock("seq", locks.LockType.WRITE)
     locks.item_lock("seq", seq, locks.LockType.WRITE)
-    cleanup_placeholder_fun = None
+    cleanup_fun = None
     try:
         seq_dict = sequence_impl.read_dict(seq)
         old_commands_str = ' '.join(seq_dict['commands'])
@@ -119,8 +119,8 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         # edit. Let's create a temp/empty sequence to edit here, so that any
         # concurrent cmd creation will see it when checking for name conflicts.
         old_commands_str = ""
-        cleanup_placeholder_fun = lambda: sequence_impl.delete(seq, True)
-        atexit.register(cleanup_placeholder_fun)
+        cleanup_fun = lambda: sequence_impl.delete(seq, True)  # noqa: E731
+        atexit.register(cleanup_fun)
         sequence_impl.create_temp(seq)
         locks.release_inventory_lock("cmd", locks.LockType.READ)
     locks.release_inventory_lock("seq", locks.LockType.WRITE)
@@ -134,13 +134,13 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         True,
         print_after_set,
         False)
-    if cleanup_placeholder_fun:
+    if cleanup_fun:
         if status:
-            cleanup_placeholder_fun()
+            cleanup_fun()
         else:
             shortcuts.create_seq_shortcut(seq)
             completions.create_completion(seq)
-        atexit.unregister(cleanup_placeholder_fun)
+        atexit.unregister(cleanup_fun)
     return status
 
 
