@@ -16,13 +16,11 @@ chaintool: a tool to chain tools into toolchains
 Prerequisites
 -------------
 
-(draft)
-
 Python 3.7 or later is required.
 
 There are no other absolute requirements, but there are some prerequisites that are helpful for autocompletion of command-line arguments:
 
-First, the bash shell is required for the autocompletion feature to work at all. Some other shells may be able to make use of bash autocompletions through a compatibility feature (e.g. bashcompinit in zsh) but that is untested.
+First, the bash shell is required for the autocompletion feature to work at all. Some other shells may be able to make use of bash autocompletions through a compatibility feature (e.g. ``bashcompinit`` in zsh) but that is untested.
 
 Having a *recent* version of bash also helps to avoid a couple of annoying issues:
 
@@ -31,7 +29,7 @@ Having a *recent* version of bash also helps to avoid a couple of annoying issue
 
 If you need to update bash, the process will be specific to your platform and package manager. FYI macOS is likely to have an extremely old version of bash by default; for updating bash on macOS, one approach is to `use the homebrew package manager`_.
 
-Finally, the "bash-completion" package (version 2.2 or later) is a nice-to-have. This package does not enable the basic autocompletion feature -- that's intrinsically part of the bash shell -- but it builds on it. If that package is present, chaintool can use it to allow autocompletions to be enabled immediately for a newly created "shortcut" script, without requiring you to open a new shell.
+Finally, the ``bash-completion`` package (version 2.2 or later) is a nice-to-have. This package does not enable the basic autocompletion feature -- that's intrinsically part of the bash shell -- but it builds on it. If that package is present, chaintool can use it to allow autocompletions to be enabled immediately for a newly created "shortcut" script, without requiring you to open a new shell.
 
 You can use your package manager to check whether you have bash-completion installed (and which version). Also if you use "chaintool x completions" to interactively configure the completions feature, it can walk you through a method of checking whether a recent-enough version of the bash-completion package is installed and in use by your shell.
 
@@ -43,8 +41,10 @@ Installation
 ------------
 
 XXX blah blah blah pip install from PyPI or GitHub
-XXX "chaintool x completions"
-XXX "chaintool x shortcuts"
+
+XXX mention "chaintool x completions"
+
+XXX mention "chaintool x shortcuts"
 
 .. _documentation_section:
 

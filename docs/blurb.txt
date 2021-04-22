@@ -1,6 +1,17 @@
-**chaintool** is a GPLv3_-licensed tool to do stuff blah blah blah
+**chaintool** is a GPLv3_-licensed tool to manage certain kinds of "toolchain" usecases that require executing a sequence of commandlines.
 
-XXX This file should eventually be 'include'-d as the blurb source for both the
-README and the generated docs.
+This is not a replacement for a build system, but rather an alternative to creating one-off scripts for usecases that fit the following characteristics:
+
+- A fixed sequence of command invocations. The sequence may terminate on error, but otherwise the commandlines to invoke are not affected by the output of previous commands.
+- The commands accept a large variety of command-line arguments, and many of those are being used. Some of these arguments will very rarely be changed. Some of these might occasionally be changed but should have sensible defaults. Some will be changed frequently, perhaps even from run to run.
+- For correct usage, certain arguments across different commands must be supplied with the same value, or with related values (e.g. options that reference the same file basename but with different extensions).
+
+chaintool provides a way to define and manage that sequence of commandlines, and generate a "shortcut" script that will run it. The arguments you care about surfacing will be available as command-line options for this shortcut, and will flow down to generate the correct arguments for the relevant commands in the sequence.
+
+Obviously, you could instead just manually author a script that contains the command invocations. But using chaintool helps you generate a variation on a sequence, or run an existing sequence with different arguments, in a quick and more error-free way. You don't have to dig through any of the arguments you don't currently care about, you don't run the risk of forgetting to edit some commandline as you change occurrences of a common value, you won't break anything with a copy-and-paste error or accidental deletion, and you won't have to remember the specific syntax for options that you need to flip between excluding/including.
+
+If you're using the bash shell, another major benefit from chaintool is that the shortcuts you create will have full autocompletion support, for the options that you have defined and chosen to surface.
+
+chaintool also helps export definitions for these command sequences that are fairly portable. If there are paths or argument values that are specific to a particular OS, or to a particular user's environment, those values can be left as required parameters that an importer must fill in before running the sequence.
 
 .. _GPLv3: http://www.gnu.org/copyleft/gpl.html
