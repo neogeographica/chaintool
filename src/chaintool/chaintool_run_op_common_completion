@@ -9,9 +9,8 @@ _chaintool_run_op()
     local SHORTCUT="${COMP_WORDS[0]}"
     local ITEM_NAME=$(basename "$SHORTCUT")
     local CMDGROUP=$($ITEM_NAME --cmdgroup)  
-    local IFS=$'\n'
     local FIRST_WORDS=( "chaintool" "$CMDGROUP" "run" "$ITEM_NAME" )
-    COMP_WORDS=( ${FIRST_WORDS[*]} ${COMP_WORDS[*]:1} )
+    COMP_WORDS=( "${FIRST_WORDS[@]}" "${COMP_WORDS[@]:1}" )
     let COMP_CWORD=$COMP_CWORD+3
     _chaintool
     return $?
