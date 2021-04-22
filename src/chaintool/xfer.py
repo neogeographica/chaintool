@@ -109,7 +109,12 @@ def cli_import(import_file, overwrite):
     print()
     for cmd_dict in import_dict['commands']:
         cmd = cmd_dict['name']
-        status = command_impl.define(cmd, cmd_dict['cmdline'], overwrite, False, True)
+        status = command_impl.define(
+            cmd,
+            cmd_dict['cmdline'],
+            overwrite,
+            False,
+            True)
         if not status:
             shortcuts.create_cmd_shortcut(cmd)
             completions.create_completion(cmd)
@@ -117,7 +122,13 @@ def cli_import(import_file, overwrite):
     print()
     for seq_dict in import_dict['sequences']:
         seq = seq_dict['name']
-        status = sequence_impl.define(seq_dict['name'], seq_dict['commands'], [], overwrite, False, True)
+        status = sequence_impl.define(
+            seq,
+            seq_dict['commands'],
+            [],
+            overwrite,
+            False,
+            True)
         if not status:
             shortcuts.create_seq_shortcut(seq)
             completions.create_completion(seq)

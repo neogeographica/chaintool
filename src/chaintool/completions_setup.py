@@ -206,8 +206,8 @@ def early_bailout():
     else:
         print(
             "It doesn't look like you're running in a shell. bash completions "
-            "only work\nin the bash shell; are you sure you want to continue? ",
-            end='')
+            "only work\nin the bash shell; are you sure you want to "
+            "continue? ", end='')
     choice = input("[n/y] ")
     print()
     if choice.lower() != 'y':

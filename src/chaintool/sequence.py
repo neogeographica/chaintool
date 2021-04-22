@@ -81,8 +81,8 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
         if command_impl.exists(seq):
             print()
             shared.errprint(
-                "Sequence '{}' cannot be created because a command exists with "
-                "the same name.".format(seq))
+                "Sequence '{}' cannot be created because a command exists "
+                "with the same name.".format(seq))
             print()
             return 1
     status = sequence_impl.define(
@@ -111,8 +111,8 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         if command_impl.exists(seq):
             print()
             shared.errprint(
-                "Sequence '{}' cannot be created because a command exists with "
-                "the same name.".format(seq))
+                "Sequence '{}' cannot be created because a command exists "
+                "with the same name.".format(seq))
             print()
             return 1
         # We want to release the inventory locks before we go into interactive
@@ -146,7 +146,7 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
 
 def cli_print(seq, dump_placeholders):
     # We're going to skip locking if dump_placeholders is set. That's an
-    # internal/hidden flag used only for bash completion, and in the vanishingly
+    # internal/hidden flag used only for bash completion, and in the really
     # small chance that something gets changed/deleted while a bash completion
     # is being calculated, that's fine. Not worth incurring the extra work if
     # someone is hitting TAB a lot on the command line.
@@ -166,7 +166,9 @@ def cli_print(seq, dump_placeholders):
         locks.multi_item_lock("cmd", commands, locks.LockType.READ)
         locks.release_inventory_lock("cmd", locks.LockType.READ)
     if dump_placeholders is not None:
-        return command_impl.dump_placeholders(commands, dump_placeholders == "run")
+        return command_impl.dump_placeholders(
+            commands,
+            dump_placeholders == "run")
     print()
     return command_impl.print_multi(commands)
 
@@ -203,10 +205,16 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     unused_args = copy.deepcopy(args)
     for cmd in cmd_list:
         if skip_cmdnames and cmd in skip_cmdnames:
-            print(Fore.MAGENTA + "* SKIPPING command '{}'".format(cmd) + Fore.RESET)
+            print(
+                Fore.MAGENTA
+                + "* SKIPPING command '{}'".format(cmd)
+                + Fore.RESET)
             print()
             continue
-        print(Fore.MAGENTA + "* running command '{}':".format(cmd) + Fore.RESET)
+        print(
+            Fore.MAGENTA
+            + "* running command '{}':".format(cmd)
+            + Fore.RESET)
         status = command_impl.run(cmd, args, unused_args)
         if status and not ignore_errors:
             return status

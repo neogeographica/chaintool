@@ -165,9 +165,9 @@ def remove_script_additions(script_path, begin_mark, end_mark, expected_lines):
     if len(to_remove) != expected_lines:
         print(
             "It doesn't look like this program can safely auto-remove the "
-            "configuration\nfrom that file. If you want to use this program to "
-            "help put the configuration\nin some other file, first you will "
-            "need to manually remove it from this\ncurrent location.")
+            "configuration\nfrom that file. If you want to use this program "
+            "to help put the configuration\nin some other file, first you "
+            "will need to manually remove it from this\ncurrent location.")
         print()
         return False
     backup_path = script_path + ".bak"

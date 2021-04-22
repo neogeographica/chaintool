@@ -42,19 +42,25 @@ MAIN_SCRIPT = "chaintool"
 MAIN_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, MAIN_SCRIPT)
 HELPER_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, "chaintool_run_op_common")
 OMNIBUS_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, "omnibus")
-SOURCESCRIPT_LOCATION = os.path.join(LOCATIONS_DIR, "completions_script_sourcing_script")
-USERDIR_LOCATION = os.path.join(LOCATIONS_DIR, "completions_lazy_load_userdir")
+SOURCESCRIPT_LOCATION = os.path.join(
+    LOCATIONS_DIR, "completions_script_sourcing_script")
+USERDIR_LOCATION = os.path.join(
+    LOCATIONS_DIR, "completions_lazy_load_userdir")
 
 
 def init():
     os.makedirs(COMPLETIONS_DIR, exist_ok=True)
     os.makedirs(SHORTCUTS_COMPLETIONS_DIR, exist_ok=True)
     if not os.path.exists(MAIN_SCRIPT_PATH):
-        script = importlib.resources.read_text(__package__, "chaintool_completion")
+        script = importlib.resources.read_text(
+            __package__,
+            "chaintool_completion")
         with open(MAIN_SCRIPT_PATH, 'w') as outstream:
             outstream.write(script)
     if not os.path.exists(HELPER_SCRIPT_PATH):
-        script = importlib.resources.read_text(__package__, "chaintool_run_op_common_completion")
+        script = importlib.resources.read_text(
+            __package__,
+            "chaintool_run_op_common_completion")
         with open(HELPER_SCRIPT_PATH, 'w') as outstream:
             outstream.write(script)
     if not os.path.exists(OMNIBUS_SCRIPT_PATH):
@@ -64,7 +70,8 @@ def init():
             outstream.write(
                 "source {}\n".format(shlex.quote(HELPER_SCRIPT_PATH)))
             outstream.write(
-                "ls {0}/* >/dev/null 2>&1 && for s in {0}/*\n".format(shlex.quote(SHORTCUTS_COMPLETIONS_DIR)))
+                "ls {0}/* >/dev/null 2>&1 && for s in {0}/*\n".format(
+                    shlex.quote(SHORTCUTS_COMPLETIONS_DIR)))
             outstream.write(
                 "do\n")
             outstream.write(
@@ -107,8 +114,10 @@ def create_lazyload(item_name):
     userdir = shared.read_choicefile(USERDIR_LOCATION)
     shortcut_path = os.path.join(userdir, item_name)
     with open(shortcut_path, 'w') as outstream:
-        write_source_if_needed(outstream, "_chaintool", MAIN_SCRIPT_PATH)
-        write_source_if_needed(outstream, "_chaintool_run_op", HELPER_SCRIPT_PATH)
+        write_source_if_needed(
+            outstream, "_chaintool", MAIN_SCRIPT_PATH)
+        write_source_if_needed(
+            outstream, "_chaintool_run_op", HELPER_SCRIPT_PATH)
         write_complete_invoke(outstream, item_name)
 
 

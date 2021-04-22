@@ -78,11 +78,16 @@ def cli_set(cmd, cmdline, overwrite, print_after_set):
         if sequence_impl.exists(cmd):
             print()
             shared.errprint(
-                "Command '{}' cannot be created because a sequence exists with "
-                "the same name.".format(cmd))
+                "Command '{}' cannot be created because a sequence exists "
+                "with the same name.".format(cmd))
             print()
             return 1
-    status = command_impl.define(cmd, cmdline, overwrite, print_after_set, False)
+    status = command_impl.define(
+        cmd,
+        cmdline,
+        overwrite,
+        print_after_set,
+        False)
     if creating and not status:
         shortcuts.create_cmd_shortcut(cmd)
         completions.create_completion(cmd)
@@ -102,8 +107,8 @@ def cli_edit(cmd, print_after_set):
         if sequence_impl.exists(cmd):
             print()
             shared.errprint(
-                "Command '{}' cannot be created because a sequence exists with "
-                "the same name.".format(cmd))
+                "Command '{}' cannot be created because a sequence exists "
+                "with the same name.".format(cmd))
             print()
             return 1
         # We want to release the inventory locks before we go into interactive
@@ -117,7 +122,12 @@ def cli_edit(cmd, print_after_set):
     locks.release_inventory_lock("seq", locks.LockType.READ)
     print()
     new_cmdline = shared.editline('commandline: ', old_cmdline)
-    status = command_impl.define(cmd, new_cmdline, True, print_after_set, False)
+    status = command_impl.define(
+        cmd,
+        new_cmdline,
+        True,
+        print_after_set,
+        False)
     if cleanup_placeholder_fun:
         if status:
             cleanup_placeholder_fun()
@@ -133,7 +143,9 @@ def cli_print(cmd, dump_placeholders):
     # the file is being deleted right now that's fine, either we get in
     # before the delete or after.
     if dump_placeholders is not None:
-        return command_impl.dump_placeholders([cmd], dump_placeholders == "run")
+        return command_impl.dump_placeholders(
+            [cmd],
+            dump_placeholders == "run")
     print()
     return command_impl.print_one(cmd)
 
@@ -145,7 +157,9 @@ def cli_print_all(dump_placeholders):
     if dump_placeholders is None:
         locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
     else:
-        return command_impl.dump_placeholders(command_names, dump_placeholders == "run")
+        return command_impl.dump_placeholders(
+            command_names,
+            dump_placeholders == "run")
     print()
     return command_impl.print_multi(command_names)
 
@@ -171,7 +185,9 @@ def cli_del(delcmds, ignore_seq_usage):
             for seq_dict in seq_dicts:
                 if cmd in seq_dict['commands']:
                     error = True
-                    shared.errprint("Command {} is used by sequence {}.".format(cmd, seq_dict['name']))
+                    shared.errprint(
+                        "Command {} is used by sequence {}.".format(
+                            cmd, seq_dict['name']))
         if error:
             print()
             return 1
@@ -229,7 +245,12 @@ def cli_vals_all(placeholder_args):
     print()
     error = False
     for cmd in command_names:
-        status = command_impl.vals(cmd, placeholder_args, unused_args, False, True)
+        status = command_impl.vals(
+            cmd,
+            placeholder_args,
+            unused_args,
+            False,
+            True)
         if status:
             error = True
     if unused_args:

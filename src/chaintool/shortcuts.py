@@ -37,7 +37,9 @@ from .shared import LOCATIONS_DIR
 
 
 SHORTCUTS_DIR = os.path.join(DATA_DIR, "shortcuts")
-PATHSCRIPT_LOCATION = os.path.join(LOCATIONS_DIR, "shortcuts_path_setting_script")
+PATHSCRIPT_LOCATION = os.path.join(
+    LOCATIONS_DIR,
+    "shortcuts_path_setting_script")
 
 
 def init():
@@ -55,28 +57,28 @@ def make_executable(path):
 def create_shortcut(item_type, item_name):
     shortcut_path = os.path.join(SHORTCUTS_DIR, item_name)
     if "CHAINTOOL_SHORTCUT_SHELL" in os.environ:
-        hashbang = "#!" + shlex.quote(os.environ["CHAINTOOL_SHORTCUT_SHELL"]) + "\n"
+        shortcut_shell = shlex.quote(os.environ["CHAINTOOL_SHORTCUT_SHELL"])
     elif "SHELL" in os.environ:
-        hashbang = "#!" + shlex.quote(os.environ["SHELL"]) + "\n"
+        shortcut_shell = shlex.quote(os.environ["SHELL"])
     else:
-        hashbang = "#!/usr/bin/env sh\n"
+        shortcut_shell = "/usr/bin/env sh"
+    hashbang = "#!" + shortcut_shell + "\n"
     with open(shortcut_path, 'w') as outstream:
         outstream.write(hashbang)
         outstream.write(
-            "if [ \"$1\" = \"--cmdgroup\" ]; then echo {}; exit 0; fi\n".format(
-                item_type))
+            "if [ \"$1\" = \"--cmdgroup\" ]; "
+            "then echo {}; exit 0; fi\n".format(item_type))
         outstream.write(
             "if [ \"$CHAINTOOL_SHORTCUT_PYTHON\" = \"\" ]\n")
         outstream.write(
             "then\n")
         outstream.write(
-            "  chaintool {} run {} \"$@\"\n".format(
-                item_type, item_name))
+            "  chaintool {} run {} \"$@\"\n".format(item_type, item_name))
         outstream.write(
             "else\n")
         outstream.write(
-            "  \"$CHAINTOOL_SHORTCUT_PYTHON\" -m chaintool {} run {} \"$@\"\n".format(
-                item_type, item_name))
+            "  \"$CHAINTOOL_SHORTCUT_PYTHON\" -m chaintool "
+            "{} run {} \"$@\"\n".format(item_type, item_name))
         outstream.write(
             "fi\n")
     make_executable(shortcut_path)

@@ -22,13 +22,13 @@ testpub: dist
 	twine upload -r testpypi dist/*
 
 lint:
-	# Eventually should restore E501,E731. W503 should stay suppressed.
-	flake8 --ignore E501,E731,W503 src/chaintool
+	# Eventually should restore E731. W503 should stay suppressed.
+	flake8 --ignore E731,W503 src/chaintool
 
 megalint:
-	# Eventually should restore almost all of these. R0801 is worth checking
+	# Eventually should restore C0116. R0801 is worth checking
 	# every now and then but can be too twitchy.
-	pylint -d C0301,C0116,R0801 src/chaintool
+	pylint -d C0116,R0801 src/chaintool
 
 clean:
 	-rm -rf build

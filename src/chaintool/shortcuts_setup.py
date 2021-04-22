@@ -51,16 +51,17 @@ def unconfigure(startup_script_path):
 
 
 def keep_existing_config():
-    already_in_path = "PATH" in os.environ and SHORTCUTS_DIR in os.environ["PATH"]
+    already_in_path = (
+        "PATH" in os.environ and SHORTCUTS_DIR in os.environ["PATH"])
     location_choice = shared.read_choicefile(PATHSCRIPT_LOCATION)
     if location_choice is None:
         if already_in_path:
             print(
                 "Command and sequence names should currently be available to "
-                "run as\nshortcuts, because the shortcuts directory is already "
-                "in your PATH. There's\nno record of this program being used "
-                "to help set that up, so if you want to\nremove that PATH "
-                "configuration you'll need to do it manually.")
+                "run as\nshortcuts, because the shortcuts directory is "
+                "already in your PATH. There's\nno record of this program "
+                "being used to help set that up, so if you want to\nremove "
+                "that PATH configuration you'll need to do it manually.")
             print()
             return True
         return False
@@ -77,20 +78,23 @@ def keep_existing_config():
         shared.write_choicefile(PATHSCRIPT_LOCATION, None)
         print(
             "The PATH value for shortcuts used to be set in the following "
-            "file, but that\nseems to no longer be true:\n  " + location_choice)
+            "file, but that\nseems to no longer be true:\n  "
+            + location_choice)
         print()
         return False
     if already_in_path:
         print(
             "Command and sequence names should currently be available to run "
-            "as\nshortcuts, because the shortcuts directory is already in your "
-            "PATH through\na setting in this file:\n  " + location_choice)
+            "as\nshortcuts, because the shortcuts directory is already in "
+            "your PATH through\na setting in this file:\n  "
+            + location_choice)
         print()
         return not unconfigure(location_choice)
     print(
         "The following file already includes a line to set the PATH "
         "appropriately.\nIf it's a valid startup script, then shortcuts "
-        "should be active next time a\nshell is started.\n  " + location_choice)
+        "should be active next time a\nshell is started.\n  "
+        + location_choice)
     print()
     return not unconfigure(location_choice)
 
@@ -124,7 +128,8 @@ def update_startup_script(startup_script_path):
         return
     with open(startup_script_path, 'a') as outstream:
         outstream.write(BEGIN_MARK + "\n")
-        outstream.write("export PATH=$PATH:{}\n".format(shlex.quote(SHORTCUTS_DIR)))
+        outstream.write("export PATH=$PATH:{}\n".format(
+            shlex.quote(SHORTCUTS_DIR)))
         outstream.write(END_MARK + "\n")
     print(
         "File modified. Shortcuts should be active next time a shell is "

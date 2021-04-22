@@ -105,11 +105,11 @@ def populated_modified_values(modifiers_for_names, values_for_names):
     for name, modlist_list in modifiers_for_names.items():
         if name in values_for_names:
             for modlist in modlist_list:
-                modified_value = values_for_names[name]
+                mod_value = values_for_names[name]
                 modifiers_prefix = '/'.join(modlist) + "/"
                 for modifier in reversed(modlist):
-                    modified_value = MODIFIERS_DISPATCH[modifier](modified_value)
-                values_for_names[modifiers_prefix + name] = modified_value
+                    mod_value = MODIFIERS_DISPATCH[modifier](mod_value)
+                values_for_names[modifiers_prefix + name] = mod_value
 
 
 def update_runtime_values_from_args(
@@ -125,7 +125,8 @@ def update_runtime_values_from_args(
         if toggle_match:
             shared.errprint(
                 "Can't specify values for 'toggle' style placeholders "
-                "such as '{}' in this operation.".format(toggle_match.group(1)))
+                "such as '{}' in this operation.".format(
+                    toggle_match.group(1)))
             return False
         if arg[0] == '+':
             if arg in togglevalues_for_names:
@@ -146,7 +147,8 @@ def update_runtime_values_from_args(
             return False
         if value is None:
             shared.errprint(
-                "Placeholder '{}' specified in args without a value.".format(key))
+                "Placeholder '{}' specified in args without a value.".format(
+                    key))
             return False
         if key in valid_non_toggles:
             values_for_names[key] = value
@@ -155,8 +157,10 @@ def update_runtime_values_from_args(
         values_for_names[key] = togglevalues_for_names[key][0]
     unspecified = [k for k in valid_non_toggles if values_for_names[k] is None]
     if unspecified:
-        shared.errprint("Not all placeholders in the commandline have been given a value.")
-        shared.errprint("Placeholders that still need a value: " + ' '.join(unspecified))
+        shared.errprint(
+            "Not all placeholders in the commandline have been given a value.")
+        shared.errprint(
+            "Placeholders that still need a value: " + ' '.join(unspecified))
         return False
     populated_modified_values(modifiers_for_names, values_for_names)
     return True
@@ -323,7 +327,11 @@ def create_temp(cmd):
     write_doc(cmd, cmd_doc, 'w')
 
 
-def update_placeholders_collections(key, value, consistent_values_dict, other_set):
+def update_placeholders_collections(
+        key,
+        value,
+        consistent_values_dict,
+        other_set):
     if key in other_set:
         return
     if value is None:
@@ -381,15 +389,16 @@ def print_errors(error_sets):
     if error_sets["non_alphanum_names"]:
         error = True
         shared.errprint(
-            "Bad placeholder format: " + ' '.join(error_sets["non_alphanum_names"]))
+            "Bad placeholder format: " + ' '.join(
+                error_sets["non_alphanum_names"]))
         shared.errprint(
             "Placeholder names must begin with a letter and be composed only "
             "of letters, numbers, and underscores.")
         shared.errprint(
             "(Note that this error can also be triggered by syntax mistakes "
-            "when trying to specify placeholder default values or toggle values. "
-            "Also, if you need a literal brace character to appear in the "
-            "commandline, use a double brace.)")
+            "when trying to specify placeholder default values or toggle "
+            "values. Also, if you need a literal brace character to appear in "
+            "the commandline, use a double brace.)")
     if error_sets["invalid_modifiers"]:
         error = True
         shared.errprint(
@@ -406,8 +415,9 @@ def print_errors(error_sets):
     if error_sets["multi_togglevalue_names"]:
         error = True
         shared.errprint(
-            "'Toggle' placeholders occurring multiple times but with different "
-            "values: " + ' '.join(error_sets["multi_togglevalue_names"]))
+            "'Toggle' placeholders occurring multiple times but with "
+            "different values: " + ' '.join(
+                error_sets["multi_togglevalue_names"]))
     if error_sets["toggles_without_values"]:
         error = True
         shared.errprint(
@@ -491,7 +501,12 @@ def handle_set_placeholder(
             value = collapse_literal_braces(value)
     modifiers = modifiers_prefix.split('/')[:-1]
     check_placeholder_errors(
-        key, modifiers, value, values_for_names, togglevalues_for_names, error_sets)
+        key,
+        modifiers,
+        value,
+        values_for_names,
+        togglevalues_for_names,
+        error_sets)
     values_for_names[key] = value
     if modifiers:
         if key in modifiers_for_names:
@@ -505,7 +520,9 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
     if not compact:
         print()
     if not shared.is_valid_name(cmd):
-        shared.errprint("cmdname '{}' contains whitespace, which is not allowed.".format(cmd))
+        shared.errprint(
+            "cmdname '{}' contains whitespace, which is not allowed.".format(
+                cmd))
         print()
         return 1
     if not cmdline:
@@ -623,17 +640,26 @@ def print_one(cmd):
         else:
             all_optional_placeholders.append(key)
     all_toggle_placeholders = list(cmd_dict['toggle_args'].keys())
-    print(Fore.MAGENTA + "* commandline format:" + Fore.RESET)
+    print(
+        Fore.MAGENTA
+        + "* commandline format:"
+        + Fore.RESET)
     print(cmd_dict['cmdline'])
     if all_required_placeholders:
         print()
-        print(Fore.MAGENTA + "* required values:" + Fore.RESET)
+        print(
+            Fore.MAGENTA
+            + "* required values:"
+            + Fore.RESET)
         all_required_placeholders.sort()
         for placeholder in all_required_placeholders:
             print(placeholder)
     if all_optional_placeholders:
         print()
-        print(Fore.MAGENTA + "* optional values with default:" + Fore.RESET)
+        print(
+            Fore.MAGENTA
+            + "* optional values with default:"
+            + Fore.RESET)
         all_optional_placeholders.sort()
         for placeholder in all_optional_placeholders:
             print("{} = {}".format(
@@ -641,7 +667,10 @@ def print_one(cmd):
                 shlex.quote(cmd_dict['args'][placeholder])))
     if all_toggle_placeholders:
         print()
-        print(Fore.MAGENTA + "* toggles with untoggled:toggled values:" + Fore.RESET)
+        print(
+            Fore.MAGENTA
+            + "* toggles with untoggled:toggled values:"
+            + Fore.RESET)
         all_toggle_placeholders.sort()
         for placeholder in all_toggle_placeholders:
             togglevals = cmd_dict['toggle_args'][placeholder]
@@ -743,8 +772,9 @@ def print_command_groups(cmd_group_args, command_dicts_by_cmd):
             format_args = actual_format_args + args_suffix + [common_value]
             return False, common_format_str, format_args
         if common_value is not None:
-            catch_up_iters = (len(actual_format_args) - 1) // (vals_per_arg + 1)
-            format_str = "{} = " + ", ".join([multival_str_suffix] * catch_up_iters)
+            catch_up = (len(actual_format_args) - 1) // (vals_per_arg + 1)
+            format_str = "{} = " + ", ".join(
+                [multival_str_suffix] * catch_up)
         format_str = ", ".join([format_str, multival_str_suffix])
         format_args = actual_format_args + args_suffix + [None]
         return False, format_str, format_args
@@ -809,16 +839,29 @@ def print_multi(commands):
             + (num_commands - commands.index(group[0]) - 1)
         )
 
-    print(Fore.MAGENTA + "** commands:" + Fore.RESET)
+    print(
+        Fore.MAGENTA
+        + "** commands:"
+        + Fore.RESET)
     print(commands_display)
     print()
-    print(Fore.MAGENTA + "** commandline formats:" + Fore.RESET)
+    print(
+        Fore.MAGENTA
+        + "** commandline formats:"
+        + Fore.RESET)
     for cmd_dict in command_dicts:
-        print(Fore.CYAN + "* " + cmd_dict['name'] + Fore.RESET)
+        print(
+            Fore.CYAN
+            + "* "
+            + cmd_dict['name']
+            + Fore.RESET)
         print(cmd_dict['cmdline'])
     if placeholders_sets["required"]:
         print()
-        print(Fore.MAGENTA + "** required values:" + Fore.RESET)
+        print(
+            Fore.MAGENTA
+            + "** required values:"
+            + Fore.RESET)
         print_placeholders_set(
             placeholders_sets["required"],
             cga_sort_keyvalue,
@@ -826,7 +869,10 @@ def print_multi(commands):
             commands_by_placeholder)
     if placeholders_sets["optional"]:
         print()
-        print(Fore.MAGENTA + "** optional values with default:" + Fore.RESET)
+        print(
+            Fore.MAGENTA
+            + "** optional values with default:"
+            + Fore.RESET)
         print_placeholders_set(
             placeholders_sets["optional"],
             cga_sort_keyvalue,
@@ -834,7 +880,10 @@ def print_multi(commands):
             commands_by_placeholder)
     if placeholders_sets["toggle"]:
         print()
-        print(Fore.MAGENTA + "** toggles with untoggled:toggled values:" + Fore.RESET)
+        print(
+            Fore.MAGENTA
+            + "** toggles with untoggled:toggled values:"
+            + Fore.RESET)
         print_placeholders_set(
             placeholders_sets["toggle"],
             cga_sort_keyvalue,
