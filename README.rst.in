@@ -40,11 +40,29 @@ You can use your package manager to check whether you have bash-completion insta
 Installation
 ------------
 
-XXX blah blah blah pip install from PyPI or GitHub
+The latest version of chaintool (hosted at the `Python Package Index`_, PyPI) can be installed via Python's ``pip`` package manager:
+
+.. code-block:: none
+
+    python3 -m pip install chaintool
+
+Similarly, an existing chaintool installation can be updated to the latest version:
+
+.. code-block:: none
+
+    python3 -m pip install --upgrade chaintool
+
+An alternative to installing from PyPI is to install chaintool directly from GitHub:
+
+.. code-block:: none
+
+    python3 -m pip install git+https://github.com/neogeographica/chaintool
 
 XXX mention "chaintool x completions"
 
 XXX mention "chaintool x shortcuts"
+
+.. _Python Package Index: https://pypi.org/project/chaintool
 
 .. _documentation_section:
 
