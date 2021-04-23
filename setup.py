@@ -20,7 +20,7 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 # Set a default description just in case we don't find it in the readme.
-description = 'XXX blah blah blah short description'
+description = 'a tool to chain tools into toolchains'
 
 # Pick the desired sections out of the readme for use in the long description,
 # and also look for the short description in the readme header.
@@ -37,7 +37,7 @@ for readme_line in readme_orig.splitlines(True):
         continue
     if section == 'header_section':
         if readme_line.startswith('chaintool:'):
-            description = readme_line[6:].strip()
+            description = readme_line[10:].strip()
     if include_line:
         readme = readme + readme_line
     elif section in readme_sections:

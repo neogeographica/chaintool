@@ -33,7 +33,7 @@ from . import shared
 from . import shortcuts
 
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 if sys.version_info < (3, 7):
     sys.stderr.write("Python version 3.7 or later is required.\n")
