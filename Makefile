@@ -16,7 +16,7 @@ dist: distclean readme
 	python3 -m build
 
 pub: dist
-	twine upload dist/*
+	./dev-ver-check.py && twine upload dist/*
 
 testpub: dist
 	twine upload -r testpypi dist/*
