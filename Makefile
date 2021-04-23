@@ -12,7 +12,7 @@ devinstall: readme
 uninstall:
 	python3 -m pip uninstall chaintool -y
 
-dist: readme
+dist: distclean readme
 	python3 -m build
 
 pub: dist
