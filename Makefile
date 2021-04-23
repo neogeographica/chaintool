@@ -1,7 +1,15 @@
-.PHONY: readme install devinstall uninstall dist pub testpub lint megalint clean distclean
+.PHONY: readme docs install devinstall uninstall dist pub testpub lint megalint clean distclean
 
 readme:
 	./make_readme.py
+
+docs: readme
+	rm -f docs/chaintool.rst docs/modules.rst
+	sphinx-apidoc -o docs src/chaintool
+	cat docs/chaintool.rst | sed '/^Submodules$$/{s/.*/:ref:`search`/;N;s/\n.*//;}' | sed '/^Module contents$$/,$$ d' > docs/chaintool.rst.modified
+	mv docs/chaintool.rst.modified docs/chaintool.rst
+	cd docs; make html
+	rm -f docs/modules.rst
 
 install: readme
 	python3 -m pip install .
@@ -35,6 +43,8 @@ clean:
 	-find . -name '*.pyc' -exec rm {} \;
 	-find . -name '__pycache__' -prune -exec rm -rf {} \;
 	-find . -name '*.egg-info' -prune -exec rm -rf {} \;
+	cd docs; make clean
+	rm -f docs/modules.rst
 
 distclean: clean
 	-rm -rf dist

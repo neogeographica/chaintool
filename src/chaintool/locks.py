@@ -29,9 +29,10 @@ This simple R/W lock implementation does not enforce all the guardrails
 necessary to prevent deadlock. Because its usage is pretty simple in this
 program, we just have to follow conventions to avoid deadlock (knock on
 wood). The conventions are:
-  * lock acquisition order: seq inventory, seq item, cmd inventory, cmd item
-  * for holding multiple item locks, acquire in sorted item name order (this
-    is actually enforced as long as you use multi_item_lock to do it)
+
+- lock acquisition order: seq inventory, seq item, cmd inventory, cmd item
+- for holding multiple item locks, acquire in sorted item name order (this
+  is actually enforced as long as you use multi_item_lock to do it)
 
 Also note that item locks (and in some cases inventory locks) are released
 only when the program exits, using an atexit handler. Operations are meant
