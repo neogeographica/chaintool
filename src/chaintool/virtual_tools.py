@@ -25,11 +25,7 @@ that run in Python code here rather than in a subprocess shell on the OS.
 """
 
 
-__all__ = ['copytool',
-           'deltool',
-           'envtool',
-           'dispatch',
-           'update_env']
+__all__ = ["copytool", "deltool", "envtool", "dispatch", "update_env"]
 
 
 import os
@@ -49,7 +45,7 @@ def env_op_parse(env_op):
         shared.errprint("Bad chaintool-env argument format.")
         return None
     dst_name = match.group(1)
-    only_if_dst_unset = (match.group(2)[0] == '?')
+    only_if_dst_unset = match.group(2)[0] == "?"
     src_value = match.group(3)
     return (dst_name, only_if_dst_unset, src_value)
 
@@ -57,11 +53,12 @@ def env_op_parse(env_op):
 def copytool(copy_args, _):
     if len(copy_args) != 2:
         shared.errprint(
-            "chaintool-copy takes two arguments: sourcepath and destpath")
+            "chaintool-copy takes two arguments: sourcepath and destpath"
+        )
         return 1
     try:
         shutil.copy2(copy_args[0], copy_args[1])
-        print("copied \"{}\" to \"{}\"".format(copy_args[0], copy_args[1]))
+        print('copied "{}" to "{}"'.format(copy_args[0], copy_args[1]))
         return 0
     except Exception as move_exception:  # pylint: disable=broad-except
         print(repr(move_exception))
@@ -70,12 +67,11 @@ def copytool(copy_args, _):
 
 def deltool(del_args, _):
     if len(del_args) != 1:
-        shared.errprint(
-            "chaintool-del takes one argument: filepath")
+        shared.errprint("chaintool-del takes one argument: filepath")
         return 1
     try:
         os.remove(del_args[0])
-        print("deleted \"{}\"".format(del_args[0]))
+        print('deleted "{}"'.format(del_args[0]))
         return 0
     except Exception as del_exception:  # pylint: disable=broad-except
         print(repr(del_exception))
@@ -90,9 +86,9 @@ def envtool(env_args, run_args):
         (dst_name, only_if_dst_unset, src_value) = env_op
         dst_arg_index = None
         for index, arg in enumerate(run_args):
-            if arg[0] == '+':
+            if arg[0] == "+":
                 continue
-            name = arg.partition('=')[0]
+            name = arg.partition("=")[0]
             if name == dst_name:
                 dst_arg_index = index
             # Can't bail out early on finding arg, just in case it was
@@ -100,7 +96,7 @@ def envtool(env_args, run_args):
         if only_if_dst_unset and dst_arg_index is not None:
             print("{} already has value; not modifying".format(dst_name))
             continue
-        new_arg = '='.join([dst_name, src_value])
+        new_arg = "=".join([dst_name, src_value])
         print(new_arg)
         if dst_arg_index is None:
             run_args.append(new_arg)
@@ -112,7 +108,7 @@ def envtool(env_args, run_args):
 VTOOL_DISPATCH = {
     "chaintool-copy": copytool,
     "chaintool-del": deltool,
-    "chaintool-env": envtool
+    "chaintool-env": envtool,
 }
 
 

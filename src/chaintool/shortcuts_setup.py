@@ -20,7 +20,7 @@
 """Handle setting/unsetting the PATH modification for shortcuts."""
 
 
-__all__ = ['configure']
+__all__ = ["configure"]
 
 
 import os
@@ -38,13 +38,14 @@ PATH_RE = re.compile(r"(?m)^.*export PATH=.*" + shlex.quote(SHORTCUTS_DIR))
 
 
 def unconfigure(startup_script_path):
-    print("Do you want to leave this configuration as-is? ", end='')
+    print("Do you want to leave this configuration as-is? ", end="")
     choice = input("[y/n] ")
     print()
-    if choice.lower() != 'n':
+    if choice.lower() != "n":
         return False
     unconfigured = shared.remove_script_additions(
-        startup_script_path, BEGIN_MARK, END_MARK, 3)
+        startup_script_path, BEGIN_MARK, END_MARK, 3
+    )
     if unconfigured:
         shared.write_choicefile(PATHSCRIPT_LOCATION, None)
     return unconfigured
@@ -52,7 +53,8 @@ def unconfigure(startup_script_path):
 
 def keep_existing_config():
     already_in_path = (
-        "PATH" in os.environ and SHORTCUTS_DIR in os.environ["PATH"])
+        "PATH" in os.environ and SHORTCUTS_DIR in os.environ["PATH"]
+    )
     location_choice = shared.read_choicefile(PATHSCRIPT_LOCATION)
     if location_choice is None:
         if already_in_path:
@@ -61,7 +63,8 @@ def keep_existing_config():
                 "run as\nshortcuts, because the shortcuts directory is "
                 "already in your PATH. There's\nno record of this program "
                 "being used to help set that up, so if you want to\nremove "
-                "that PATH configuration you'll need to do it manually.")
+                "that PATH configuration you'll need to do it manually."
+            )
             print()
             return True
         return False
@@ -69,32 +72,33 @@ def keep_existing_config():
         shared.write_choicefile(PATHSCRIPT_LOCATION, None)
         print(
             "The PATH value for shortcuts used to be set in the following "
-            "file, but this\nfile no longer exists:\n  " + location_choice)
+            "file, but this\nfile no longer exists:\n  " + location_choice
+        )
         print()
         return False
-    with open(location_choice, 'r') as instream:
+    with open(location_choice, "r") as instream:
         startup_script = instream.read()
     if not PATH_RE.search(startup_script):
         shared.write_choicefile(PATHSCRIPT_LOCATION, None)
         print(
             "The PATH value for shortcuts used to be set in the following "
-            "file, but that\nseems to no longer be true:\n  "
-            + location_choice)
+            "file, but that\nseems to no longer be true:\n  " + location_choice
+        )
         print()
         return False
     if already_in_path:
         print(
             "Command and sequence names should currently be available to run "
             "as\nshortcuts, because the shortcuts directory is already in "
-            "your PATH through\na setting in this file:\n  "
-            + location_choice)
+            "your PATH through\na setting in this file:\n  " + location_choice
+        )
         print()
         return not unconfigure(location_choice)
     print(
         "The following file already includes a line to set the PATH "
         "appropriately.\nIf it's a valid startup script, then shortcuts "
-        "should be active next time a\nshell is started.\n  "
-        + location_choice)
+        "should be active next time a\nshell is started.\n  " + location_choice
+    )
     print()
     return not unconfigure(location_choice)
 
@@ -102,22 +106,23 @@ def keep_existing_config():
 def early_bailout():
     is_shell, _ = shared.check_shell()
     if is_shell:
-        print(
-            "Modify startup script to insert this PATH setting? ", end='')
-        choice_default = 'y'
+        print("Modify startup script to insert this PATH setting? ", end="")
+        choice_default = "y"
         choice = input("[y/n] ")
     else:
         print(
             "It doesn't look like you're running in a shell, so there may not "
             "be an\nappropriate startup script file in which to add this PATH "
             "setting. Is there\na file where you do want the PATH setting to "
-            "be inserted? ", end='')
-        choice_default = 'n'
+            "be inserted? ",
+            end="",
+        )
+        choice_default = "n"
         choice = input("[n/y] ")
     print()
     if not choice:
         choice = choice_default
-    if choice.lower() != 'y':
+    if choice.lower() != "y":
         return True
     return False
 
@@ -126,14 +131,16 @@ def update_startup_script(startup_script_path):
     shared.write_choicefile(PATHSCRIPT_LOCATION, startup_script_path)
     if startup_script_path is None:
         return
-    with open(startup_script_path, 'a') as outstream:
+    with open(startup_script_path, "a") as outstream:
         outstream.write(BEGIN_MARK + "\n")
-        outstream.write("export PATH=$PATH:{}\n".format(
-            shlex.quote(SHORTCUTS_DIR)))
+        outstream.write(
+            "export PATH=$PATH:{}\n".format(shlex.quote(SHORTCUTS_DIR))
+        )
         outstream.write(END_MARK + "\n")
     print(
         "File modified. Shortcuts should be active next time a shell is "
-        "started.")
+        "started."
+    )
     print()
 
 
@@ -141,7 +148,8 @@ def configure():
     print()
     print(
         "For shortcuts access, this directory must be in your PATH:\n"
-        "    {}".format(SHORTCUTS_DIR))
+        "    {}".format(SHORTCUTS_DIR)
+    )
     print()
     if keep_existing_config():
         return 0

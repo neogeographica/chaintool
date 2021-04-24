@@ -28,15 +28,17 @@ Operations are meant to be invoked one per program instance, using the CLI.
 """
 
 
-__all__ = ['cli_list',
-           'cli_set',
-           'cli_edit',
-           'cli_print',
-           'cli_print_all',
-           'cli_del',
-           'cli_run',
-           'cli_vals',
-           'cli_vals_all']
+__all__ = [
+    "cli_list",
+    "cli_set",
+    "cli_edit",
+    "cli_print",
+    "cli_print_all",
+    "cli_del",
+    "cli_run",
+    "cli_vals",
+    "cli_vals_all",
+]
 
 
 import atexit
@@ -58,9 +60,9 @@ def cli_list(column):
     command_names = command_impl.all_names()
     if command_names:
         if column:
-            print('\n'.join(command_names))
+            print("\n".join(command_names))
         else:
-            print(' '.join(command_names))
+            print(" ".join(command_names))
         print()
     return 0
 
@@ -79,15 +81,13 @@ def cli_set(cmd, cmdline, overwrite, print_after_set):
             print()
             shared.errprint(
                 "Command '{}' cannot be created because a sequence exists "
-                "with the same name.".format(cmd))
+                "with the same name.".format(cmd)
+            )
             print()
             return 1
     status = command_impl.define(
-        cmd,
-        cmdline,
-        overwrite,
-        print_after_set,
-        False)
+        cmd, cmdline, overwrite, print_after_set, False
+    )
     if creating and not status:
         shortcuts.create_cmd_shortcut(cmd)
         completions.create_completion(cmd)
@@ -101,14 +101,15 @@ def cli_edit(cmd, print_after_set):
     cleanup_fun = None
     try:
         cmd_dict = command_impl.read_dict(cmd)
-        old_cmdline = cmd_dict['cmdline']
+        old_cmdline = cmd_dict["cmdline"]
     except FileNotFoundError:
         # Check whether there's a seq of the same name.
         if sequence_impl.exists(cmd):
             print()
             shared.errprint(
                 "Command '{}' cannot be created because a sequence exists "
-                "with the same name.".format(cmd))
+                "with the same name.".format(cmd)
+            )
             print()
             return 1
         # We want to release the inventory locks before we go into interactive
@@ -121,13 +122,10 @@ def cli_edit(cmd, print_after_set):
     locks.release_inventory_lock("cmd", locks.LockType.WRITE)
     locks.release_inventory_lock("seq", locks.LockType.READ)
     print()
-    new_cmdline = shared.editline('commandline: ', old_cmdline)
+    new_cmdline = shared.editline("commandline: ", old_cmdline)
     status = command_impl.define(
-        cmd,
-        new_cmdline,
-        True,
-        print_after_set,
-        False)
+        cmd, new_cmdline, True, print_after_set, False
+    )
     if cleanup_fun:
         if status:
             cleanup_fun()
@@ -144,8 +142,8 @@ def cli_print(cmd, dump_placeholders):
     # before the delete or after.
     if dump_placeholders is not None:
         return command_impl.dump_placeholders(
-            [cmd],
-            dump_placeholders == "run")
+            [cmd], dump_placeholders == "run"
+        )
     print()
     return command_impl.print_one(cmd)
 
@@ -158,8 +156,8 @@ def cli_print_all(dump_placeholders):
         locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
     else:
         return command_impl.dump_placeholders(
-            command_names,
-            dump_placeholders == "run")
+            command_names, dump_placeholders == "run"
+        )
     print()
     return command_impl.print_multi(command_names)
 
@@ -177,17 +175,19 @@ def cli_del(delcmds, ignore_seq_usage):
         for seq in sequence_names:
             try:
                 seq_dict = sequence_impl.read_dict(seq)
-                seq_dict['name'] = seq
+                seq_dict["name"] = seq
                 seq_dicts.append(seq_dict)
             except FileNotFoundError:
                 pass
         for cmd in delcmds:
             for seq_dict in seq_dicts:
-                if cmd in seq_dict['commands']:
+                if cmd in seq_dict["commands"]:
                     error = True
                     shared.errprint(
                         "Command {} is used by sequence {}.".format(
-                            cmd, seq_dict['name']))
+                            cmd, seq_dict["name"]
+                        )
+                    )
         if error:
             print()
             return 1
@@ -215,7 +215,8 @@ def cli_run(cmd, args):
         print(
             shared.MSG_WARN_PREFIX
             + " the following args don't apply to this commandline:",
-            ' '.join(unused_args))
+            " ".join(unused_args),
+        )
         print()
     return status
 
@@ -230,7 +231,8 @@ def cli_vals(cmd, args, print_after_set):
         print(
             shared.MSG_WARN_PREFIX
             + " the following args don't apply to this commandline:",
-            ' '.join(unused_args))
+            " ".join(unused_args),
+        )
         print()
     return 0
 
@@ -246,18 +248,16 @@ def cli_vals_all(placeholder_args):
     error = False
     for cmd in command_names:
         status = command_impl.vals(
-            cmd,
-            placeholder_args,
-            unused_args,
-            False,
-            True)
+            cmd, placeholder_args, unused_args, False, True
+        )
         if status:
             error = True
     if unused_args:
         print(
             shared.MSG_WARN_PREFIX
             + " the following args don't apply to any commandline:",
-            ' '.join(unused_args))
+            " ".join(unused_args),
+        )
         print()
     if error:
         return 1

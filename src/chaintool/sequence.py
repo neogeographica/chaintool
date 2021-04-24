@@ -28,13 +28,15 @@ Operations are meant to be invoked one per program instance, using the CLI.
 """
 
 
-__all__ = ['cli_list',
-           'cli_set',
-           'cli_edit',
-           'cli_print',
-           'cli_del',
-           'cli_run',
-           'cli_vals']
+__all__ = [
+    "cli_list",
+    "cli_set",
+    "cli_edit",
+    "cli_print",
+    "cli_del",
+    "cli_run",
+    "cli_vals",
+]
 
 
 import atexit
@@ -63,9 +65,9 @@ def cli_list(column):
     sequence_names = sequence_impl.all_names()
     if sequence_names:
         if column:
-            print('\n'.join(sequence_names))
+            print("\n".join(sequence_names))
         else:
-            print(' '.join(sequence_names))
+            print(" ".join(sequence_names))
         print()
     return 0
 
@@ -82,7 +84,8 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
             print()
             shared.errprint(
                 "Sequence '{}' cannot be created because a command exists "
-                "with the same name.".format(seq))
+                "with the same name.".format(seq)
+            )
             print()
             return 1
     status = sequence_impl.define(
@@ -91,7 +94,8 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
         undefined_cmds(cmds, ignore_undefined_cmds),
         overwrite,
         print_after_set,
-        False)
+        False,
+    )
     if creating and not status:
         shortcuts.create_seq_shortcut(seq)
         completions.create_completion(seq)
@@ -104,7 +108,7 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
     cleanup_fun = None
     try:
         seq_dict = sequence_impl.read_dict(seq)
-        old_commands_str = ' '.join(seq_dict['commands'])
+        old_commands_str = " ".join(seq_dict["commands"])
     except FileNotFoundError:
         # Check whether there's a cmd of the same name.
         locks.inventory_lock("cmd", locks.LockType.READ)
@@ -112,7 +116,8 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
             print()
             shared.errprint(
                 "Sequence '{}' cannot be created because a command exists "
-                "with the same name.".format(seq))
+                "with the same name.".format(seq)
+            )
             print()
             return 1
         # We want to release the inventory locks before we go into interactive
@@ -125,7 +130,7 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         locks.release_inventory_lock("cmd", locks.LockType.READ)
     locks.release_inventory_lock("seq", locks.LockType.WRITE)
     print()
-    new_commands_str = shared.editline('commands: ', old_commands_str)
+    new_commands_str = shared.editline("commands: ", old_commands_str)
     new_commands = new_commands_str.split()
     status = sequence_impl.define(
         seq,
@@ -133,7 +138,8 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         undefined_cmds(new_commands, ignore_undefined_cmds),
         True,
         print_after_set,
-        False)
+        False,
+    )
     if cleanup_fun:
         if status:
             cleanup_fun()
@@ -161,14 +167,14 @@ def cli_print(seq, dump_placeholders):
             shared.errprint("Sequence '{}' does not exist.".format(seq))
         print()
         return 1
-    commands = seq_dict['commands']
+    commands = seq_dict["commands"]
     if dump_placeholders is None:
         locks.multi_item_lock("cmd", commands, locks.LockType.READ)
         locks.release_inventory_lock("cmd", locks.LockType.READ)
     if dump_placeholders is not None:
         return command_impl.dump_placeholders(
-            commands,
-            dump_placeholders == "run")
+            commands, dump_placeholders == "run"
+        )
     print()
     return command_impl.print_multi(commands)
 
@@ -199,7 +205,7 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
         shared.errprint("Sequence '{}' does not exist.".format(seq))
         print()
         return 1
-    cmd_list = seq_dict['commands']
+    cmd_list = seq_dict["commands"]
     locks.multi_item_lock("cmd", cmd_list, locks.LockType.READ)
     locks.release_inventory_lock("cmd", locks.LockType.READ)
     unused_args = copy.deepcopy(args)
@@ -208,13 +214,13 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
             print(
                 Fore.MAGENTA
                 + "* SKIPPING command '{}'".format(cmd)
-                + Fore.RESET)
+                + Fore.RESET
+            )
             print()
             continue
         print(
-            Fore.MAGENTA
-            + "* running command '{}':".format(cmd)
-            + Fore.RESET)
+            Fore.MAGENTA + "* running command '{}':".format(cmd) + Fore.RESET
+        )
         status = command_impl.run(cmd, args, unused_args)
         if status and not ignore_errors:
             return status
@@ -223,7 +229,8 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
             shared.MSG_WARN_PREFIX
             + " the following args don't apply to any commandline "
             "in this sequence:",
-            ' '.join(unused_args))
+            " ".join(unused_args),
+        )
         print()
     return 0
 
@@ -238,7 +245,7 @@ def cli_vals(seq, args, print_after_set):
         shared.errprint("Sequence '{}' does not exist.".format(seq))
         print()
         return 1
-    cmd_list = seq_dict['commands']
+    cmd_list = seq_dict["commands"]
     locks.multi_item_lock("cmd", cmd_list, locks.LockType.WRITE)
     locks.release_inventory_lock("cmd", locks.LockType.READ)
     print()
@@ -263,7 +270,8 @@ def cli_vals(seq, args, print_after_set):
             shared.MSG_WARN_PREFIX
             + " the following args don't apply to any commandline "
             "in this sequence:",
-            ' '.join(unused_args))
+            " ".join(unused_args),
+        )
         print()
     if error:
         return 1

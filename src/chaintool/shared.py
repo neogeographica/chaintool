@@ -20,21 +20,23 @@
 """Constants and utility functions shared by the package's modules."""
 
 
-__all__ = ['CACHE_DIR',
-           'CONFIG_DIR',
-           'DATA_DIR',
-           'LOCATIONS_DIR',
-           'MSG_WARN_PREFIX',
-           'init',
-           'errprint',
-           'is_valid_name',
-           'editline',
-           'check_shell',
-           'delete_if_exists',
-           'read_choicefile',
-           'write_choicefile',
-           'get_startup_script_path',
-           'remove_script_additions']
+__all__ = [
+    "CACHE_DIR",
+    "CONFIG_DIR",
+    "DATA_DIR",
+    "LOCATIONS_DIR",
+    "MSG_WARN_PREFIX",
+    "init",
+    "errprint",
+    "is_valid_name",
+    "editline",
+    "check_shell",
+    "delete_if_exists",
+    "read_choicefile",
+    "write_choicefile",
+    "get_startup_script_path",
+    "remove_script_additions",
+]
 
 
 import os
@@ -63,7 +65,7 @@ def init():
 
 
 def errprint(msg):
-    sys.stderr.write(Fore.RED + msg + Fore.RESET + '\n')
+    sys.stderr.write(Fore.RED + msg + Fore.RESET + "\n")
 
 
 def is_valid_name(name):
@@ -78,6 +80,7 @@ def is_valid_name(name):
 def editline(prompt, oldline):
     def startup_hook():
         readline.insert_text(oldline)
+
     readline.set_startup_hook(startup_hook)
     # Note that using color codes as part of the prompt will mess up cursor
     # positioning in some edit situations. The solution is probably: put
@@ -89,7 +92,7 @@ def editline(prompt, oldline):
 
 
 def check_shell():
-    is_shell = ("SHELL" in os.environ)
+    is_shell = "SHELL" in os.environ
     is_bash_login_shell = False
     if is_shell:
         is_bash_login_shell = os.environ["SHELL"].endswith("/bash")
@@ -106,7 +109,7 @@ def delete_if_exists(filepath):
 def read_choicefile(choicefile_path):
     if not os.path.exists(choicefile_path):
         return None
-    with open(choicefile_path, 'r') as instream:
+    with open(choicefile_path, "r") as instream:
         return instream.read()
 
 
@@ -114,7 +117,7 @@ def write_choicefile(choicefile_path, choice):
     if choice is None:
         delete_if_exists(choicefile_path)
         return
-    with open(choicefile_path, 'w') as outstream:
+    with open(choicefile_path, "w") as outstream:
         outstream.write(choice)
 
 
@@ -122,16 +125,18 @@ def default_startup_script():
     _, is_bash_login_shell = check_shell()
     if is_bash_login_shell:
         return os.path.expanduser(
-            os.path.expandvars(os.path.join("~", ".bashrc")))
+            os.path.expandvars(os.path.join("~", ".bashrc"))
+        )
     return ""
 
 
 def get_startup_script_path():
     startup_script_path = editline(
-        "Path to your shell startup script: ",
-        default_startup_script())
+        "Path to your shell startup script: ", default_startup_script()
+    )
     startup_script_path = os.path.expanduser(
-        os.path.expandvars(startup_script_path))
+        os.path.expandvars(startup_script_path)
+    )
     print()
     if not os.path.exists(startup_script_path):
         print("File does not exist.")
@@ -142,7 +147,7 @@ def get_startup_script_path():
 
 def remove_script_additions(script_path, begin_mark, end_mark, expected_lines):
     try:
-        with open(script_path, 'r') as instream:
+        with open(script_path, "r") as instream:
             script_lines = instream.readlines()
     except FileNotFoundError:
         print("That file no longer exists.")
@@ -167,16 +172,18 @@ def remove_script_additions(script_path, begin_mark, end_mark, expected_lines):
             "It doesn't look like this program can safely auto-remove the "
             "configuration\nfrom that file. If you want to use this program "
             "to help put the configuration\nin some other file, first you "
-            "will need to manually remove it from this\ncurrent location.")
+            "will need to manually remove it from this\ncurrent location."
+        )
         print()
         return False
     backup_path = script_path + ".bak"
     shutil.copy2(script_path, backup_path)
-    with open(script_path, 'w') as outstream:
+    with open(script_path, "w") as outstream:
         outstream.writelines(new_script_lines)
     shutil.copystat(backup_path, script_path)
     print(
         "Current configuration has been removed. The previous version of the "
-        "file has\nbeen saved at:\n  " + backup_path)
+        "file has\nbeen saved at:\n  " + backup_path
+    )
     print()
     return True

@@ -20,11 +20,13 @@
 """Create/delete "shortcut" scripts for commands and sequences."""
 
 
-__all__ = ['init',
-           'create_cmd_shortcut',
-           'delete_cmd_shortcut',
-           'create_seq_shortcut',
-           'delete_seq_shortcut']
+__all__ = [
+    "init",
+    "create_cmd_shortcut",
+    "delete_cmd_shortcut",
+    "create_seq_shortcut",
+    "delete_seq_shortcut",
+]
 
 
 import os
@@ -38,8 +40,8 @@ from .shared import LOCATIONS_DIR
 
 SHORTCUTS_DIR = os.path.join(DATA_DIR, "shortcuts")
 PATHSCRIPT_LOCATION = os.path.join(
-    LOCATIONS_DIR,
-    "shortcuts_path_setting_script")
+    LOCATIONS_DIR, "shortcuts_path_setting_script"
+)
 
 
 def init():
@@ -63,24 +65,23 @@ def create_shortcut(item_type, item_name):
     else:
         shortcut_shell = "/usr/bin/env sh"
     hashbang = "#!" + shortcut_shell + "\n"
-    with open(shortcut_path, 'w') as outstream:
+    with open(shortcut_path, "w") as outstream:
         outstream.write(hashbang)
         outstream.write(
-            "if [ \"$1\" = \"--cmdgroup\" ]; "
-            "then echo {}; exit 0; fi\n".format(item_type))
+            'if [ "$1" = "--cmdgroup" ]; '
+            "then echo {}; exit 0; fi\n".format(item_type)
+        )
+        outstream.write('if [ "$CHAINTOOL_SHORTCUT_PYTHON" = "" ]\n')
+        outstream.write("then\n")
         outstream.write(
-            "if [ \"$CHAINTOOL_SHORTCUT_PYTHON\" = \"\" ]\n")
+            '  chaintool {} run {} "$@"\n'.format(item_type, item_name)
+        )
+        outstream.write("else\n")
         outstream.write(
-            "then\n")
-        outstream.write(
-            "  chaintool {} run {} \"$@\"\n".format(item_type, item_name))
-        outstream.write(
-            "else\n")
-        outstream.write(
-            "  \"$CHAINTOOL_SHORTCUT_PYTHON\" -m chaintool "
-            "{} run {} \"$@\"\n".format(item_type, item_name))
-        outstream.write(
-            "fi\n")
+            '  "$CHAINTOOL_SHORTCUT_PYTHON" -m chaintool '
+            '{} run {} "$@"\n'.format(item_type, item_name)
+        )
+        outstream.write("fi\n")
     make_executable(shortcut_path)
 
 

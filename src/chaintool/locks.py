@@ -41,12 +41,14 @@ to be invoked one per program instance, using the CLI.
 """
 
 
-__all__ = ['LockType',
-           'init',
-           'inventory_lock',
-           'release_inventory_lock',
-           'item_lock',
-           'multi_item_lock']
+__all__ = [
+    "LockType",
+    "init",
+    "inventory_lock",
+    "release_inventory_lock",
+    "item_lock",
+    "multi_item_lock",
+]
 
 
 import atexit
@@ -83,7 +85,7 @@ def init():
 
 
 def locker_pid(lock_path):
-    return int(lock_path[lock_path.rindex('.') + 1:])
+    return int(lock_path[lock_path.rindex(".") + 1 :])
 
 
 def remove_dead_locks(lock_paths):
@@ -97,18 +99,18 @@ def lock_internal(lock_type, prefix):
     if lock_type == LockType.WRITE:
         conflict_pattern = prefix + ".*"
     else:
-        conflict_pattern = '.'.join([prefix, LockType.WRITE.value, "*"])
+        conflict_pattern = ".".join([prefix, LockType.WRITE.value, "*"])
     first_try = True
     while True:
         with META_LOCK:
             conflicting_locks = glob.glob(conflict_pattern)
             conflicting_locks = [
-                lck for lck in conflicting_locks
-                if locker_pid(lck) != MY_PID]
+                lck for lck in conflicting_locks if locker_pid(lck) != MY_PID
+            ]
             if not conflicting_locks:
-                lock_path = '.'.join([prefix, lock_type.value, MY_PID])
+                lock_path = ".".join([prefix, lock_type.value, MY_PID])
                 atexit.register(shared.delete_if_exists, lock_path)
-                with open(lock_path, 'w'):
+                with open(lock_path, "w"):
                     pass
                 return
             remove_dead_locks(conflicting_locks)
@@ -126,7 +128,7 @@ def inventory_lock(item_type, lock_type):
 
 def release_inventory_lock(item_type, lock_type):
     prefix = LOCKS_PREFIX + "inventory-" + item_type
-    lock_path = '.'.join([prefix, lock_type.value, MY_PID])
+    lock_path = ".".join([prefix, lock_type.value, MY_PID])
     shared.delete_if_exists(lock_path)
 
 

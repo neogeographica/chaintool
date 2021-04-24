@@ -28,8 +28,7 @@ Operations are meant to be invoked one per program instance, using the CLI.
 """
 
 
-__all__ = ['cli_export',
-           'cli_import']
+__all__ = ["cli_export", "cli_import"]
 
 
 import yaml  # from pyyaml
@@ -51,20 +50,14 @@ def cli_export(export_file):
     locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
     locks.multi_item_lock("seq", sequence_names, locks.LockType.READ)
     print()
-    export_dict = {
-        'commands': [],
-        'sequences': []
-    }
+    export_dict = {"commands": [], "sequences": []}
     print(Fore.MAGENTA + "* Exporting commands..." + Fore.RESET)
     print()
     for cmd in command_names:
         try:
             cmd_dict = command_impl.read_dict(cmd)
-            export_dict['commands'].append(
-                {
-                    'name': cmd,
-                    'cmdline': cmd_dict['cmdline']
-                }
+            export_dict["commands"].append(
+                {"name": cmd, "cmdline": cmd_dict["cmdline"]}
             )
             print("Command '{}' exported.".format(cmd))
         except FileNotFoundError:
@@ -75,21 +68,15 @@ def cli_export(export_file):
     for seq in sequence_names:
         try:
             seq_dict = sequence_impl.read_dict(seq)
-            export_dict['sequences'].append(
-                {
-                    'name': seq,
-                    'commands': seq_dict['commands']
-                }
+            export_dict["sequences"].append(
+                {"name": seq, "commands": seq_dict["commands"]}
             )
             print("Sequence '{}' exported.".format(seq))
         except FileNotFoundError:
             print("Failed to read sequence '{}' ... skipped.".format(seq))
         print()
-    export_doc = yaml.dump(
-        export_dict,
-        default_flow_style=False
-    )
-    with open(export_file, 'w') as outfile:
+    export_doc = yaml.dump(export_dict, default_flow_style=False)
+    with open(export_file, "w") as outfile:
         outfile.write(export_doc)
     return 0
 
@@ -103,32 +90,25 @@ def cli_import(import_file, overwrite):
         locks.multi_item_lock("cmd", command_names, locks.LockType.WRITE)
         locks.multi_item_lock("seq", sequence_names, locks.LockType.WRITE)
     print()
-    with open(import_file, 'r') as infile:
+    with open(import_file, "r") as infile:
         import_dict = yaml.safe_load(infile)
     print(Fore.MAGENTA + "* Importing commands..." + Fore.RESET)
     print()
-    for cmd_dict in import_dict['commands']:
-        cmd = cmd_dict['name']
+    for cmd_dict in import_dict["commands"]:
+        cmd = cmd_dict["name"]
         status = command_impl.define(
-            cmd,
-            cmd_dict['cmdline'],
-            overwrite,
-            False,
-            True)
+            cmd, cmd_dict["cmdline"], overwrite, False, True
+        )
         if not status:
             shortcuts.create_cmd_shortcut(cmd)
             completions.create_completion(cmd)
     print(Fore.MAGENTA + "* Importing sequences..." + Fore.RESET)
     print()
-    for seq_dict in import_dict['sequences']:
-        seq = seq_dict['name']
+    for seq_dict in import_dict["sequences"]:
+        seq = seq_dict["name"]
         status = sequence_impl.define(
-            seq,
-            seq_dict['commands'],
-            [],
-            overwrite,
-            False,
-            True)
+            seq, seq_dict["commands"], [], overwrite, False, True
+        )
         if not status:
             shortcuts.create_seq_shortcut(seq)
             completions.create_completion(seq)

@@ -20,11 +20,13 @@
 """Create/delete bash completions for commands and sequences."""
 
 
-__all__ = ['init',
-           'create_lazyload',
-           'delete_lazyload',
-           'create_completion',
-           'delete_completion']
+__all__ = [
+    "init",
+    "create_lazyload",
+    "delete_lazyload",
+    "create_completion",
+    "delete_completion",
+]
 
 
 import importlib.resources
@@ -43,9 +45,9 @@ MAIN_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, MAIN_SCRIPT)
 HELPER_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, "chaintool_run_op_common")
 OMNIBUS_SCRIPT_PATH = os.path.join(COMPLETIONS_DIR, "omnibus")
 SOURCESCRIPT_LOCATION = os.path.join(
-    LOCATIONS_DIR, "completions_script_sourcing_script")
-USERDIR_LOCATION = os.path.join(
-    LOCATIONS_DIR, "completions_lazy_load_userdir")
+    LOCATIONS_DIR, "completions_script_sourcing_script"
+)
+USERDIR_LOCATION = os.path.join(LOCATIONS_DIR, "completions_lazy_load_userdir")
 
 
 def init():
@@ -53,31 +55,32 @@ def init():
     os.makedirs(SHORTCUTS_COMPLETIONS_DIR, exist_ok=True)
     if not os.path.exists(MAIN_SCRIPT_PATH):
         script = importlib.resources.read_text(
-            __package__,
-            "chaintool_completion")
-        with open(MAIN_SCRIPT_PATH, 'w') as outstream:
+            __package__, "chaintool_completion"
+        )
+        with open(MAIN_SCRIPT_PATH, "w") as outstream:
             outstream.write(script)
     if not os.path.exists(HELPER_SCRIPT_PATH):
         script = importlib.resources.read_text(
-            __package__,
-            "chaintool_run_op_common_completion")
-        with open(HELPER_SCRIPT_PATH, 'w') as outstream:
+            __package__, "chaintool_run_op_common_completion"
+        )
+        with open(HELPER_SCRIPT_PATH, "w") as outstream:
             outstream.write(script)
     if not os.path.exists(OMNIBUS_SCRIPT_PATH):
-        with open(OMNIBUS_SCRIPT_PATH, 'w') as outstream:
+        with open(OMNIBUS_SCRIPT_PATH, "w") as outstream:
             outstream.write(
-                "source {}\n".format(shlex.quote(MAIN_SCRIPT_PATH)))
+                "source {}\n".format(shlex.quote(MAIN_SCRIPT_PATH))
+            )
             outstream.write(
-                "source {}\n".format(shlex.quote(HELPER_SCRIPT_PATH)))
+                "source {}\n".format(shlex.quote(HELPER_SCRIPT_PATH))
+            )
             outstream.write(
                 "ls {0}/* >/dev/null 2>&1 && for s in {0}/*\n".format(
-                    shlex.quote(SHORTCUTS_COMPLETIONS_DIR)))
-            outstream.write(
-                "do\n")
-            outstream.write(
-                "  source \"$s\"\n")
-            outstream.write(
-                "done\n")
+                    shlex.quote(SHORTCUTS_COMPLETIONS_DIR)
+                )
+            )
+            outstream.write("do\n")
+            outstream.write('  source "$s"\n')
+            outstream.write("done\n")
 
 
 def write_complete_invoke(outstream, item_name):
@@ -86,7 +89,7 @@ def write_complete_invoke(outstream, item_name):
 
 def create_static(item_name):
     shortcut_path = os.path.join(SHORTCUTS_COMPLETIONS_DIR, item_name)
-    with open(shortcut_path, 'w') as outstream:
+    with open(shortcut_path, "w") as outstream:
         write_complete_invoke(outstream, item_name)
 
 
@@ -96,28 +99,22 @@ def delete_static(item_name):
 
 
 def write_source_if_needed(outstream, test_func_name, script_path):
-    outstream.write(
-        "if type {} >/dev/null 2>&1\n".format(test_func_name))
-    outstream.write(
-        "then\n")
-    outstream.write(
-        "  true\n")
-    outstream.write(
-        "else\n")
-    outstream.write(
-        "  source {}\n".format(shlex.quote(script_path)))
-    outstream.write(
-        "fi\n")
+    outstream.write("if type {} >/dev/null 2>&1\n".format(test_func_name))
+    outstream.write("then\n")
+    outstream.write("  true\n")
+    outstream.write("else\n")
+    outstream.write("  source {}\n".format(shlex.quote(script_path)))
+    outstream.write("fi\n")
 
 
 def create_lazyload(item_name):
     userdir = shared.read_choicefile(USERDIR_LOCATION)
     shortcut_path = os.path.join(userdir, item_name)
-    with open(shortcut_path, 'w') as outstream:
+    with open(shortcut_path, "w") as outstream:
+        write_source_if_needed(outstream, "_chaintool", MAIN_SCRIPT_PATH)
         write_source_if_needed(
-            outstream, "_chaintool", MAIN_SCRIPT_PATH)
-        write_source_if_needed(
-            outstream, "_chaintool_run_op", HELPER_SCRIPT_PATH)
+            outstream, "_chaintool_run_op", HELPER_SCRIPT_PATH
+        )
         write_complete_invoke(outstream, item_name)
 
 

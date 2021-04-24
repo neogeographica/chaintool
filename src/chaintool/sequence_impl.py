@@ -25,13 +25,15 @@ bulk of the work for reading/writing/modifying sequence definitions.
 """
 
 
-__all__ = ['init',
-           'exists',
-           'all_names',
-           'read_dict',
-           'create_temp',
-           'define',
-           'delete']
+__all__ = [
+    "init",
+    "exists",
+    "all_names",
+    "read_dict",
+    "create_temp",
+    "define",
+    "delete",
+]
 
 
 import os
@@ -59,7 +61,7 @@ def all_names():
 
 
 def read_dict(seq):
-    with open(os.path.join(SEQ_DIR, seq), 'r') as seq_file:
+    with open(os.path.join(SEQ_DIR, seq), "r") as seq_file:
         seq_dict = yaml.safe_load(seq_file)
     return seq_dict
 
@@ -70,28 +72,20 @@ def write_doc(seq, seq_doc, mode):
 
 
 def create_temp(seq):
-    seq_doc = yaml.dump(
-        {
-            'commands': []
-        },
-        default_flow_style=False
-    )
-    write_doc(seq, seq_doc, 'w')
+    seq_doc = yaml.dump({"commands": []}, default_flow_style=False)
+    write_doc(seq, seq_doc, "w")
 
 
 def define(  # pylint: disable=too-many-arguments
-        seq,
-        cmds,
-        undefined_cmds,
-        overwrite,
-        print_after_set,
-        compact):
+    seq, cmds, undefined_cmds, overwrite, print_after_set, compact
+):
     if not compact:
         print()
     if not shared.is_valid_name(seq):
         shared.errprint(
             "seqname '{}' contains whitespace, "
-            "which is not allowed.".format(seq))
+            "which is not allowed.".format(seq)
+        )
         print()
         return 1
     if not cmds:
@@ -102,23 +96,19 @@ def define(  # pylint: disable=too-many-arguments
         if not shared.is_valid_name(cmd_name):
             shared.errprint(
                 "cmdname '{}' contains whitespace, "
-                "which is not allowed.".format(cmd_name))
+                "which is not allowed.".format(cmd_name)
+            )
             print()
             return 1
     if undefined_cmds:
-        shared.errprint("Nonexistent command(s): " + ' '.join(undefined_cmds))
+        shared.errprint("Nonexistent command(s): " + " ".join(undefined_cmds))
         print()
         return 1
-    seq_doc = yaml.dump(
-        {
-            'commands': cmds
-        },
-        default_flow_style=False
-    )
+    seq_doc = yaml.dump({"commands": cmds}, default_flow_style=False)
     if overwrite:
-        mode = 'w'
+        mode = "w"
     else:
-        mode = 'x'
+        mode = "x"
     try:
         write_doc(seq, seq_doc, mode)
     except FileExistsError:
