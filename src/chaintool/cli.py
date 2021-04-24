@@ -154,7 +154,7 @@ def set_cmd_options(group_subparsers):
             " style, e.g. {placeholdername}. Such a placeholder may also"
             " include a default value string e.g. {placeholdername=2}."
             " 'Toggle' style placeholders can also be specified, of the form"
-            " {defval:+togglename:newval}. That example defines a location"
+            " {+togglename=defval:newval}. That example defines a location"
             " that will normally be the string 'defval' but can be toggled to"
             " be 'newval' instead."
         ),
@@ -252,7 +252,7 @@ def set_cmd_options(group_subparsers):
             " placeholdername=value will set the default value for the given"
             " placeholder, while an argument of the form placeholdername will"
             " clear the default value. An argument of the form"
-            " defval:+togglename:newval will replace the values for a 'toggle'"
+            " +togglename=defval:newval will replace the values for a 'toggle'"
             " style placeholder."
         ),
     )
