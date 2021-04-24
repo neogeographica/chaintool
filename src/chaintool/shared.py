@@ -169,10 +169,10 @@ def remove_script_additions(script_path, begin_mark, end_mark, expected_lines):
             to_remove.append(line)
     if len(to_remove) != expected_lines:
         print(
-            "It doesn't look like this program can safely auto-remove the "
-            "configuration\nfrom that file. If you want to use this program "
-            "to help put the configuration\nin some other file, first you "
-            "will need to manually remove it from this\ncurrent location."
+            "It doesn't look like this program can safely auto-remove the"
+            " configuration\nfrom that file. If you want to use this program"
+            " to help put the configuration\nin some other file, first you"
+            " will need to manually remove it from this\ncurrent location."
         )
         print()
         return False
@@ -182,8 +182,9 @@ def remove_script_additions(script_path, begin_mark, end_mark, expected_lines):
         outstream.writelines(new_script_lines)
     shutil.copystat(backup_path, script_path)
     print(
-        "Current configuration has been removed. The previous version of the "
-        "file has\nbeen saved at:\n  " + backup_path
+        "Current configuration has been removed. The previous version of the"
+        " file has\nbeen saved at:\n  "
+        + backup_path
     )
     print()
     return True

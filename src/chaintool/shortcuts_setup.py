@@ -59,11 +59,11 @@ def keep_existing_config():
     if location_choice is None:
         if already_in_path:
             print(
-                "Command and sequence names should currently be available to "
-                "run as\nshortcuts, because the shortcuts directory is "
-                "already in your PATH. There's\nno record of this program "
-                "being used to help set that up, so if you want to\nremove "
-                "that PATH configuration you'll need to do it manually."
+                "Command and sequence names should currently be available to"
+                " run as\nshortcuts, because the shortcuts directory is"
+                " already in your PATH. There's\nno record of this program"
+                " being used to help set that up, so if you want to\nremove"
+                " that PATH configuration you'll need to do it manually."
             )
             print()
             return True
@@ -71,8 +71,9 @@ def keep_existing_config():
     if not os.path.exists(location_choice):
         shared.write_choicefile(PATHSCRIPT_LOCATION, None)
         print(
-            "The PATH value for shortcuts used to be set in the following "
-            "file, but this\nfile no longer exists:\n  " + location_choice
+            "The PATH value for shortcuts used to be set in the following"
+            " file, but this\nfile no longer exists:\n  "
+            + location_choice
         )
         print()
         return False
@@ -81,23 +82,26 @@ def keep_existing_config():
     if not PATH_RE.search(startup_script):
         shared.write_choicefile(PATHSCRIPT_LOCATION, None)
         print(
-            "The PATH value for shortcuts used to be set in the following "
-            "file, but that\nseems to no longer be true:\n  " + location_choice
+            "The PATH value for shortcuts used to be set in the following"
+            " file, but that\nseems to no longer be true:\n  "
+            + location_choice
         )
         print()
         return False
     if already_in_path:
         print(
-            "Command and sequence names should currently be available to run "
-            "as\nshortcuts, because the shortcuts directory is already in "
-            "your PATH through\na setting in this file:\n  " + location_choice
+            "Command and sequence names should currently be available to run"
+            " as\nshortcuts, because the shortcuts directory is already in"
+            " your PATH through\na setting in this file:\n  "
+            + location_choice
         )
         print()
         return not unconfigure(location_choice)
     print(
-        "The following file already includes a line to set the PATH "
-        "appropriately.\nIf it's a valid startup script, then shortcuts "
-        "should be active next time a\nshell is started.\n  " + location_choice
+        "The following file already includes a line to set the PATH"
+        " appropriately.\nIf it's a valid startup script, then shortcuts"
+        " should be active next time a\nshell is started.\n  "
+        + location_choice
     )
     print()
     return not unconfigure(location_choice)
@@ -111,10 +115,10 @@ def early_bailout():
         choice = input("[y/n] ")
     else:
         print(
-            "It doesn't look like you're running in a shell, so there may not "
-            "be an\nappropriate startup script file in which to add this PATH "
-            "setting. Is there\na file where you do want the PATH setting to "
-            "be inserted? ",
+            "It doesn't look like you're running in a shell, so there may not"
+            " be an\nappropriate startup script file in which to add this PATH"
+            " setting. Is there\na file where you do want the PATH setting to"
+            " be inserted? ",
             end="",
         )
         choice_default = "n"
@@ -138,8 +142,8 @@ def update_startup_script(startup_script_path):
         )
         outstream.write(END_MARK + "\n")
     print(
-        "File modified. Shortcuts should be active next time a shell is "
-        "started."
+        "File modified. Shortcuts should be active next time a shell is"
+        " started."
     )
     print()
 

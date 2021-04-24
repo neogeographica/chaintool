@@ -83,8 +83,9 @@ def define(  # pylint: disable=too-many-arguments
         print()
     if not shared.is_valid_name(seq):
         shared.errprint(
-            "seqname '{}' contains whitespace, "
-            "which is not allowed.".format(seq)
+            "seqname '{}' contains whitespace, which is not allowed.".format(
+                seq
+            )
         )
         print()
         return 1
@@ -95,8 +96,8 @@ def define(  # pylint: disable=too-many-arguments
     for cmd_name in cmds:
         if not shared.is_valid_name(cmd_name):
             shared.errprint(
-                "cmdname '{}' contains whitespace, "
-                "which is not allowed.".format(cmd_name)
+                "cmdname '{}' contains whitespace, which is not allowed."
+                .format(cmd_name)
             )
             print()
             return 1

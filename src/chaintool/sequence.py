@@ -83,8 +83,8 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
         if command_impl.exists(seq):
             print()
             shared.errprint(
-                "Sequence '{}' cannot be created because a command exists "
-                "with the same name.".format(seq)
+                "Sequence '{}' cannot be created because a command exists with"
+                " the same name.".format(seq)
             )
             print()
             return 1
@@ -115,8 +115,8 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         if command_impl.exists(seq):
             print()
             shared.errprint(
-                "Sequence '{}' cannot be created because a command exists "
-                "with the same name.".format(seq)
+                "Sequence '{}' cannot be created because a command exists with"
+                " the same name.".format(seq)
             )
             print()
             return 1
@@ -227,8 +227,8 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     if unused_args:
         print(
             shared.MSG_WARN_PREFIX
-            + " the following args don't apply to any commandline "
-            "in this sequence:",
+            + " the following args don't apply to any commandline in this"
+            " sequence:",
             " ".join(unused_args),
         )
         print()
@@ -268,8 +268,8 @@ def cli_vals(seq, args, print_after_set):
     if unused_args:
         print(
             shared.MSG_WARN_PREFIX
-            + " the following args don't apply to any commandline "
-            "in this sequence:",
+            + " the following args don't apply to any commandline in this"
+            " sequence:",
             " ".join(unused_args),
         )
         print()

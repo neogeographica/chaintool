@@ -148,14 +148,16 @@ def set_cmd_options(group_subparsers):
     cmd_parser_set.add_argument("cmdname")
     cmd_parser_set.add_argument(
         "cmdline",
-        help="Entire commandline as one argument (will probably need to be "
-        "quoted). This string may include named placeholders in Python style, "
-        "e.g. {placeholdername}. Such a placeholder may also include a "
-        "default value string e.g. {placeholdername=2}. 'Toggle' style "
-        "placeholders can also be specified, of the form "
-        "{defval:+togglename:newval}. That example defines a location that "
-        "will normally be the string 'defval' but can be toggled to be "
-        "'newval' instead.",
+        help=(
+            "Entire commandline as one argument (will probably need to be"
+            " quoted). This string may include named placeholders in Python"
+            " style, e.g. {placeholdername}. Such a placeholder may also"
+            " include a default value string e.g. {placeholdername=2}."
+            " 'Toggle' style placeholders can also be specified, of the form"
+            " {defval:+togglename:newval}. That example defines a location"
+            " that will normally be the string 'defval' but can be toggled to"
+            " be 'newval' instead."
+        ),
     )
     cmd_parser_edit = cmd_subparsers.add_parser(
         "edit",
@@ -196,33 +198,42 @@ def set_cmd_options(group_subparsers):
         "cmdnames",
         nargs="+",
         metavar="cmdname",
-        help="Commandline to delete. Requires that this commandline currently "
-        "NOT be used by any sequence, unless the optional --force argument is "
-        "specified.",
+        help=(
+            "Commandline to delete. Requires that this commandline currently"
+            " NOT be used by any sequence, unless the optional --force"
+            " argument is specified."
+        ),
     )
     cmd_parser_run = cmd_subparsers.add_parser(
         "run",
-        help="Execute a commandline, optionally setting values for "
-        "placeholders.",
-        description="Execute a commandline, optionally setting values for "
-        "placeholders.",
+        help=(
+            "Execute a commandline, optionally setting values for"
+            " placeholders."
+        ),
+        description=(
+            "Execute a commandline, optionally setting values for"
+            " placeholders."
+        ),
     )
     cmd_parser_run.add_argument("cmdname")
     cmd_parser_run.add_argument(
         "placeholder_args",
         nargs="*",
         metavar="placeholder_arg",
-        help="Each of these items can either specify a value for a "
-        "placeholder (overriding any default) or activate a 'toggle' style "
-        "placeholder. A value for a 'normal' placeholder is specified with an "
-        "argument of the form placeholdername=value, while a toggle is "
-        "activated just by specifying +togglename.",
+        help=(
+            "Each of these items can either specify a value for a placeholder"
+            " (overriding any default) or activate a 'toggle' style"
+            " placeholder. A value for a 'normal' placeholder is specified"
+            " with an argument of the form placeholdername=value, while a"
+            " toggle is activated just by specifying +togglename."
+        ),
     )
     cmd_parser_vals = cmd_subparsers.add_parser(
         "vals",
         help="Set/clear values for placeholders in an existing commandline.",
-        description="Set/clear values for placeholders in an existing "
-        "commandline.",
+        description=(
+            "Set/clear values for placeholders in an existing commandline."
+        ),
     )
     cmd_parser_vals.add_argument(
         "-q",
@@ -235,13 +246,15 @@ def set_cmd_options(group_subparsers):
         "placeholder_args",
         nargs="+",
         metavar="placeholder_arg",
-        help="Each of these items updates an existing placeholder "
-        "specification in the commandline. An argument of the form "
-        "placeholdername=value will set the default value for the given "
-        "placeholder, while an argument of the form placeholdername will "
-        "clear the default value. An argument of the form "
-        "defval:+togglename:newval will replace the values for a 'toggle' "
-        "style placeholder.",
+        help=(
+            "Each of these items updates an existing placeholder specification"
+            " in the commandline. An argument of the form"
+            " placeholdername=value will set the default value for the given"
+            " placeholder, while an argument of the form placeholdername will"
+            " clear the default value. An argument of the form"
+            " defval:+togglename:newval will replace the values for a 'toggle'"
+            " style placeholder."
+        ),
     )
     group_parser_cmd.add_argument(
         "-h",
@@ -301,9 +314,11 @@ def set_seq_options(group_subparsers):
         "cmdnames",
         nargs="+",
         metavar="cmdname",
-        help="Commandline to use in this sequence. Must currently exist, "
-        "unless the optional --force argument is specified. When the sequence "
-        "is run, the commandlines will be run in the specified order.",
+        help=(
+            "Commandline to use in this sequence. Must currently exist, unless"
+            " the optional --force argument is specified. When the sequence is"
+            " run, the commandlines will be run in the specified order."
+        ),
     )
     seq_parser_edit = seq_subparsers.add_parser(
         "edit",
@@ -325,10 +340,14 @@ def set_seq_options(group_subparsers):
     seq_parser_edit.add_argument("seqname")
     seq_parser_print = seq_subparsers.add_parser(
         "print",
-        help="Display the commandlines for the named sequence, with their "
-        "available placeholders.",
-        description="Display the commandlines for the named sequence, with "
-        "their available placeholders.",
+        help=(
+            "Display the commandlines for the named sequence, with their"
+            " available placeholders."
+        ),
+        description=(
+            "Display the commandlines for the named sequence, with their"
+            " available placeholders."
+        ),
     )
     seq_parser_print.add_argument(
         "--dump-placeholders",
@@ -347,18 +366,24 @@ def set_seq_options(group_subparsers):
     )
     seq_parser_run = seq_subparsers.add_parser(
         "run",
-        help="Execute a sequence, optionally setting values for commandlines' "
-        "placeholders.",
-        description="Execute a sequence, optionally setting values for "
-        "commandlines' placeholders.",
+        help=(
+            "Execute a sequence, optionally setting values for commandlines'"
+            " placeholders."
+        ),
+        description=(
+            "Execute a sequence, optionally setting values for commandlines'"
+            " placeholders."
+        ),
     )
     seq_parser_run.add_argument(
         "-i",
         "--ignore-errors",
         action="store_true",
         dest="ignore_errors",
-        help="Continue running the sequence even if a commandline does not "
-        "exist or returns an error status.",
+        help=(
+            "Continue running the sequence even if a commandline does not"
+            " exist or returns an error status."
+        ),
     )
     seq_parser_run.add_argument(
         "-s",
@@ -366,24 +391,29 @@ def set_seq_options(group_subparsers):
         action="append",
         metavar="cmdname",
         dest="skip_cmdnames",
-        help="Skip running a command, if it is in this sequence. Multiple "
-        "--skip usages are allowed, to skip multiple commands.",
+        help=(
+            "Skip running a command, if it is in this sequence. Multiple"
+            " --skip usages are allowed, to skip multiple commands."
+        ),
     )
     seq_parser_run.add_argument("seqname")
     seq_parser_run.add_argument(
         "placeholder_args",
         nargs="*",
         metavar="placeholder_arg",
-        help="Each of these items must be in the same format as used for "
-        "'cmd run', and they will be passed along to each commandline in this "
-        "sequence when running it. It is OK if a placeholder specified here "
-        "is only relevant for some subset of the commandlines.",
+        help=(
+            "Each of these items must be in the same format as used for 'cmd"
+            " run', and they will be passed along to each commandline in this"
+            " sequence when running it. It is OK if a placeholder specified"
+            " here is only relevant for some subset of the commandlines."
+        ),
     )
     seq_parser_vals = seq_subparsers.add_parser(
         "vals",
         help="Set/clear values for placeholders in a sequence's commandlines.",
-        description="Set/clear values for placeholders in a sequence's "
-        "commandlines.",
+        description=(
+            "Set/clear values for placeholders in a sequence's commandlines."
+        ),
     )
     seq_parser_vals.add_argument(
         "-q",
@@ -396,10 +426,12 @@ def set_seq_options(group_subparsers):
         "placeholder_args",
         nargs="+",
         metavar="placeholder_arg",
-        help="Each of these items must be in the same format as used for "
-        "'cmd vals', and they will be passed along to each commandline in "
-        "this sequence. It is OK if a placeholder specified here is only "
-        "relevant for some subset of the commandlines.",
+        help=(
+            "Each of these items must be in the same format as used for 'cmd"
+            " vals', and they will be passed along to each commandline in this"
+            " sequence. It is OK if a placeholder specified here is only"
+            " relevant for some subset of the commandlines."
+        ),
     )
     group_parser_seq.add_argument(
         "-h",
@@ -444,10 +476,12 @@ def set_vals_options(group_subparsers):
         "placeholder_args",
         nargs="+",
         metavar="placeholder_arg",
-        help="Each of these items must be in the same format as used for "
-        "'cmd vals', and they will be passed along to each commandline. It is "
-        "OK if a placeholder specified here is only relevant for some subset "
-        "of the commandlines.",
+        help=(
+            "Each of these items must be in the same format as used for 'cmd"
+            " vals', and they will be passed along to each commandline. It is"
+            " OK if a placeholder specified here is only relevant for some"
+            " subset of the commandlines."
+        ),
     )
     return group_parser_vals
 
@@ -456,8 +490,9 @@ def set_export_options(group_subparsers):
     group_parser_export = group_subparsers.add_parser(
         "export",
         help="Store commandline and sequence definitions to a flat file.",
-        description="Store commandline and sequence definitions to a flat "
-        "file.",
+        description=(
+            "Store commandline and sequence definitions to a flat file."
+        ),
     )
     group_parser_export.add_argument("file", metavar="outfile")
     return group_parser_export
@@ -467,16 +502,19 @@ def set_import_options(group_subparsers):
     group_parser_import = group_subparsers.add_parser(
         "import",
         help="Load commandline and sequence definitions from a flat file.",
-        description="Load commandline and sequence definitions from a flat "
-        "file.",
+        description=(
+            "Load commandline and sequence definitions from a flat file."
+        ),
     )
     group_parser_import.add_argument(
         "-o",
         "--overwrite",
         action="store_true",
-        help="Allow overwriting an existing commandline/sequence with an "
-        "imported definition. If this is not specified, any such conflicts "
-        "will be skipped.",
+        help=(
+            "Allow overwriting an existing commandline/sequence with an"
+            " imported definition. If this is not specified, any such"
+            " conflicts will be skipped."
+        ),
     )
     group_parser_import.add_argument("file", metavar="infile")
     return group_parser_import
@@ -485,10 +523,14 @@ def set_import_options(group_subparsers):
 def set_extended_options(group_subparsers):
     group_parser_extended = group_subparsers.add_parser(
         "x",
-        help="Configure extended functionality (shortcut commands and bash "
-        "completions).",
-        description="Configure extended functionality (shortcut commands and "
-        "bash completions).",
+        help=(
+            "Configure extended functionality (shortcut commands and bash"
+            " completions)."
+        ),
+        description=(
+            "Configure extended functionality (shortcut commands and bash"
+            " completions)."
+        ),
     )
     group_parser_extended.add_argument(
         "functionality",

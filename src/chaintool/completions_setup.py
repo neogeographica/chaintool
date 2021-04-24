@@ -59,10 +59,10 @@ def default_userdir():
 
 def get_userdir_path():
     print(
-        "Dynamic loading for bash completions supports a per-user directory, "
-        "which this\nprogram will use. The directory path shown below is the "
-        "one that should work,\nbut if you know differently then you can "
-        "change it."
+        "Dynamic loading for bash completions supports a per-user directory,"
+        " which this\nprogram will use. The directory path shown below is the"
+        " one that should work,\nbut if you know differently then you can"
+        " change it."
     )
     print()
     userdir_path = shared.editline("Directory path: ", default_userdir())
@@ -97,8 +97,8 @@ def check_dynamic(userdir):
     if not os.path.exists(userdir):
         shared.write_choicefile(USERDIR_LOCATION, None)
         print(
-            "Dynamic completion loading was previously configured using the "
-            "following\ndirectory, but that directory no longer exists:\n  "
+            "Dynamic completion loading was previously configured using the"
+            " following\ndirectory, but that directory no longer exists:\n  "
             + userdir
         )
         print()
@@ -106,8 +106,8 @@ def check_dynamic(userdir):
     if not os.path.exists(os.path.join(userdir, MAIN_SCRIPT)):
         shared.write_choicefile(USERDIR_LOCATION, None)
         print(
-            "Dynamic completion loading was previously configured using the "
-            "following\ndirectory, but that seems to no longer be true:\n  "
+            "Dynamic completion loading was previously configured using the"
+            " following\ndirectory, but that seems to no longer be true:\n  "
             + userdir
         )
         print()
@@ -124,10 +124,10 @@ def enable_oldstyle(startup_script_path):
         outstream.write("source {}\n".format(shlex.quote(OMNIBUS_SCRIPT_PATH)))
         outstream.write(END_MARK + "\n")
     print(
-        "bash completions installed for chaintool and its shortcut scripts. "
-        "Note that\nbecause these are not dynamically loaded, a new shell is "
-        "required in order\nfor any changes to take effect (including this "
-        "initial installation)."
+        "bash completions installed for chaintool and its shortcut scripts."
+        " Note that\nbecause these are not dynamically loaded, a new shell is"
+        " required in order\nfor any changes to take effect (including this"
+        " initial installation)."
     )
     print()
 
@@ -145,8 +145,8 @@ def check_oldstyle(startup_script_path):
     if not os.path.exists(startup_script_path):
         shared.write_choicefile(SOURCESCRIPT_LOCATION, None)
         print(
-            "Old-style completion loading was previously configured using the "
-            "following\nfile, but that file no longer exists:\n  "
+            "Old-style completion loading was previously configured using the"
+            " following\nfile, but that file no longer exists:\n  "
             + startup_script_path
         )
         print()
@@ -156,8 +156,8 @@ def check_oldstyle(startup_script_path):
     if SOURCE_RE.search(startup_script) is None:
         shared.write_choicefile(SOURCESCRIPT_LOCATION, None)
         print(
-            "Old-style completion loading was previously configured using the "
-            "following\file, but that seems to no longer be true:\n  "
+            "Old-style completion loading was previously configured using the"
+            " following\file, but that seems to no longer be true:\n  "
             + startup_script_path
         )
         print()
@@ -173,16 +173,18 @@ def keep_existing_config():
         if not check_dynamic(location_choice):
             return False
         print(
-            "You currently have dynamic completions enabled, using this "
-            "directory:\n  " + location_choice
+            "You currently have dynamic completions enabled, using this"
+            " directory:\n  "
+            + location_choice
         )
     elif os.path.exists(SOURCESCRIPT_LOCATION):
         location_choice = shared.read_choicefile(SOURCESCRIPT_LOCATION)
         if not check_oldstyle(location_choice):
             return False
         print(
-            "You currently have old-style completions enabled, using this "
-            "file:\n  " + location_choice
+            "You currently have old-style completions enabled, using this"
+            " file:\n  "
+            + location_choice
         )
     else:
         return False
@@ -203,16 +205,16 @@ def early_bailout():
         if is_bash_login_shell:
             return False
         print(
-            "You don't appear to be using bash as your login shell. bash "
-            "completions\nonly work under bash; are you sure you want to "
-            "continue? [n/y] ",
+            "You don't appear to be using bash as your login shell. bash"
+            " completions\nonly work under bash; are you sure you want to"
+            " continue? [n/y] ",
             end="",
         )
     else:
         print(
-            "It doesn't look like you're running in a shell. bash completions "
-            "only work\nin the bash shell; are you sure you want to "
-            "continue? ",
+            "It doesn't look like you're running in a shell. bash completions"
+            " only work\nin the bash shell; are you sure you want to"
+            " continue? ",
             end="",
         )
     choice = input("[n/y] ")
@@ -224,27 +226,27 @@ def early_bailout():
 
 def choose_method():
     print(
-        "There are two ways to configure bash completions for chaintool. "
-        "The correct\nchoice depends on whether the bash-completion package "
-        "is installed (and\nactive for your environment), and what version it "
-        "is. The rundown:"
+        "There are two ways to configure bash completions for chaintool. The"
+        " correct\nchoice depends on whether the bash-completion package is"
+        " installed (and\nactive for your environment), and what version it"
+        " is. The rundown:"
     )
     print()
     print(
-        "  1: If using bash-completion 2.2 or later, bash completions can "
-        "be activated\n     for new shortcut commands as soon as they are "
-        "created, in the same shell.\n"
+        "  1: If using bash-completion 2.2 or later, bash completions can be"
+        " activated\n     for new shortcut commands as soon as they are"
+        " created, in the same shell.\n"
     )
     print(
-        "  2: Otherwise, bash completions for a newly created shortcut "
-        "command will\n     only be available when a new shell is started."
+        "  2: Otherwise, bash completions for a newly created shortcut command"
+        " will\n     only be available when a new shell is started."
     )
     print()
     print(
-        "Unfortunately it's difficult to discover (from within this program) "
-        "FOR SURE\nwhether a recent version of bash-completion is installed "
-        "AND is active in\nyour environment. If you want to test this "
-        "yourself, run the following\ncommand in a new shell:\n"
+        "Unfortunately it's difficult to discover (from within this program)"
+        " FOR SURE\nwhether a recent version of bash-completion is installed"
+        " AND is active in\nyour environment. If you want to test this"
+        " yourself, run the following\ncommand in a new shell:\n"
     )
     print("  type __load_completion >/dev/null 2>&1 && echo yep")
     print()
@@ -255,9 +257,9 @@ def choose_method():
     print()
     print("Which configuration do you want to enable?")
     print(
-        "  0: No bash completions\n  1: Use dynamic completions (requires "
-        "bash-completion 2.2 or later)\n  2: Use old-style completions "
-        "(doesn't depend on bash-completion package)"
+        "  0: No bash completions\n  1: Use dynamic completions (requires"
+        " bash-completion 2.2 or later)\n  2: Use old-style completions"
+        " (doesn't depend on bash-completion package)"
     )
     choice = input("choose [0/1/2] ")
     print()

@@ -68,8 +68,9 @@ def create_shortcut(item_type, item_name):
     with open(shortcut_path, "w") as outstream:
         outstream.write(hashbang)
         outstream.write(
-            'if [ "$1" = "--cmdgroup" ]; '
-            "then echo {}; exit 0; fi\n".format(item_type)
+            'if [ "$1" = "--cmdgroup" ]; then echo {}; exit 0; fi\n'.format(
+                item_type
+            )
         )
         outstream.write('if [ "$CHAINTOOL_SHORTCUT_PYTHON" = "" ]\n')
         outstream.write("then\n")

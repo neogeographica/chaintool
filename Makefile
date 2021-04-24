@@ -30,7 +30,7 @@ testpub: dist
 	twine upload -r testpypi dist/*
 
 format:
-	black -l 79 src/chaintool
+	black -t py37 -l 79 --experimental-string-processing src/chaintool
 
 # For flake8, W503 should stay suppressed (W504 is instead correct). So should
 # E203 (not PEP 8 compliant for slicing). E501 is disabled in favor of B950.

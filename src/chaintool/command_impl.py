@@ -127,8 +127,8 @@ def update_runtime_values_from_args(
         toggle_match = PLACEHOLDER_TOGGLE_RE.match(arg)
         if toggle_match:
             shared.errprint(
-                "Can't specify values for 'toggle' style placeholders "
-                "such as '{}' in this operation.".format(toggle_match.group(1))
+                "Can't specify values for 'toggle' style placeholders such as"
+                " '{}' in this operation.".format(toggle_match.group(1))
             )
             return False
         if arg[0] == "+":
@@ -145,8 +145,8 @@ def update_runtime_values_from_args(
         value = nontoggle_match.group(3)
         if modifiers_prefix:
             shared.errprint(
-                "Can't specify modifiers (such as '{}') for placeholders "
-                "in this operation.".format(modifiers_prefix)
+                "Can't specify modifiers (such as '{}') for placeholders in"
+                " this operation.".format(modifiers_prefix)
             )
             return False
         if value is None:
@@ -191,8 +191,8 @@ def update_default_values_from_args(
             continue
         if arg[0] == "+":
             shared.errprint(
-                "'Toggle' style placeholders such as '{}' require "
-                "accompanying pre/post values in this operation.".format(arg)
+                "'Toggle' style placeholders such as '{}' require accompanying"
+                " pre/post values in this operation.".format(arg)
             )
             return False
         nontoggle_match = PLACEHOLDER_RE.match(arg)
@@ -203,8 +203,8 @@ def update_default_values_from_args(
         value = nontoggle_match.group(3)
         if modifiers_prefix:
             shared.errprint(
-                "Can't specify modifiers (such as '{}') for placeholders "
-                "in this operation.".format(modifiers_prefix)
+                "Can't specify modifiers (such as '{}') for placeholders in"
+                " this operation.".format(modifiers_prefix)
             )
             return False
         if key in valid_non_toggles:
@@ -395,14 +395,14 @@ def print_errors(error_sets):
             + " ".join(error_sets["non_alphanum_names"])
         )
         shared.errprint(
-            "Placeholder names must begin with a letter and be composed only "
-            "of letters, numbers, and underscores."
+            "Placeholder names must begin with a letter and be composed only"
+            " of letters, numbers, and underscores."
         )
         shared.errprint(
-            "(Note that this error can also be triggered by syntax mistakes "
-            "when trying to specify placeholder default values or toggle "
-            "values. Also, if you need a literal brace character to appear in "
-            "the commandline, use a double brace.)"
+            "(Note that this error can also be triggered by syntax mistakes"
+            " when trying to specify placeholder default values or toggle"
+            " values. Also, if you need a literal brace character to appear in"
+            " the commandline, use a double brace.)"
         )
     if error_sets["invalid_modifiers"]:
         error = True
@@ -417,14 +417,15 @@ def print_errors(error_sets):
     if error_sets["multi_value_names"]:
         error = True
         shared.errprint(
-            "Placeholders occurring multiple times but with different "
-            "defaults: " + " ".join(error_sets["multi_value_names"])
+            "Placeholders occurring multiple times but with different"
+            " defaults: "
+            + " ".join(error_sets["multi_value_names"])
         )
     if error_sets["multi_togglevalue_names"]:
         error = True
         shared.errprint(
-            "'Toggle' placeholders occurring multiple times but with "
-            "different values: "
+            "'Toggle' placeholders occurring multiple times but with different"
+            " values: "
             + " ".join(error_sets["multi_togglevalue_names"])
         )
     if error_sets["toggles_without_values"]:
@@ -436,8 +437,9 @@ def print_errors(error_sets):
     if error_sets["toggle_dup_names"]:
         error = True
         shared.errprint(
-            "Same placeholder name(s) used for both regular and 'toggle' "
-            "placeholders: " + " ".join(error_sets["toggle_dup_names"])
+            "Same placeholder name(s) used for both regular and 'toggle'"
+            " placeholders: "
+            + " ".join(error_sets["toggle_dup_names"])
         )
     return error
 

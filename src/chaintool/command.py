@@ -80,8 +80,8 @@ def cli_set(cmd, cmdline, overwrite, print_after_set):
         if sequence_impl.exists(cmd):
             print()
             shared.errprint(
-                "Command '{}' cannot be created because a sequence exists "
-                "with the same name.".format(cmd)
+                "Command '{}' cannot be created because a sequence exists with"
+                " the same name.".format(cmd)
             )
             print()
             return 1
@@ -107,8 +107,8 @@ def cli_edit(cmd, print_after_set):
         if sequence_impl.exists(cmd):
             print()
             shared.errprint(
-                "Command '{}' cannot be created because a sequence exists "
-                "with the same name.".format(cmd)
+                "Command '{}' cannot be created because a sequence exists with"
+                " the same name.".format(cmd)
             )
             print()
             return 1
