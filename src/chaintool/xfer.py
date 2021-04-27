@@ -43,6 +43,23 @@ from . import shortcuts
 
 
 def cli_export(export_file):
+    """Export all current commands and sequences to a file.
+
+    Acquire the seq and cmd inventory readlocks, get all sequence and
+    command names, and readlock all those items.
+
+    Open the given file and write a YAML doc to it. Commands (from
+    :func:`.command_impl.read_dict`) are written to a list value for the
+    "commands" property, and sequences (from :func:`.sequence_impl.read_dict`)
+    similarly to the "sequences" property.
+
+    :param export_file: filepath to write to
+    :type export_file:  str
+
+    :returns: exit status code; currently always returns 0
+    :rtype:   int
+
+    """
     locks.inventory_lock("seq", locks.LockType.READ)
     locks.inventory_lock("cmd", locks.LockType.READ)
     command_names = command_impl.all_names()
@@ -82,6 +99,32 @@ def cli_export(export_file):
 
 
 def cli_import(import_file, overwrite):
+    """Import commands and sequences from a file.
+
+    Acquire the seq and cmd inventory writelocks. If overwrite is True, get
+    all sequence and command names, and writelock all those items.
+
+    Open the given file and read a YAML doc from it. Commands are read from a
+    list value for the "commands" property, and sequences similary from the
+    "sequences" property. The overwrite argument is passed along to command
+    and sequence creation (via :func:`.command_impl.define` and
+    :func:`.sequence_impl.define`) to control whether an imported item is
+    allowed to replace an existing item of the same name.
+
+    For each successfully created item, also set up its shortcut
+    (:func:`.shortcuts.create_seq_shortcut` or
+    :func:`.shortcuts.create_cmd_shortcut`) and autocompletion behavior
+    (:func:`.completions.create_completion`).
+
+    :param import_file:   filepath to read from
+    :type import_file:    str
+    :param overwrite:     whether to allow replacing existing items
+    :type overwrite:      bool
+
+    :returns: exit status code; currently always returns 0
+    :rtype:   int
+
+    """
     locks.inventory_lock("seq", locks.LockType.WRITE)
     locks.inventory_lock("cmd", locks.LockType.WRITE)
     if overwrite:

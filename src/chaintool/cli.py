@@ -42,32 +42,34 @@ class SubparsersHelpAction(argparse.Action):
 
     Instead of showing help output for the parser itself, show the help
     output for each of its subparsers. When adding the help argument that
-    uses this action, a "subparsers" argument must be specified that is the
+    uses this action, a ``subparsers`` argument must be specified that is the
     list of subparsers.
 
     """
 
-    # Pylint doesn't like the "help" argument in  __init__, but that's what we
-    # get from argparse.
+    # Pylint doesn't like the ``help`` argument in  __init__, but that's what
+    # we get from argparse.
     # pylint: disable=redefined-builtin
 
     def __init__(self, option_strings, dest, help=None, subparsers=None):
-        """Initializer; stores the given subparsers list as a member var.
+        """Initializer; stores the given ``subparsers`` list as a member var.
 
-        If subparsers is None, store emptylist; otherwise store the given
-        subparsers list. Then invoke the superclass initializer.
+        If ``subparsers`` is ``None``, store emptylist; otherwise store the
+        given subparsers list. Then invoke the superclass initializer.
 
         :param option_strings: list of command-line option strings
                                associated with this action
-        :type option_strings:  list(str)
+        :type option_strings:  list[str]
         :param dest:           name of the attribute to hold parser results;
                                not used here
         :type dest:            str
-        :param help:           help string describing the argument
-        :type help:            str or None
+        :param help:           help string describing the argument; defaults
+                               to None
+        :type help:            str | None, optional
         :param subparsers:     the list of subparsers to show help for;
-                               will be stored in this class instance
-        :type subparsers:      list(argparse.ArgumentParser) or None
+                               will be stored in this class instance; defaults
+                               to None
+        :type subparsers:      list[argparse.ArgumentParser] | None, optional
 
         """
         if subparsers is None:
@@ -87,7 +89,7 @@ class SubparsersHelpAction(argparse.Action):
 
         For each subparser, print a nice colorized header that shows the
         arguments leading to this parser (minus the program name), e.g. show
-        'seq vals' for the subparser that handles the vals operation of the
+        "seq vals" for the subparser that handles the vals operation of the
         seq commandgroup. Then print that subparser's help output.
 
         :param parser:        parser object using this for its help action
@@ -97,10 +99,10 @@ class SubparsersHelpAction(argparse.Action):
         :type namespace:      argparse.Namespace
         :param values:        values from the command line associated with
                               this action's option; not used here
-        :type values:         list
+        :type values:         list[Any]
         :param option_string: option string that invoked this action; not
-                              used here
-        :type option_string:  str
+                              used here; defaults to None
+        :type option_string:  str | None, optional
 
         """
         cut_prefix = os.path.basename(sys.argv[0]) + " "
@@ -117,6 +119,20 @@ class SubparsersHelpAction(argparse.Action):
 
 
 def set_cmd_options(group_subparsers):
+    """Define the subparser for the "cmd" commandgroup.
+
+    Create the "cmd" subparser. Add to it subparsers for all of its operations
+    (and add the appropriate options to those). Return the created "cmd"
+    subparser.
+
+    :param group_subparsers: the parser (created by add_subparsers) used to
+                             collect the commandgroup subparsers
+    :type group_subparsers:  argparse.ArgumentParser
+
+    :returns: the created "cmd" subparser
+    :rtype:   argparse.ArgumentParser
+
+    """
     group_parser_cmd = group_subparsers.add_parser(
         "cmd",
         add_help=False,
@@ -275,6 +291,20 @@ def set_cmd_options(group_subparsers):
 
 
 def set_seq_options(group_subparsers):
+    """Define the subparser for the "seq" commandgroup.
+
+    Create the "seq" subparser. Add to it subparsers for all of its operations
+    (and add the appropriate options to those). Return the created "seq"
+    subparser.
+
+    :param group_subparsers: the parser (created by add_subparsers) used to
+                             collect the commandgroup subparsers
+    :type group_subparsers:  argparse.ArgumentParser
+
+    :returns: the created "seq" subparser
+    :rtype:   argparse.ArgumentParser
+
+    """
     group_parser_seq = group_subparsers.add_parser(
         "seq",
         add_help=False,
@@ -452,6 +482,19 @@ def set_seq_options(group_subparsers):
 
 
 def set_print_options(group_subparsers):
+    """Define the subparser for the "print" command.
+
+    Create the "print" subparser and add the appropriate options. Return the
+    created "print" subparser.
+
+    :param group_subparsers: the parser (created by add_subparsers) used to
+                             collect the commandgroup subparsers
+    :type group_subparsers:  argparse.ArgumentParser
+
+    :returns: the created "print" subparser
+    :rtype:   argparse.ArgumentParser
+
+    """
     group_parser_print = group_subparsers.add_parser(
         "print",
         help="Display placeholders across all commandlines.",
@@ -467,6 +510,19 @@ def set_print_options(group_subparsers):
 
 
 def set_vals_options(group_subparsers):
+    """Define the subparser for the "vals" command.
+
+    Create the "vals" subparser and add the appropriate options. Return the
+    created "vals" subparser.
+
+    :param group_subparsers: the parser (created by add_subparsers) used to
+                             collect the commandgroup subparsers
+    :type group_subparsers:  argparse.ArgumentParser
+
+    :returns: the created "vals" subparser
+    :rtype:   argparse.ArgumentParser
+
+    """
     group_parser_vals = group_subparsers.add_parser(
         "vals",
         help="Update placeholder values across all commandlines.",
@@ -487,6 +543,19 @@ def set_vals_options(group_subparsers):
 
 
 def set_export_options(group_subparsers):
+    """Define the subparser for the "export" command.
+
+    Create the "export" subparser and add the appropriate options. Return the
+    created "export" subparser.
+
+    :param group_subparsers: the parser (created by add_subparsers) used to
+                             collect the commandgroup subparsers
+    :type group_subparsers:  argparse.ArgumentParser
+
+    :returns: the created "export" subparser
+    :rtype:   argparse.ArgumentParser
+
+    """
     group_parser_export = group_subparsers.add_parser(
         "export",
         help="Store commandline and sequence definitions to a flat file.",
@@ -499,6 +568,19 @@ def set_export_options(group_subparsers):
 
 
 def set_import_options(group_subparsers):
+    """Define the subparser for the "import" command.
+
+    Create the "import" subparser and add the appropriate options. Return the
+    created "import" subparser.
+
+    :param group_subparsers: the parser (created by add_subparsers) used to
+                             collect the commandgroup subparsers
+    :type group_subparsers:  argparse.ArgumentParser
+
+    :returns: the created "import" subparser
+    :rtype:   argparse.ArgumentParser
+
+    """
     group_parser_import = group_subparsers.add_parser(
         "import",
         help="Load commandline and sequence definitions from a flat file.",
@@ -521,6 +603,19 @@ def set_import_options(group_subparsers):
 
 
 def set_extended_options(group_subparsers):
+    """Define the subparser for the "x" commandgroup.
+
+    Create the "x" subparser. Add the option used to specify the "shortcuts"
+    or "completions" operation. Return the created "x" subparser.
+
+    :param group_subparsers: the parser (created by add_subparsers) used to
+                             collect the commandgroup subparsers
+    :type group_subparsers:  argparse.ArgumentParser
+
+    :returns: the created "xs" subparser
+    :rtype:   argparse.ArgumentParser
+
+    """
     group_parser_extended = group_subparsers.add_parser(
         "x",
         help=(
@@ -560,7 +655,7 @@ CMD_DISPATCH = {
 def handle_cmd(args):
     """Dispatch for the "cmd" commandgroup.
 
-    Pass args to the cmd-management function selected by args.operation.
+    Pass arguments to the cmd-mgmt function selected by ``args.operation``.
 
     :param args: the namespace object populated by argparse, with the results
                  of the command-line parsing
@@ -600,7 +695,7 @@ SEQ_DISPATCH = {
 def handle_seq(args):
     """Dispatch for the "seq" commandgroup.
 
-    Pass args to the seq-management function selected by args.operation.
+    Pass arguments to the seq-mgmt function selected by ``args.operation``.
 
     :param args: the namespace object populated by argparse, with the results
                  of the command-line parsing
@@ -616,8 +711,8 @@ def handle_seq(args):
 def handle_print(args):
     """Dispatch for the "print" command.
 
-    No sub-operations, just pass args.dump_placeholders to
-    :func:`command.cli_print_all` to print all commands.
+    No sub-operations, just pass ``args.dump_placeholders`` to
+    :func:`.command.cli_print_all` to print all commands.
 
     :param args: the namespace object populated by argparse, with the results
                  of the command-line parsing
@@ -634,7 +729,7 @@ def handle_vals(args):
     """Dispatch for the "vals" command.
 
     No sub-operations, just pass the placeholder arguments list
-    (args.placeholder_args) to :func:`command.cli_vals_all` to update all
+    (``args.placeholder_args``) to :func:`.command.cli_vals_all` to update all
     commands.
 
     :param args: the namespace object populated by argparse, with the results
@@ -651,8 +746,8 @@ def handle_vals(args):
 def handle_export(args):
     """Dispatch for the "export" command.
 
-    No sub-operations, just pass the args.file option to
-    :func:`xfer.cli_export`.
+    No sub-operations, just pass the ``args.file`` option to
+    :func:`.xfer.cli_export`.
 
     :param args: the namespace object populated by argparse, with the results
                  of the command-line parsing
@@ -668,8 +763,8 @@ def handle_export(args):
 def handle_import(args):
     """Dispatch for the "import" command.
 
-    No sub-operations, just pass the args.file and args.overwrite options to
-    :func:`xfer.cli_import`.
+    No sub-operations, just pass the ``args.file`` and ``args.overwrite``
+    options to :func:`.xfer.cli_import`.
 
     :param args: the namespace object populated by argparse, with the results
                  of the command-line parsing
@@ -685,9 +780,9 @@ def handle_import(args):
 def handle_extended(args):
     """Dispatch for the "x" commandgroup.
 
-    Configure either shortcuts (:func:`shortcuts_setup.configure`) or
-    completions (:func:`completions_setup.configure`), depending on the
-    specified args.functionality.
+    Configure either shortcuts (:func:`.shortcuts_setup.configure`) or
+    completions (:func:`.completions_setup.configure`), depending on the
+    specified ``args.functionality``.
 
     :param args: the namespace object populated by argparse, with the results
                  of the command-line parsing
@@ -714,11 +809,11 @@ CMDGROUP_DISPATCH = {
 
 
 def main(forced_progname=None):
-    """Parse command-line args from sys.argv, and dispatch to handlers.
+    """Parse command-line args from ``sys.argv``, and dispatch to handlers.
 
     :param forced_progname: program name to use in help output; if None,
-                            then sys.argv[0] will be used
-    :type forced_progname:  str or None
+                            then sys.argv[0] will be used; defaults to None
+    :type forced_progname:  str | None, optional
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int

@@ -38,6 +38,23 @@ PATH_RE = re.compile(r"(?m)^.*export PATH=.*" + shlex.quote(SHORTCUTS_DIR))
 
 
 def unconfigure(startup_script_path):
+    """Optionally remove current PATH modification.
+
+    Called in a situation where there is a current PATH modification
+    configured. Used by :func:`existing_config_kept`.
+
+    If user chooses not to remove the modification, return False. Otherwise
+    use :func:`.shared.remove_script_additions`, and if that succeeds, clear
+    the PATHSCRIPT_LOCATION choicefile. Finally return whether the unconfigure
+    succeeded.
+
+    :param startup_script_path: filepath of currently modified script
+    :type startup_script_path:  str
+
+    :returns: whether the PATH modification was removed
+    :rtype:   bool
+
+    """
     print("Do you want to leave this configuration as-is? ", end="")
     choice = input("[y/n] ")
     print()
@@ -51,7 +68,28 @@ def unconfigure(startup_script_path):
     return unconfigured
 
 
-def keep_existing_config():
+def existing_config_kept():
+    """Determine whether an existing PATH modification is preserved.
+
+    Work through various possibilities of whether the current PATH setting
+    includes the desired shortcuts directory, and whether there is an existing
+    script file that has already been modified to set that. If there is no
+    current (valid) configuration for such a modified script file, and we
+    are at (or can get to) a clean state for doing future modifications, then
+    do any necessary cleanup and return False.
+
+    In the case where the dir is already in the PATH but we don't have a
+    record of modifying a script file ... we're not sure how to proceed, so
+    return True to indicate we won't be auto-changing things.
+
+    If there is already a modified script file setting PATH appropriately,
+    inform the user and call :func:`unconfigure` to see if they want to undo
+    that. Return the boolean inverse of whatever :func:`unconfigure` returns.
+
+    :returns: whether there is an existing config that has been preserved
+    :rtype:   bool
+
+    """
     already_in_path = (
         "PATH" in os.environ and SHORTCUTS_DIR in os.environ["PATH"]
     )
@@ -108,6 +146,16 @@ def keep_existing_config():
 
 
 def early_bailout():
+    """Initially ask the user whether they wish to proceed with configuration.
+
+    Give the user a chance to escape the configuration process. Different
+    verbiage (and default choice) depending on whether they have a login shell
+    according to :func:`.shared.check_shell`.
+
+    :returns: whether to abort the configuration process
+    :rtype:   bool
+
+    """
     is_shell, _ = shared.check_shell()
     if is_shell:
         print("Modify startup script to insert this PATH setting? ", end="")
@@ -132,6 +180,21 @@ def early_bailout():
 
 
 def update_startup_script(startup_script_path):
+    """Write the PATH modification into the selected script (if any).
+
+    Called in a situation where there is no current PATH modification
+    configured.
+
+    Set the PATHSCRIPT_LOCATION choicefile to the indicated path. If it is
+    None, return.
+
+    Write the PATH modification into the selected script, surrounded by
+    marker comments so that we can later detect/remove it.
+
+    :param startup_script_path: filepath of script to modify, if any
+    :type startup_script_path:  str or None
+
+    """
     shared.write_choicefile(PATHSCRIPT_LOCATION, startup_script_path)
     if startup_script_path is None:
         return
@@ -149,14 +212,27 @@ def update_startup_script(startup_script_path):
 
 
 def configure():
+    """Set or remove a PATH modification to include the shortcuts directory.
+
+    If the PATH needs to be modified, give the user a chance to set that
+    modification in the startup script file of their choice (default script
+    path taken from :func:`.shared.get_startup_script_path`). If it is
+    already modified, give the user a chance to undo that modification.
+
+    :returns: exit status code; currently always returns 0
+    :rtype:   int
+
+    """
     print()
     print(
         "For shortcuts access, this directory must be in your PATH:\n"
         "    {}".format(SHORTCUTS_DIR)
     )
     print()
-    if keep_existing_config():
+    if existing_config_kept():
         return 0
+    # If we reach this point, any existing shortcuts setup has been
+    # unconfigured.
     if early_bailout():
         return 0
     update_startup_script(shared.get_startup_script_path())

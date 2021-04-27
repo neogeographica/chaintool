@@ -41,7 +41,22 @@ SOURCE_RE = re.compile(r"(?m)^.*source " + shlex.quote(OMNIBUS_SCRIPT_PATH))
 
 
 def default_userdir():
-    # Note that these var checks only work if the vars are exported.
+    """Find a suggested user directory for bash-completion script lazy loads.
+
+    Used by :func:`get_userdir_path`.
+
+    Work through the priorities and usage for the BASH_COMPLETION_USER_DIR and
+    XDG_DATA_HOME environment variables as understood by the bash-completion
+    package. If neither of those are set, fall back to using the default
+    $HOME/.local/share/bash-completion/completions
+
+    Note that we can only interrogate those two variables here if they were
+    exported, so this is not a bulletproof recommendation.
+
+    :returns: path for the suggested directory
+    :rtype:   str
+
+    """
     if "BASH_COMPLETION_USER_DIR" in os.environ:
         userdir = os.path.join(
             os.environ["BASH_COMPLETION_USER_DIR"], "completions"
@@ -58,6 +73,15 @@ def default_userdir():
 
 
 def get_userdir_path():
+    """Determine the user directory for bash-completion script lazy loads.
+
+    Present the suggestion from :func:`default_userdir` but allow the user
+    to edit/replace that as they see fit. Return the user-provided path.
+
+    :returns: path for the chosen directory
+    :rtype:   str
+
+    """
     print(
         "Dynamic loading for bash completions supports a per-user directory,"
         " which this\nprogram will use. The directory path shown below is the"
@@ -72,6 +96,21 @@ def get_userdir_path():
 
 
 def enable_dynamic(userdir):
+    """Set the "dynamic" completions style that uses lazy script loads.
+
+    Called in a situation where completions are currently unconfigured.
+
+    Set the USERDIR_LOCATION choicefile to the indicated user dir path. If it
+    is None, return.
+
+    Create the selected user dir if necessary. Create a script in that dir
+    that will source our main completions script. Also create the script for
+    each current shortcut there.
+
+    :param userdir: filepath to user dir for lazy loads, if any
+    :type userdir:  str or None
+
+    """
     shared.write_choicefile(USERDIR_LOCATION, userdir)
     if userdir is None:
         return
@@ -86,6 +125,21 @@ def enable_dynamic(userdir):
 
 
 def disable_dynamic(userdir):
+    """Unset the "dynamic"-style completions.
+
+    Called in a situation where "dynamic"-style completions are currently
+    configured.
+
+    Delete all scripts that we created in the user dir. Clear the
+    USERDIR_LOCATION choicefile.
+
+    :param userdir: filepath of current user dir for lazy loads
+    :type userdir:  str
+
+    :returns: whether the disable succeeded; currently always returns True
+    :rtype:   bool
+
+    """
     shared.delete_if_exists(os.path.join(userdir, MAIN_SCRIPT))
     for item in os.listdir(SHORTCUTS_COMPLETIONS_DIR):
         completions.delete_lazyload(item)
@@ -94,6 +148,22 @@ def disable_dynamic(userdir):
 
 
 def check_dynamic(userdir):
+    """Check the validity of a "dynamic"-style completions configuration.
+
+    Called in a situation where "dynamic"-style completions are currently
+    configured.
+
+    If the user dir does not exist or does not contain the file that sources
+    our main completions script, clear the USERDIR_LOCATION choicefile and
+    return False. Otherwise return True.
+
+    :param userdir: filepath of current user dir for lazy loads
+    :type userdir:  str
+
+    :returns: whether the user dir selection is valid
+    :rtype:   bool
+
+    """
     if not os.path.exists(userdir):
         shared.write_choicefile(USERDIR_LOCATION, None)
         print(
@@ -116,6 +186,21 @@ def check_dynamic(userdir):
 
 
 def enable_oldstyle(startup_script_path):
+    """Set the old completions style that loads scripts at shell startup.
+
+    Called in a situation where completions are currently unconfigured.
+
+    Set the SOURCESCRIPT_LOCATION choicefile to the indicated path. If it
+    is None, return.
+
+    Write the command that sources our completions scripts into the selected
+    script, surrounded by marker comments so that we can later detect/remove
+    it.
+
+    :param startup_script_path: filepath of script to modify, if any
+    :type startup_script_path:  str or None
+
+    """
     shared.write_choicefile(SOURCESCRIPT_LOCATION, startup_script_path)
     if startup_script_path is None:
         return
@@ -133,15 +218,45 @@ def enable_oldstyle(startup_script_path):
 
 
 def disable_oldstyle(startup_script_path):
-    shared.write_choicefile(SOURCESCRIPT_LOCATION, None)
-    if startup_script_path is None:
-        return True
-    return shared.remove_script_additions(
+    """Unset the old-style completions.
+
+    Called in a situation where old-style completions are currently configured.
+
+    Use :func:`.shared.remove_script_additions`, and if that succeeds, clear
+    the SOURCESCRIPT_LOCATION choicefile. Finally return whether the
+    disable succeeded.
+
+    :param startup_script_path: filepath of currently modified script
+    :type startup_script_path:  str
+
+    :returns: whether the disable succeeded
+    :rtype:   bool
+
+    """
+    unconfigured = shared.remove_script_additions(
         startup_script_path, BEGIN_MARK, END_MARK, 3
     )
+    if unconfigured:
+        shared.write_choicefile(SOURCESCRIPT_LOCATION, None)
+    return unconfigured
 
 
 def check_oldstyle(startup_script_path):
+    """Check the validity of an old-style completions configuration.
+
+    Called in a situation where old-style completions are currently configured.
+
+    If the indicated script does not exist or does not contain the command
+    that sources our completions scripts, clear the SOURCESCRIPT_LOCATION
+    choicefile and return False. Otherwise return True.
+
+    :param startup_script_path: filepath of currently modified script
+    :type startup_script_path:  str
+
+    :returns: whether the script exists and has our modification
+    :rtype:   bool
+
+    """
     if not os.path.exists(startup_script_path):
         shared.write_choicefile(SOURCESCRIPT_LOCATION, None)
         print(
@@ -165,8 +280,24 @@ def check_oldstyle(startup_script_path):
     return True
 
 
-def keep_existing_config():
+def existing_config_kept():
+    """Determine whether an existing completions setup is preserved.
+
+    If a completions configuration does not exist, or does not check out as
+    valid (via :func:`check_dynamic` or :func`check_oldstyle`), then return
+    False.
+
+    Otherwise, ask the user if they want to preserve the existing setup. If
+    they do, return True. Otherwise use :func:`disable_dynamic` or
+    :func:`disable_oldstyle` to attempt removing the current setup, returning
+    the boolean inverse or whatever that disable operation returns.
+
+    :returns: whether there is an existing setup that has been preserved
+    :rtype:   bool
+
+    """
     dynamic = False
+    # XXX read_choicefile already does the exists check for us, so refactor
     if os.path.exists(USERDIR_LOCATION):
         dynamic = True
         location_choice = shared.read_choicefile(USERDIR_LOCATION)
@@ -200,6 +331,20 @@ def keep_existing_config():
 
 
 def early_bailout():
+    """Give the user a chance to bail out if bash is not their login shell.
+
+    If :func:`.shared.check_shell` indicates that the user has bash for a
+    login shell, return without bothering them here... everyone will be given
+    a later chance to abort once the setup options are described.
+
+    Otherwise, for the non-bash-login-shell case, give the user a chance to
+    escape the configuration process right now. (Different verbiage if they do
+    not have a login shell at all.)
+
+    :returns: whether to abort the configuration process
+    :rtype:   bool
+
+    """
     is_shell, is_bash_login_shell = shared.check_shell()
     if is_shell:
         if is_bash_login_shell:
@@ -225,6 +370,15 @@ def early_bailout():
 
 
 def choose_method():
+    """Let the user choose the style of completions to set up, or none at all.
+
+    Describe the two available methods. Let the user pick whether they want
+    completions configured, and if so then by which method.
+
+    :returns: user's setup choice
+    :rtype:   "dynamic", "old-style", or None
+
+    """
     print(
         "There are two ways to configure bash completions for chaintool. The"
         " correct\nchoice depends on whether the bash-completion package is"
@@ -271,9 +425,28 @@ def choose_method():
 
 
 def configure():
+    """Set up or disable bash autocompletions.
+
+    If there is no current bash autocompletions setup for chaintool, let
+    the user choose the style of setup to use (if any). For "dynamic"
+    completions with lazy script loads, the default for the necessary user
+    directory is taken from :func:`get_userdir_path`; for old-style
+    completions the default path of script-to-modify is taken from
+    :func:`.shared.get_startup_script_path`. (But in either case the user can
+    enter the path of their choice to edit/replace the default.)
+
+    On the other hand if bash autocompletions are currently configured, give
+    the user the option of undoing that configuration.
+
+    :returns: exit status code; currently always returns 0
+    :rtype:   int
+
+    """
     print()
-    if keep_existing_config():
+    if existing_config_kept():
         return 0
+    # If we reach this point, any existing completions setup has been
+    # unconfigured.
     if early_bailout():
         return 0
     method = choose_method()
