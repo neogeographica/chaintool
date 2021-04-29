@@ -19,10 +19,26 @@ chaintool.command module
    :undoc-members:
    :show-inheritance:
 
-chaintool.command\_impl module
-------------------------------
+chaintool.command\_impl\_core module
+------------------------------------
 
-.. automodule:: chaintool.command_impl
+.. automodule:: chaintool.command_impl_core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+chaintool.command\_impl\_op module
+----------------------------------
+
+.. automodule:: chaintool.command_impl_op
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+chaintool.command\_impl\_print module
+-------------------------------------
+
+.. automodule:: chaintool.command_impl_print
    :members:
    :undoc-members:
    :show-inheritance:

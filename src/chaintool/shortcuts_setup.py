@@ -45,8 +45,8 @@ def unconfigure(startup_script_path):
 
     If user chooses not to remove the modification, return False. Otherwise
     use :func:`.shared.remove_script_additions`, and if that succeeds, clear
-    the PATHSCRIPT_LOCATION choicefile. Finally return whether the unconfigure
-    succeeded.
+    the ``PATHSCRIPT_LOCATION`` choicefile. Finally return whether the
+    unconfigure succeeded.
 
     :param startup_script_path: filepath of currently modified script
     :type startup_script_path:  str
@@ -76,11 +76,11 @@ def existing_config_kept():
     script file that has already been modified to set that. If there is no
     current (valid) configuration for such a modified script file, and we
     are at (or can get to) a clean state for doing future modifications, then
-    do any necessary cleanup and return False.
+    do any necessary cleanup and return ``False``.
 
     In the case where the dir is already in the PATH but we don't have a
     record of modifying a script file ... we're not sure how to proceed, so
-    return True to indicate we won't be auto-changing things.
+    return ``True`` to indicate we won't be auto-changing things.
 
     If there is already a modified script file setting PATH appropriately,
     inform the user and call :func:`unconfigure` to see if they want to undo
@@ -185,14 +185,14 @@ def update_startup_script(startup_script_path):
     Called in a situation where there is no current PATH modification
     configured.
 
-    Set the PATHSCRIPT_LOCATION choicefile to the indicated path. If it is
-    None, return.
+    Set the ``PATHSCRIPT_LOCATION`` choicefile to the indicated path. If it is
+    ``None``, return.
 
     Write the PATH modification into the selected script, surrounded by
     marker comments so that we can later detect/remove it.
 
     :param startup_script_path: filepath of script to modify, if any
-    :type startup_script_path:  str or None
+    :type startup_script_path:  str | None
 
     """
     shared.write_choicefile(PATHSCRIPT_LOCATION, startup_script_path)

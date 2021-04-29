@@ -42,15 +42,15 @@ ENV_OP_RE = re.compile(r"^([a-zA-Z][a-zA-Z0-9_]*)(\??=)(.*)$")
 def env_op_parse(env_op):
     """Parse a chaintool-env argument into a tuple.
 
-    Return None if the env_op argument is not in the correct format. Otherwise
-    return a 3-tuple with the destination placeholder name, an indicator for
-    "only if destination unset", and the value to apply.
+    Return ``None`` if the ``env_op`` argument is not in the correct format.
+    Otherwise return a 3-tuple with the destination placeholder name, an
+    indicator for "only if destination unset", and the value to apply.
 
     :param env_op: an argument to chaintool-env
     :type env_op:  str
 
     :returns: parse results
-    :rtype:   (str, bool, str) or None
+    :rtype:   tuple[str, bool, str] | None
 
     """
     match = ENV_OP_RE.match(env_op)
@@ -66,16 +66,16 @@ def env_op_parse(env_op):
 def copytool(copy_args, _run_args):
     """Implement chaintool-copy for platform-independent file copy.
 
-    Bail out with error if copy_args has other than 2 elements.
+    Bail out with error if ``copy_args`` has other than 2 elements.
 
     Otherwise, treat first element as copy source and second element as
     copy dest. Delegate to shutil.copy2 to do the copy. If copy2 raises any
     exception, return an error.
 
     :param copy_args: arguments to chaintool-copy
-    :type copy_args:  list(str)
+    :type copy_args:  list[str]
     :param _run_args: arguments to "seq/cmd run", not used in this function
-    :type _run_args:  list(str)
+    :type _run_args:  list[str]
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -98,15 +98,15 @@ def copytool(copy_args, _run_args):
 def deltool(del_args, _run_args):
     """Implement chaintool-del for platform-independent file delete.
 
-    Bail out with error if del_args has other than 1 element.
+    Bail out with error if ``del_args`` has other than 1 element.
 
     Otherwise, treat that element as the filepath to delete. Delegate to
     os.remove to do the copy. If remove raises any exception, return an error.
 
     :param del_args:  arguments to chaintool-del
-    :type del_args:   list(str)
+    :type del_args:   list[str]
     :param _run_args: arguments to "seq/cmd run", not used in this function
-    :type _run_args:  list(str)
+    :type _run_args:  list[str]
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -127,18 +127,18 @@ def deltool(del_args, _run_args):
 def envtool(env_args, run_args):
     """Implement chaintool-env to modify runtime placeholder values.
 
-    Parse the given chaintool-env arguments (in env_args) to get a list of
+    Parse the given chaintool-env arguments (in ``env_args``) to get a list of
     environment ops. Bail out with error if any are invalid.
 
     Iterate through the list of ops and apply them sequentially. If an op
-    affects a placeholder that is already being set in the run_args, that
-    element of run_args is replaced. Otherwise a new element is added to
-    run_args.
+    affects a placeholder that is already being set in the ``run_args``, that
+    element of ``run_args`` is replaced. Otherwise a new element is added to
+    ``run_args``.
 
     :param env_args:  arguments to chaintool-env
-    :type env_args:   list(str)
+    :type env_args:   list[str]
     :param run_args:  arguments to "seq/cmd run"; to modify
-    :type run_args:   list(str)
+    :type run_args:   list[str]
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -182,8 +182,8 @@ VTOOL_DISPATCH = {
 def dispatch(cmdline, run_args):
     """Run a "virtual tool" for a commandline, if appropriate.
 
-    If the first word of the given commandline is not a key in VTOOL_DISPATCH,
-    return None.
+    If the first word of the given commandline is not a key in
+    ``VTOOL_DISPATCH``, return ``None``.
 
     Otherwise pass the remaining words from that commandline, as well as any
     runtime-specified placeholder args, to the virtual tool function selected
@@ -191,11 +191,11 @@ def dispatch(cmdline, run_args):
 
     :param cmdline:   commandline for the command to run
     :type cmdline:    str
-    :param run_args:  arguments to "seq/cmd run"; may be modified
-    :type run_args:   list(str)
+    :param run_args:  arguments to "seq/cmd run"; to modify
+    :type run_args:   list[str]
 
     :returns: exit status code, or None if no virtual tool
-    :rtype:   int or None
+    :rtype:   int | None
 
     """
     tokens = shlex.split(cmdline)
@@ -212,23 +212,23 @@ def update_env(cmdline, env_constant_values, env_optional_values):
     placeholder values will be shown for subsequent commands in the sequence.
 
     Only the "chaintool-env" command can affect subsequent commands in this
-    way, so return immediately if the first cmdline word doesn't match that.
-    Also return if there is any error parsing the remaining words of a
+    way, so return immediately if the first ``cmdline`` word doesn't match
+    that. Also return if there is any error parsing the remaining words of a
     "chaintool-env" command into a list of environment ops.
 
     Iterate through the list of ops and examine them sequentially. If an op
-    has the "only if unset" flag, then append its placeholder name/value to
-    the env_optional_values list. Otherwise append its placeholder name to the
-    env_constant_values list.
+    has the "only if unset" flag, then add its placeholder name/value to
+    the ``env_optional_values`` dict. Otherwise append its placeholder name to
+    the ``env_constant_values`` list.
 
     :param cmdline:              commandline for the command to examine
     :type cmdline:               str
     :param env_constant_values:  list of placeholder names that have been set
                                  to some constant value; to modify
-    :type env_constant_values:   list(str)
+    :type env_constant_values:   list[str]
     :param env_optional_values:  dict of optional placeholder values, keyed
                                  by placeholder name; to modify
-    :type env_optional_values:   dict(str, str)
+    :type env_optional_values:   dict[str, str]
 
     """
     tokens = shlex.split(cmdline)

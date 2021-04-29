@@ -34,12 +34,12 @@ format:
 
 # For flake8, W503 should stay suppressed (W504 is instead correct). So should
 # E203 (not PEP 8 compliant for slicing). E501 is disabled in favor of B950.
-# For pylint, restore C0116 once everything has docstrings. R0801 is worth
-# checking every now and then but can be too twitchy. May need to disable
-# C0330 and C0326 for black-compliance but that hasn't been an issue yet.
+# For pylint, R0801 is worth checking every now and then but can be too
+# twitchy. May need to disable C0330 and C0326 for black-compliance but that
+# hasn't been an issue yet.
 lint:
 	flake8 --select C,E,F,W,B,B950 --ignore W503,E203,E501 src/chaintool
-	pylint -d C0116,R0801 src/chaintool
+	pylint -d R0801 src/chaintool
 
 clean:
 	-rm -rf build

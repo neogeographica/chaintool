@@ -55,22 +55,22 @@ from . import shortcuts
 
 
 def undefined_cmds(cmds, ignore_undefined_cmds):
-    """Return which commands don't exist, if ignore_undefined_cmds is True.
+    """Return which commands don't exist, if ``ignore_undefined_cmds``.
 
     Utility used by :func:`cli_set` and :func:`cli_edit`.
 
-    If ignore_undefined_cmds is True, just return emptylist. Otherwise
-    acquire the cmd inventory readlock and compare the incoming cmds list to
-    the list of all currently defined commands. Return the list of the
+    If ``ignore_undefined_cmds`` is ``True``, just return emptylist. Otherwise
+    acquire the cmd inventory readlock and compare the incoming ``cmds`` list
+    to the list of all currently defined commands. Return the list of the
     elements of cmds that are not the names of currently defined commands.
 
     :param cmds:                  list of command names to check
-    :type cmds:                   list(str)
+    :type cmds:                   list[str]
     :param ignore_undefined_cmds: if True, always return emptylist
     :type ignore_undefined_cmds:  bool
 
     :returns: list of names from cmds that will be treated as errors
-    :rtype:   list(str)
+    :rtype:   list[str]
 
     """
     if ignore_undefined_cmds:
@@ -84,7 +84,7 @@ def cli_list(column):
 
     No locking needed. Just read a directory list and print it.
 
-    :param column: if true, print as one sequence name per line
+    :param column: if True, print as one sequence name per line
     :type column:  bool
 
     :returns: exit status code; currently always returns 0
@@ -118,7 +118,7 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
     :param seq:                   name of sequence to create/update
     :type seq:                    str
     :param cmds:                  list of command names to form the sequence
-    :type cmds:                   list(str)
+    :type cmds:                   list[str]
     :param ignore_undefined_cmds: if True, don't validate that commands exist
     :type ignore_undefined_cmds:  bool
     :param overwrite:             whether to allow if sequence already exists
@@ -241,10 +241,12 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
 def cli_print(seq, dump_placeholders):
     """Pretty-print the info for all commands in a sequence.
 
-    If dump_placeholders is not None, read the sequence's command list
+    If ``dump_placeholders`` is not ``None``, read the sequence's command list
     (without locking) and delegate to
     :func:`.command_impl_print.dump_placeholders`. (This is not a user-facing
-    option; it is used for generating argument completions.) Otherwise:
+    option; it is used for generating argument completions.)
+
+    Otherwise:
 
     Acquire the seq item readlock and cmd inventory readlock. Read the
     sequence's command list. Readlock those commands and delegate to
@@ -255,7 +257,7 @@ def cli_print(seq, dump_placeholders):
     :type seq:                str
     :param dump_placeholders: whether to print in a "rawer" format, and
                               without locking (used internally)
-    :type dump_placeholders:  "run", "vals", or None
+    :type dump_placeholders:  "run" | "vals" | None
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -292,7 +294,7 @@ def cli_del(delseqs):
     autocompletion behavior (:func:`.completions.delete_completion`).
 
     :param delseqs: names of sequences to delete
-    :type delseqs:  list(str)
+    :type delseqs:  list[str]
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -321,20 +323,22 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     release the cmd inventory readlock.
 
     Delegate to :func:`.command_impl_op.run` to execute each command in the
-    list that is not a member of skip_cmdnames. If a command returns an error
-    status and ignore_errors is false, bail out.
+    list that is not a member of ``skip_cmdnames``. If a command returns an
+    error status and ignore_errors is false, bail out.
 
     In the success case, finally print a warning if any of the given
     placeholder args were irrelevant for all the executed commands.
 
+    Note that ``args`` may be modified during the process of running commands.
+
     :param seq:           name of sequence to run
     :type seq:            str
-    :param args:          placeholder arguments for this run
-    :type args:           list(str)
+    :param args:          placeholder arguments for this run; to modify
+    :type args:           list[str]
     :param ignore_errors: if True, a command error does not stop the run
     :type ignore_errors:  bool
     :param skip_cmdnames: list of command names to not execute
-    :type skip_cmdnames:  list(str)
+    :type skip_cmdnames:  list[str]
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -387,16 +391,16 @@ def cli_vals(seq, args, print_after_set):
     release the cmd inventory readlock.
 
     Delegate to :func:`.command_impl_op.vals` to update each command in the
-    list. If any change results from this, and print_after_set is True, then
-    pretty-print the new sequence.
+    list. If any change results from this, and ``print_after_set`` is
+    ``True``, then pretty-print the new sequence.
 
     Finally, print a warning if any of the given placeholder args were
     irrelevant for all of the sequence's commands.
 
     :param seq:             name of sequence to process
     :type seq:              str
-    :param args:            placeholders to update, with values
-    :type args:             list(str)
+    :param args:            new placeholder value settings
+    :type args:             list[str]
     :param print_after_set: whether to automatically trigger "print" operation
                             if any change results
     :type print_after_set:  bool

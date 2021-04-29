@@ -260,6 +260,16 @@ def init_print_info_collections(
     """
 
     def record_placeholder(cmd, placeholder):
+        """Mark that a command uses a placeholder.
+
+        Add the input usage info to the commands_by_placeholder dict.
+
+        :param cmd:         command name
+        :type cmd:          str
+        :param placeholder: placeholder name used by the command
+        :type placeholder:  str
+
+        """
         if placeholder in commands_by_placeholder:
             commands_by_placeholder[placeholder].append(cmd)
         else:
@@ -304,6 +314,34 @@ def init_print_info_collections(
 
 
 def print_group_args(group, group_args, build_format_fun):
+    """Print the placeholders used in a group of commands.
+
+    For every "arg" (placeholder name) in ``group_args``, iterate through the
+    commands in ``group`` invoking ``build_format_fun`` repeatedly. This
+    function returns a tuple of: are we done yet (boolean), updated format
+    string, and an updated values list to apply to that format string.
+
+    When ``build_format_fun`` returns ``True`` as the first value of that
+    return tuple, stop the iteration-over-commands. Print using the
+    last-returned format string with the last-returned format values, and then
+    move on to processing the next placeholder in ``group_args``.
+
+    Note that the format values returned by ``build_format_fun`` are
+    guaranteed to correctly populate the placeholders in the format string
+    but may (in fact, will) have additional elements at the end of the list
+    for various reasons.
+
+    :param group:            list of command names
+    :type group:             list[str]
+    :param group_args:       list of placeholders (with values, if any) common
+                             to that group of commands
+    :type group_args:        list[str]
+    :param build_format_fun: func used to gradually build a format string
+                             for printing (see above)
+    :type build_format_fun:  Callable[[str, str, str | None, str | None],
+                                      tuple[bool, str, list[str | None]]]
+
+    """
     first_cmd = group[0]
     for arg in group_args:
         done, format_str, format_args = build_format_fun(arg, first_cmd)
@@ -318,6 +356,24 @@ def print_group_args(group, group_args, build_format_fun):
 
 
 def print_command_groups(cmd_group_args, command_dicts_by_cmd):
+    """Print the placeholders used in every group of commands.
+
+    The bulk of this function is really in the definition of the formatter
+    function :func:`build_format` passed to :func:`print_group_args`, so see
+    the docstring for that.
+
+    Once that function is defined, for each command group pretty-print a
+    header and call :func:`print_group_args`.
+
+    :param cmd_group_args:       list of 2-tuples containing: a list of
+                                 commands, and a list of placeholders those
+                                 commands have in common
+    :type cmd_group_args:        list[tuple[list[str], list[str]]]
+    :param command_dicts_by_cmd: dict of command dictionaries, keyed by
+                                 command name
+    :type command_dicts_by_cmd:  dict[str, dict[str, str]]
+
+    """
     _, firstargs = cmd_group_args[0]
     if firstargs[0][0] == "+":
         args_dict_name = "toggle_args"

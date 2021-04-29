@@ -20,7 +20,7 @@
 """Top-level logic for "cmd" operations.
 
 Called from cli module. Handles locking and shortcuts/completions; delegates
-to command_impl module for most of the work.
+to command_impl_* modules for most of the work.
 
 Note that most locks acquired here are released only when the program exits.
 Operations are meant to be invoked one per program instance, using the CLI.
@@ -61,7 +61,7 @@ def cli_list(column):
 
     No locking needed. Just read a directory list and print it.
 
-    :param column: if true, print as one command name per line
+    :param column: if True, print as one command name per line
     :type column:  bool
 
     :returns: exit status code; currently always returns 0
@@ -205,7 +205,7 @@ def cli_edit(cmd, print_after_set):
 def cli_print(cmd, dump_placeholders):
     """Pretty-print the info for a command.
 
-    If dump_placeholders is not None, delegate to
+    If ``dump_placeholders`` is not ``None``, delegate to
     :func:`.command_impl_print.dump_placeholders`. (This is not a user-facing
     option; it is used for generating argument completions.)
 
@@ -215,7 +215,7 @@ def cli_print(cmd, dump_placeholders):
     :type cmd:                str
     :param dump_placeholders: whether to print in a "rawer" format, and
                               without locking (used internally)
-    :type dump_placeholders:  "run", "vals", or None
+    :type dump_placeholders:  "run" | "vals" | None
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -235,10 +235,12 @@ def cli_print(cmd, dump_placeholders):
 def cli_print_all(dump_placeholders):
     """Pretty-print the info for all commands.
 
-    If dump_placeholders is not None, get the list of all commands (without
-    locking) and delegate to :func:`.command_impl_print.dump_placeholders`.
-    (This is not a user-facing option; it is used for generating argument
-    completions.) Otherwise:
+    If ``dump_placeholders`` is not ``None``, get the list of all commands
+    (without locking) and delegate to
+    :func:`.command_impl_print.dump_placeholders`. (This is not a user-facing
+    option; it is used for generating argument completions.)
+
+    Otherwise:
 
     Acquire the cmd inventory readlock and get the list of all commands.
     Readlock those commands and delegate to
@@ -247,7 +249,7 @@ def cli_print_all(dump_placeholders):
 
     :param dump_placeholders: whether to print in a "rawer" format, and
                               without locking (used internally)
-    :type dump_placeholders:  "run", "vals", or None
+    :type dump_placeholders:  "run" | "vals" | None
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -269,21 +271,21 @@ def cli_print_all(dump_placeholders):
 def cli_del(delcmds, ignore_seq_usage):
     """Delete one or more commands.
 
-    If ignore_seq_usage is False, acquire the seq inventory readlock and item
-    readlocks on all sequences.
+    If ``ignore_seq_usage`` is ``False``, acquire the seq inventory readlock
+    and item readlocks on all sequences.
 
     Acquire the cmd inventory writelock and item writelocks on the commands
     to delete.
 
-    If ignore_seq_usage is False, check all the given commands to make sure
-    that they are not currently contained in any sequence (reject if so).
+    If ``ignore_seq_usage`` is False, check all the given commands to make
+    sure that they are not currently contained in any sequence (reject if so).
 
     Delete each command (via :func:`.command_impl_op.delete`), and tear down
     its shortcut (:func:`.shortcuts.delete_cmd_shortcut`) and autocompletion
     behavior (:func:`.completions.delete_completion`).
 
     :param delcmds:          names of commands to delete
-    :type delcmds:           list(str)
+    :type delcmds:           list[str]
     :param ignore_seq_usage: if True, don't validate that commands are unused
                              by current sequences
     :type ignore_seq_usage:  bool
@@ -340,10 +342,13 @@ def cli_run(cmd, args):
     execute the command. Finally, print a warning if any of the given
     placeholder args were irrelevant for this command.
 
+    Note that :func:`.command_impl_op.run` may modify ``args`` (for use with
+    subsequent commands in the sequence).
+
     :param cmd:           name of command to run
     :type cmd:            str
-    :param args:          placeholder arguments for this run
-    :type args:           list(str)
+    :param args:          placeholder arguments for this run; to modify
+    :type args:           list[str]
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -375,8 +380,8 @@ def cli_vals(cmd, args, print_after_set):
 
     :param cmd:             name of command to update
     :type cmd:              str
-    :param args:            placeholders to update, with values
-    :type args:             list(str)
+    :param args:            new placeholder value settings
+    :type args:             list[str]
     :param print_after_set: whether to automatically trigger "print" operation
                             at the end
     :type print_after_set:  bool
@@ -412,8 +417,8 @@ def cli_vals_all(placeholder_args):
 
     :param cmd:             name of command to update
     :type cmd:              str
-    :param args:            placeholders to update, with values
-    :type args:             list(str)
+    :param args:            new placeholder value settings
+    :type args:             list[str]
     :param print_after_set: whether to automatically trigger "print" operation
                             at the end
     :type print_after_set:  bool

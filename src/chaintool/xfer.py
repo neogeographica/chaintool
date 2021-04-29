@@ -20,7 +20,7 @@
 """Top-level logic for "export" and "import" operations.
 
 Called from cli module. Handles locking and shortcuts/completions; delegates
-to command_impl and sequence_impl modules for most of the work.
+to command_impl_* and sequence_impl modules for most of the work.
 
 Note that most locks acquired here are released only when the program exits.
 Operations are meant to be invoked one per program instance, using the CLI.
@@ -102,13 +102,14 @@ def cli_export(export_file):
 def cli_import(import_file, overwrite):
     """Import commands and sequences from a file.
 
-    Acquire the seq and cmd inventory writelocks. If overwrite is True, get
-    all sequence and command names, and writelock all those items.
+    Acquire the seq and cmd inventory writelocks. If ``overwrite`` is
+    ``True``, get all sequence and command names, and writelock all those
+    items.
 
     Open the given file and read a YAML doc from it. Commands are read from a
     list value for the "commands" property, and sequences similary from the
-    "sequences" property. The overwrite argument is passed along to command
-    and sequence creation (via :func:`.command_impl_op.define` and
+    "sequences" property. The ``overwrite`` argument is passed along to
+    command and sequence creation (via :func:`.command_impl_op.define` and
     :func:`.sequence_impl.define`) to control whether an imported item is
     allowed to replace an existing item of the same name.
 
