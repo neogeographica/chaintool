@@ -25,7 +25,7 @@ import sys
 
 import colorama
 
-from . import command_impl
+from . import command_impl_core
 from . import completions
 from . import locks
 from . import sequence_impl
@@ -42,7 +42,7 @@ if sys.version_info < (3, 7):
 colorama.init()
 atexit.register(colorama.deinit)
 
-command_impl.init()
+command_impl_core.init()
 completions.init()
 locks.init()
 sequence_impl.init()

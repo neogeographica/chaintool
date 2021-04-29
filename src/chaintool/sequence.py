@@ -44,7 +44,9 @@ import copy
 
 from colorama import Fore
 
-from . import command_impl
+from . import command_impl_core
+from . import command_impl_op
+from . import command_impl_print
 from . import completions
 from . import locks
 from . import sequence_impl
@@ -74,7 +76,7 @@ def undefined_cmds(cmds, ignore_undefined_cmds):
     if ignore_undefined_cmds:
         return []
     locks.inventory_lock("cmd", locks.LockType.READ)
-    return list(set(cmds) - set(command_impl.all_names()))
+    return list(set(cmds) - set(command_impl_core.all_names()))
 
 
 def cli_list(column):
@@ -135,7 +137,7 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
     if not sequence_impl.exists(seq):
         creating = True
         locks.inventory_lock("cmd", locks.LockType.READ)
-        if command_impl.exists(seq):
+        if command_impl_core.exists(seq):
             print()
             shared.errprint(
                 "Sequence '{}' cannot be created because a command exists with"
@@ -195,7 +197,7 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         old_commands_str = " ".join(seq_dict["commands"])
     except FileNotFoundError:
         locks.inventory_lock("cmd", locks.LockType.READ)
-        if command_impl.exists(seq):
+        if command_impl_core.exists(seq):
             print()
             shared.errprint(
                 "Sequence '{}' cannot be created because a command exists with"
@@ -240,14 +242,14 @@ def cli_print(seq, dump_placeholders):
     """Pretty-print the info for all commands in a sequence.
 
     If dump_placeholders is not None, read the sequence's command list
-    (without locking) and delegate to :func:`.command_impl.dump_placeholders`.
-    (This is not a user-facing option; it is used for generating argument
-    completions.) Otherwise:
+    (without locking) and delegate to
+    :func:`.command_impl_print.dump_placeholders`. (This is not a user-facing
+    option; it is used for generating argument completions.) Otherwise:
 
     Acquire the seq item readlock and cmd inventory readlock. Read the
     sequence's command list. Readlock those commands and delegate to
-    :func:`.command_impl.print_multi` to pretty-print the info for that list
-    of commands.
+    :func:`.command_impl_print.print_multi` to pretty-print the info for that
+    list of commands.
 
     :param seq:               name of sequence to print
     :type seq:                str
@@ -274,11 +276,11 @@ def cli_print(seq, dump_placeholders):
     if dump_placeholders is None:
         locks.multi_item_lock("cmd", commands, locks.LockType.READ)
     if dump_placeholders is not None:
-        return command_impl.dump_placeholders(
+        return command_impl_print.dump_placeholders(
             commands, dump_placeholders == "run"
         )
     print()
-    return command_impl.print_multi(commands)
+    return command_impl_print.print_multi(commands)
 
 
 def cli_del(delseqs):
@@ -318,8 +320,8 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     sequence's command list, then acquire readlocks on those commands and
     release the cmd inventory readlock.
 
-    Delegate to :func:`.command_impl.run` to execute each command in the list
-    that is not a member of skip_cmdnames. If a command returns an error
+    Delegate to :func:`.command_impl_op.run` to execute each command in the
+    list that is not a member of skip_cmdnames. If a command returns an error
     status and ignore_errors is false, bail out.
 
     In the success case, finally print a warning if any of the given
@@ -363,7 +365,7 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
         print(
             Fore.MAGENTA + "* running command '{}':".format(cmd) + Fore.RESET
         )
-        status = command_impl.run(cmd, args, unused_args)
+        status = command_impl_op.run(cmd, args, unused_args)
         if status and not ignore_errors:
             return status
     if unused_args:
@@ -384,8 +386,8 @@ def cli_vals(seq, args, print_after_set):
     sequence's command list, then acquire writelocks on those commands and
     release the cmd inventory readlock.
 
-    Delegate to :func:`.command_impl.vals` to update each command in the list.
-    If any change results from this, and print_after_set is True, then
+    Delegate to :func:`.command_impl_op.vals` to update each command in the
+    list. If any change results from this, and print_after_set is True, then
     pretty-print the new sequence.
 
     Finally, print a warning if any of the given placeholder args were
@@ -422,7 +424,7 @@ def cli_vals(seq, args, print_after_set):
     error = False
     any_change = False
     for cmd in cmd_list:
-        status = command_impl.vals(cmd, args, unused_args, False, True)
+        status = command_impl_op.vals(cmd, args, unused_args, False, True)
         if status:
             error = True
         else:
@@ -431,7 +433,7 @@ def cli_vals(seq, args, print_after_set):
         print("Sequence '{}' updated.".format(seq))
         print()
         if print_after_set:
-            command_impl.print_multi(cmd_list)
+            command_impl_print.print_multi(cmd_list)
     if unused_args:
         print(
             shared.MSG_WARN_PREFIX

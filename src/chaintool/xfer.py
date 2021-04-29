@@ -35,7 +35,8 @@ import yaml  # from pyyaml
 
 from colorama import Fore
 
-from . import command_impl
+from . import command_impl_core
+from . import command_impl_op
 from . import completions
 from . import sequence_impl
 from . import locks
@@ -49,7 +50,7 @@ def cli_export(export_file):
     command names, and readlock all those items.
 
     Open the given file and write a YAML doc to it. Commands (from
-    :func:`.command_impl.read_dict`) are written to a list value for the
+    :func:`.command_impl_core.read_dict`) are written to a list value for the
     "commands" property, and sequences (from :func:`.sequence_impl.read_dict`)
     similarly to the "sequences" property.
 
@@ -62,7 +63,7 @@ def cli_export(export_file):
     """
     locks.inventory_lock("seq", locks.LockType.READ)
     locks.inventory_lock("cmd", locks.LockType.READ)
-    command_names = command_impl.all_names()
+    command_names = command_impl_core.all_names()
     sequence_names = sequence_impl.all_names()
     locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
     locks.multi_item_lock("seq", sequence_names, locks.LockType.READ)
@@ -72,7 +73,7 @@ def cli_export(export_file):
     print()
     for cmd in command_names:
         try:
-            cmd_dict = command_impl.read_dict(cmd)
+            cmd_dict = command_impl_core.read_dict(cmd)
             export_dict["commands"].append(
                 {"name": cmd, "cmdline": cmd_dict["cmdline"]}
             )
@@ -107,7 +108,7 @@ def cli_import(import_file, overwrite):
     Open the given file and read a YAML doc from it. Commands are read from a
     list value for the "commands" property, and sequences similary from the
     "sequences" property. The overwrite argument is passed along to command
-    and sequence creation (via :func:`.command_impl.define` and
+    and sequence creation (via :func:`.command_impl_op.define` and
     :func:`.sequence_impl.define`) to control whether an imported item is
     allowed to replace an existing item of the same name.
 
@@ -128,7 +129,7 @@ def cli_import(import_file, overwrite):
     locks.inventory_lock("seq", locks.LockType.WRITE)
     locks.inventory_lock("cmd", locks.LockType.WRITE)
     if overwrite:
-        command_names = command_impl.all_names()
+        command_names = command_impl_core.all_names()
         sequence_names = sequence_impl.all_names()
         locks.multi_item_lock("cmd", command_names, locks.LockType.WRITE)
         locks.multi_item_lock("seq", sequence_names, locks.LockType.WRITE)
@@ -139,7 +140,7 @@ def cli_import(import_file, overwrite):
     print()
     for cmd_dict in import_dict["commands"]:
         cmd = cmd_dict["name"]
-        status = command_impl.define(
+        status = command_impl_op.define(
             cmd, cmd_dict["cmdline"], overwrite, False, True
         )
         if not status:

@@ -19,8 +19,8 @@
 
 """Low-level logic for "seq" operations.
 
-Called from sequence, command, command_impl, and xfer modules. Does the
-bulk of the work for reading/writing/modifying sequence definitions.
+Called from sequence, command, and xfer modules. Does the bulk of the work
+for reading/writing/modifying sequence definitions.
 
 """
 
@@ -30,6 +30,7 @@ __all__ = [
     "exists",
     "all_names",
     "read_dict",
+    "write_dict",
     "create_temp",
     "define",
     "delete",
@@ -40,7 +41,7 @@ import os
 
 import yaml  # from pyyaml
 
-from . import command_impl
+from . import command_impl_print
 from . import shared
 from .shared import DATA_DIR
 
@@ -108,9 +109,8 @@ def read_dict(seq):
 def write_dict(seq, seq_dict, mode):
     """Write the contents of a sequence as a dictionary.
 
-    Dump the dictionary into a YAML document and write it into the sequences
-    directory. (This is not called from outside this module since there are
-    specific functions that are allowed to modify this dictionary.)
+    Dump the sequence dictionary into a YAML document and write it into the
+    sequences directory.
 
     :param seq:      name of sequence to write
     :type seq:       str
@@ -217,7 +217,7 @@ def define(  # pylint: disable=too-many-arguments
     print("Sequence '{}' set.".format(seq))
     print()
     if print_after_set:
-        command_impl.print_multi(cmds)
+        command_impl_print.print_multi(cmds)
     return 0
 
 
