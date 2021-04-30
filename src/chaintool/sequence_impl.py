@@ -217,7 +217,7 @@ def define(  # pylint: disable=too-many-arguments
     print("Sequence '{}' set.".format(seq))
     print()
     if print_after_set:
-        command_impl_print.print_multi(cmds)
+        command_impl_print.print_multi(cmds, False)
     return 0
 
 

@@ -265,7 +265,7 @@ def cli_print_all(dump_placeholders):
             command_names, dump_placeholders == "run"
         )
     print()
-    return command_impl_print.print_multi(command_names)
+    return command_impl_print.print_multi(command_names, True)
 
 
 def cli_del(delcmds, ignore_seq_usage):
@@ -307,10 +307,10 @@ def cli_del(delcmds, ignore_seq_usage):
         for seq in sequence_names:
             try:
                 seq_dict = sequence_impl.read_dict(seq)
-                seq_dict["name"] = seq
-                seq_dicts.append(seq_dict)
             except FileNotFoundError:
-                pass
+                continue
+            seq_dict["name"] = seq
+            seq_dicts.append(seq_dict)
         for cmd in delcmds:
             for seq_dict in seq_dicts:
                 if cmd in seq_dict["commands"]:
@@ -326,11 +326,12 @@ def cli_del(delcmds, ignore_seq_usage):
     for cmd in delcmds:
         try:
             command_impl_op.delete(cmd, False)
-            print("Command '{}' deleted.".format(cmd))
-            shortcuts.delete_cmd_shortcut(cmd)
-            completions.delete_completion(cmd)
         except FileNotFoundError:
             print("Command '{}' does not exist.".format(cmd))
+            continue
+        print("Command '{}' deleted.".format(cmd))
+        shortcuts.delete_cmd_shortcut(cmd)
+        completions.delete_completion(cmd)
     print()
     return 0
 

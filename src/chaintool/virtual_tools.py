@@ -213,7 +213,8 @@ def update_env(cmdline, env_constant_values, env_optional_values):
     Iterate through the list of ops and examine them sequentially. If an op
     has the "only if unset" flag, then add its placeholder name/value to
     the ``env_optional_values`` dict. Otherwise append its placeholder name to
-    the ``env_constant_values`` list.
+    the ``env_constant_values`` list (and remove it from
+    ``env_optional_values`` if necessary).
 
     :param cmdline:              commandline for the command to examine
     :type cmdline:               str
@@ -238,3 +239,5 @@ def update_env(cmdline, env_constant_values, env_optional_values):
             env_optional_values[dst_name] = src_value
         else:
             env_constant_values.append(dst_name)
+            if dst_name in env_optional_values:
+                del env_optional_values[dst_name]

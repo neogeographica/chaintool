@@ -84,7 +84,7 @@ def update_placeholders_collections(
         other_set.add(key)
 
 
-def dump_placeholders(commands, is_run):
+def dump_placeholders(commands, is_run):  # pylint: disable=too-many-branches
     """Do a "raw" printing of placeholders used in a list of commands.
 
     Used internally for bash autocompletion purposes.
@@ -97,12 +97,14 @@ def dump_placeholders(commands, is_run):
     form useful for doing a command-line autocompletion given the first few
     characters of the placeholder name.
 
-    - If a placeholder with a consistent value, we want to include the value
+    - If a placeholder has been assigned a constant value from chaintool-env,
+      before it is ever used in a command, skip it.
+    - If a placeholder has a consistent value, we want to include the value
       setting in the autocompletion, so it can be observed and edited.
-    - If a toggle with consistent value, we want to include the value setting
+    - If a toggle has a consistent value, we want to include the value setting
       only if ``is_run`` is false, since it's not legal to change that value
       at runtime.
-    - If a toggle with inconsistent value, still print an "=" character if
+    - If a toggle has an inconsistent value, still print an "=" character if
       ``is_run`` is false, since some value must be provided in that case.
 
     :param commands: names of commands to process
@@ -119,39 +121,51 @@ def dump_placeholders(commands, is_run):
     other_placeholders_set = set()
     toggles_with_consistent_value = dict()
     other_toggles_set = set()
+    env_constant_values = []
+    env_optional_values = dict()
     for cmd in commands:
         try:
             cmd_dict = command_impl_core.read_dict(cmd)
-            for key, value in cmd_dict["args"].items():
-                update_placeholders_collections(
-                    key,
-                    value,
-                    placeholders_with_consistent_value,
-                    other_placeholders_set,
-                )
-            for key, value in cmd_dict["toggle_args"].items():
-                update_placeholders_collections(
-                    key,
-                    value,
-                    toggles_with_consistent_value,
-                    other_toggles_set,
-                )
-            # XXX If is_run then we need to use virtual_tools.update_env.
         except FileNotFoundError:
-            pass
+            continue
+        for key, value in cmd_dict["args"].items():
+            if key in env_constant_values:
+                continue
+            if key in env_optional_values:
+                value = env_optional_values[key]
+                cmd_dict["args"][key] = value
+            update_placeholders_collections(
+                key,
+                value,
+                placeholders_with_consistent_value,
+                other_placeholders_set,
+            )
+        for key, value in cmd_dict["toggle_args"].items():
+            update_placeholders_collections(
+                key,
+                value,
+                toggles_with_consistent_value,
+                other_toggles_set,
+            )
+        if is_run:
+            virtual_tools.update_env(
+                cmd_dict["cmdline"],
+                env_constant_values,
+                env_optional_values,
+            )
     for key, value in placeholders_with_consistent_value.items():
         print("{}={}".format(key, value))
     for key in other_placeholders_set:
         print("{}".format(key))
-    for key, value in toggles_with_consistent_value.items():
-        if is_run:
+    if is_run:
+        for key in toggles_with_consistent_value:
             print(key)
-        else:
+        for key in other_toggles_set:
+            print(key)
+    else:
+        for key, value in toggles_with_consistent_value.items():
             print("{}={}:{}".format(key, value[0], value[1]))
-    for key in other_toggles_set:
-        if is_run:
-            print(key)
-        else:
+        for key in other_toggles_set:
             print("{}=".format(key))
     return 0
 
@@ -224,16 +238,40 @@ def print_one(cmd):
     return 0
 
 
-def init_print_info_collections(
+def init_print_info_collections(  # pylint: disable=too-many-arguments
     commands,
     command_dicts,
     command_dicts_by_cmd,
     commands_by_placeholder,
     placeholders_sets,
+    ignore_env,
 ):
     """Gather info useful to pretty-print multiple commands.
 
-    XXX Wait to fill this in until XXX below is resolved.
+    Iterate through the ``commands``, for each command reading its dictionary
+    and using the args info (placeholders+values) to populate the various
+    inout collections arguments.
+
+    Populating ``command_dicts``, ``command_dicts_by_cmd``, and
+    ``commands_by_placeholder`` is straightforward.
+
+    Deciding which "set" a placeholder name belongs in, to populate
+    ``placeholders_sets``, goes according to the following rules:
+
+    - If a placeholder has been assigned a constant value from chaintool-env,
+      ignore its appearances in subsequent commands, as its value there is no
+      longer user-controllable. (Note that this is not relevant if
+      ``ignore_env`` is true.)
+    - If a placeholder lacks a default value in some command, put it in the
+      "required" set.
+    - If a placeholder has some default everywhere it appears -- either
+      because of its definition in the commandline or because of the use
+      of chaintool-env (if ``ignore_env`` is False) -- put it in the
+      "optional" set.
+    - Any toggle placeholder goes into the "toggle" set.
+
+    Finally, return a string that lists the command names, with any
+    non-existing command highlighted in red.
 
     :param commands:                list of command names
     :type commands:                 list[str]
@@ -253,6 +291,10 @@ def init_print_info_collections(
                                     of placeholders of that type, sets
                                     initially empty; to modify
     :type placeholders_sets:        dict[str, set[str]]
+    :param ignore_env:              whether to ignore the effects of
+                                    chaintool-env; will be True for
+                                    non-sequence prints
+    :type ignore_env:               bool
 
     :returns: pretty-printed string containing command names
     :rtype:   str
@@ -281,36 +323,36 @@ def init_print_info_collections(
     for cmd in commands:
         try:
             cmd_dict = command_impl_core.read_dict(cmd)
-            commands_display += " " + cmd
-            cmd_dict["name"] = cmd
-            command_dicts.append(cmd_dict)
-            command_dicts_by_cmd[cmd] = cmd_dict
-            for key, value in cmd_dict["args"].items():
-                if key in env_constant_values:
-                    continue
-                if key in env_optional_values:
-                    value = Fore.GREEN + env_optional_values[key] + Fore.RESET
-                    cmd_dict["args"][key] = value
-                record_placeholder(cmd, key)
-                if value is None:
-                    placeholders_sets["required"].add(key)
-                    placeholders_sets["optional"].discard(key)
-                else:
-                    if key not in placeholders_sets["required"]:
-                        placeholders_sets["optional"].add(key)
-            for key in cmd_dict["toggle_args"].keys():
-                record_placeholder(cmd, key)
-                placeholders_sets["toggle"].add(key)
-            # XXX We shouldn't do this during an "all commands" print...
-            #     only during a sequence print. Actually, should we give the
-            #     user a choice of whether to apply during sequence print too?
-            #     Fill in function docstring once this is resolved.
-            virtual_tools.update_env(
-                cmd_dict["cmdline"], env_constant_values, env_optional_values
-            )
         except FileNotFoundError:
             commands_display += " " + Fore.RED + cmd + Fore.RESET
-    return commands_display
+            continue
+        commands_display += " " + cmd
+        cmd_dict["name"] = cmd
+        command_dicts.append(cmd_dict)
+        command_dicts_by_cmd[cmd] = cmd_dict
+        for key, value in cmd_dict["args"].items():
+            if key in env_constant_values:
+                continue
+            if key in env_optional_values:
+                value = Fore.GREEN + env_optional_values[key] + Fore.RESET
+                cmd_dict["args"][key] = value
+            record_placeholder(cmd, key)
+            if value is None:
+                placeholders_sets["required"].add(key)
+                placeholders_sets["optional"].discard(key)
+            else:
+                if key not in placeholders_sets["required"]:
+                    placeholders_sets["optional"].add(key)
+        for key in cmd_dict["toggle_args"].keys():
+            record_placeholder(cmd, key)
+            placeholders_sets["toggle"].add(key)
+        if not ignore_env:
+            virtual_tools.update_env(
+                cmd_dict["cmdline"],
+                env_constant_values,
+                env_optional_values,
+            )
+    return commands_display[1:]
 
 
 def print_group_args(group, group_args, build_format_fun):
@@ -546,7 +588,7 @@ def print_placeholders_set(
     print_command_groups(cmd_group_args, command_dicts_by_cmd)
 
 
-def print_multi(commands):
+def print_multi(commands, ignore_env):
     """Pretty-print the info for multiple commands.
 
     Call :func:`init_print_info_collections` to build the info and
@@ -563,8 +605,11 @@ def print_multi(commands):
     pretty-print a header and call :func:`print_placeholders_set` to print
     the info for those placeholders.
 
-    :param commands: names of commands to print
-    :type commands:  list[str]
+    :param commands:   names of commands to print
+    :type commands:    list[str]
+    :param ignore_env: whether to ignore the effects of chaintool-env; will
+                       be True for non-sequence prints
+    :type ignore_env:  bool
 
     :returns: exit status code; currently always returns 0
     :rtype:   int
@@ -581,6 +626,7 @@ def print_multi(commands):
         command_dicts_by_cmd,
         commands_by_placeholder,
         placeholders_sets,
+        ignore_env,
     )
 
     def cga_sort_keyvalue(cmd_group_args):

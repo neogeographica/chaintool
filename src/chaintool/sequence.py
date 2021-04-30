@@ -282,7 +282,7 @@ def cli_print(seq, dump_placeholders):
             commands, dump_placeholders == "run"
         )
     print()
-    return command_impl_print.print_multi(commands)
+    return command_impl_print.print_multi(commands, False)
 
 
 def cli_del(delseqs):
@@ -306,11 +306,12 @@ def cli_del(delseqs):
     for seq in delseqs:
         try:
             sequence_impl.delete(seq, False)
-            print("Sequence '{}' deleted.".format(seq))
-            shortcuts.delete_seq_shortcut(seq)
-            completions.delete_completion(seq)
         except FileNotFoundError:
             print("Sequence '{}' does not exist.".format(seq))
+            continue
+        print("Sequence '{}' deleted.".format(seq))
+        shortcuts.delete_seq_shortcut(seq)
+        completions.delete_completion(seq)
     print()
     return 0
 
@@ -437,7 +438,7 @@ def cli_vals(seq, args, print_after_set):
         print("Sequence '{}' updated.".format(seq))
         print()
         if print_after_set:
-            command_impl_print.print_multi(cmd_list)
+            command_impl_print.print_multi(cmd_list, False)
     if unused_args:
         print(
             shared.MSG_WARN_PREFIX

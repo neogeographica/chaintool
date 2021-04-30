@@ -74,24 +74,28 @@ def cli_export(export_file):
     for cmd in command_names:
         try:
             cmd_dict = command_impl_core.read_dict(cmd)
-            export_dict["commands"].append(
-                {"name": cmd, "cmdline": cmd_dict["cmdline"]}
-            )
-            print("Command '{}' exported.".format(cmd))
         except FileNotFoundError:
             print("Failed to read command '{}' ... skipped.".format(cmd))
+            print()
+            continue
+        export_dict["commands"].append(
+            {"name": cmd, "cmdline": cmd_dict["cmdline"]}
+        )
+        print("Command '{}' exported.".format(cmd))
         print()
     print(Fore.MAGENTA + "* Exporting sequences..." + Fore.RESET)
     print()
     for seq in sequence_names:
         try:
             seq_dict = sequence_impl.read_dict(seq)
-            export_dict["sequences"].append(
-                {"name": seq, "commands": seq_dict["commands"]}
-            )
-            print("Sequence '{}' exported.".format(seq))
         except FileNotFoundError:
             print("Failed to read sequence '{}' ... skipped.".format(seq))
+            print()
+            continue
+        export_dict["sequences"].append(
+            {"name": seq, "commands": seq_dict["commands"]}
+        )
+        print("Sequence '{}' exported.".format(seq))
         print()
     export_doc = yaml.dump(export_dict, default_flow_style=False)
     with open(export_file, "w") as outfile:
