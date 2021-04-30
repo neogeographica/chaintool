@@ -73,17 +73,24 @@ Similarly, an existing chaintool installation can be updated to the latest versi
 
     python3 -m pip install --upgrade chaintool
 
-An alternative to installing from PyPI is to install chaintool directly from GitHub:
+An alternative to installing from PyPI is to install chaintool directly from GitHub. For example the following command would install the version of chaintool currently on the main branch:
 
 .. code-block:: none
 
     python3 -m pip install git+https://github.com/neogeographica/chaintool
 
-XXX mention "chaintool x completions"
-
-XXX mention "chaintool x shortcuts"
-
 .. _Python Package Index: https://pypi.org/project/chaintool
+
+.. _configuration_section:
+
+Configuration
+-------------
+
+Once chaintool has been installed, it can help you configure your shell environment to enable support for shortcuts and autocompletions... in most cases it is able to do this setup automatically for you.
+
+The documentation goes into this in more detail, but running "chaintool x completions" will get you into an interactive process for setting up the autocompletions feature, and "chaintool x shortcuts" is a similar helper for the shortcuts feature.
+
+Depending on your configuration, you may need to start a new shell for these features to be available.
 
 .. _documentation_section:
 

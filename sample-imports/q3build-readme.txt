@@ -1,3 +1,9 @@
+*** overview
+
+XXX talk about what this is
+
+XXX mention that it specifically has been tested with q3map2 from netradiant-custom... other versions might work differently, or not work (e.g. not support using both -samples and -filter)
+
 *** setup
 
 After importing the q3build file with "chaintool import q3build", you will need to use "chaintool vals" to define a default value for the following placeholder:
