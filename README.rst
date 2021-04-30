@@ -7,6 +7,10 @@ chaintool: a tool to chain tools into toolchains
     :target: https://pypi.python.org/pypi/chaintool
     :alt: current version
 
+.. image:: https://img.shields.io/pypi/pyversions/chaintool.svg
+    :target: https://www.python.org/
+    :alt: supported Python versions
+
 .. _blurb_section:
 
 **chaintool** is a GPLv3_-licensed tool to manage certain kinds of "toolchain" usecases that require executing a sequence of commandlines.
