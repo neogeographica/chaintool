@@ -297,25 +297,24 @@ def existing_config_kept():
 
     """
     dynamic = False
-    # XXX read_choicefile already does the exists check for us, so refactor
-    if os.path.exists(USERDIR_LOCATION):
+    userdir_choice = shared.read_choicefile(USERDIR_LOCATION)
+    script_choice = shared.read_choicefile(SOURCESCRIPT_LOCATION)
+    if userdir_choice is not None:
         dynamic = True
-        location_choice = shared.read_choicefile(USERDIR_LOCATION)
-        if not check_dynamic(location_choice):
+        if not check_dynamic(userdir_choice):
             return False
         print(
             "You currently have dynamic completions enabled, using this"
             " directory:\n  "
-            + location_choice
+            + userdir_choice
         )
-    elif os.path.exists(SOURCESCRIPT_LOCATION):
-        location_choice = shared.read_choicefile(SOURCESCRIPT_LOCATION)
-        if not check_oldstyle(location_choice):
+    elif script_choice is not None:
+        if not check_oldstyle(script_choice):
             return False
         print(
             "You currently have old-style completions enabled, using this"
             " file:\n  "
-            + location_choice
+            + script_choice
         )
     else:
         return False
@@ -326,8 +325,8 @@ def existing_config_kept():
     if choice.lower() != "n":
         return True
     if dynamic:
-        return not disable_dynamic(location_choice)
-    return not disable_oldstyle(location_choice)
+        return not disable_dynamic(userdir_choice)
+    return not disable_oldstyle(script_choice)
 
 
 def early_bailout():
