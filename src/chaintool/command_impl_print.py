@@ -338,8 +338,10 @@ def print_group_args(group, group_args, build_format_fun):
     :type group_args:        list[str]
     :param build_format_fun: func used to gradually build a format string
                              for printing (see above)
-    :type build_format_fun:  Callable[[str, str, str | None, str | None],
-                                      tuple[bool, str, list[str | None]]]
+    :type build_format_fun:  Callable[
+                                 [str, str, str | None, str | None],
+                                 tuple[bool, str, list[str | None]]
+                             ]
 
     """
     first_cmd = group[0]
@@ -363,7 +365,7 @@ def print_command_groups(cmd_group_args, command_dicts_by_cmd):
     the docstring for that.
 
     Once that function is defined, for each command group pretty-print a
-    header and call :func:`print_group_args`.
+    header and then call :func:`print_group_args`.
 
     :param cmd_group_args:       list of 2-tuples containing: a list of
                                  commands, and a list of placeholders those
@@ -387,23 +389,71 @@ def print_command_groups(cmd_group_args, command_dicts_by_cmd):
         common_format_str = "{} = {}"
 
     def build_format(arg, cmd, format_str=None, format_args=None):
+        """Iteratively build a format string+values to print placeholder info.
+
+        The general idea is to look up the default value that the given
+        placeholder has assigned for the given command, and add on to the
+        format string/values the stuff necessary to display that. As this
+        function is invoked for all commands that use a given placeholder, the
+        complete set of format info is built.
+
+        More specifically:
+
+        If the placeholder is found to lack a default value in any command,
+        return a simple set of format info that will only display the
+        placeholder name. Also return ``True`` for the are-we-done result. The
+        idea is that this placeholder is required to be specified, so even if
+        it has default values in some commands, those values don't matter.
+
+        As long as the placeholder has the same default value in all commands
+        so far (which should be a common case), a simple set of format info
+        is returned that will show the placeholder name and value, not broken
+        out per-command. We actually smuggle a "common value so far" element
+        at the end of the values list to help track this.
+
+        If this "common value" condition is broken, switch to generating
+        format info that will break out the displayed default values
+        per-command.
+
+        :param arg:         placeholder name
+        :type arg:          str
+        :param cmd:         name of a command that uses the placeholder
+        :type cmd:          str
+        :param format_str:  format string built so far; defaults to None
+        :type format_str:   str | None, optional
+        :param format_args: list of format values (and whatever else we need
+                            to pass between iterations); defaults to None
+        :type format_args:  list[str | None] | None, optional
+
+        :returns: tuple of "done yet", format str, and format values
+        :rtype:   tuple[bool, str, list[str | None]]
+
+        """
         value = command_dicts_by_cmd[cmd][args_dict_name][arg]
+        # Early return if no default value; user will be required to specify.
         if value is None:
             return True, "{}", [arg]
+        # Prepare the format values to be added.
         if vals_per_arg == 1:
             args_suffix = [shlex.quote(value), cmd]
         else:
             args_suffix = [shlex.quote(value[0]), shlex.quote(value[1]), cmd]
+        # If this is first invocation for this arg, return initial info.
         if format_str is None:
             format_args = [arg] + args_suffix + [value]
             return False, common_format_str, format_args
+        # Pop off the "common value so far" being smuggled in the values list.
         actual_format_args, common_value = format_args[:-1], format_args[-1]
+        # If value is still common, return the info for that case.
         if value == common_value:
             format_args = actual_format_args + args_suffix + [common_value]
             return False, common_format_str, format_args
+        # If this is the first time we're noticing a non-common value,
+        # "backfill" the format string to show all prior commands+values.
         if common_value is not None:
             catch_up = (len(actual_format_args) - 1) // (vals_per_arg + 1)
             format_str = "{} = " + ", ".join([multival_str_suffix] * catch_up)
+        # Now go ahead and extend the format info for this command+value.
         format_str = ", ".join([format_str, multival_str_suffix])
         format_args = actual_format_args + args_suffix + [None]
         return False, format_str, format_args
@@ -417,7 +467,57 @@ def print_command_groups(cmd_group_args, command_dicts_by_cmd):
 def print_placeholders_set(
     placeholders_set, sortfunc, command_dicts_by_cmd, commands_by_placeholder
 ):
+    """Print info for all placeholders of a given type.
+
+    The ``placeholders_set`` input is a set of placeholder names that should
+    be displayed in the same block together for pretty-print purposes, e.g.
+    "all placeholders that lack a default value".
+
+    The first task here is to group placeholders by the commands where they
+    appear. E.g. so we can say that commands x and y both use placeholders
+    a, b, and c. Build a list of 2-tuples, where the first element of the
+    tuple is a list of commands, and the second element is a list of the
+    placeholders used by all of those commands.
+
+    Use the ``sortfunc`` to sort this list in a desirable way (see
+    :func:`print_multi` for more details) and then invoke
+    :func:`print_command_groups` to pretty-print the list.
+
+    :param placeholders_set:        placeholder names of a given type
+    :type placeholders_set:         set[str]
+    :param sortfunc:                function used to sort list of tuples
+                                    associating command groups with
+                                    placeholders
+    :type sortfunc:                 Callable[
+                                        [tuple[list[str], list[str]]],
+                                        int
+                                    ]
+    :param command_dicts_by_cmd:    dict of command dictionaries, keyed by
+                                    command name
+    :type command_dicts_by_cmd:     dict[str, dict[str, str]]
+    :param commands_by_placeholder: dict keyed by placeholder name where the
+                                    value is a list of names of commands where
+                                    that placeholder appears, initially empty;
+                                    to modify
+    :type commands_by_placeholder:  dict[str, dict[str, str]]
+
+    """
+
     def args_updater(arg, oldargs, update_checker):
+        """Utility for doing compact element updates during comprehension.
+
+        Add ``arg`` to the ``oldargs`` list, and add ``True`` to the
+        ``update_checker`` list.
+
+        :param arg:            placeholder name to process
+        :type arg:             str
+        :param oldargs:        current list of placeholder names in element
+        :type oldargs:         str
+        :param update_checker: list used to track whether this function has
+                               been called during the comprehension
+        :type update_checker:  list[bool]
+
+        """
         oldargs.append(arg)
         update_checker.append(True)
         return oldargs
@@ -426,12 +526,19 @@ def print_placeholders_set(
     for arg in placeholders_set:
         cmd_group = commands_by_placeholder[arg]
         update_checker = []
+        # The syntax here is a bit much, but the gist is: if there's already
+        # an element in this list with the same command group, add this
+        # placeholder to the list of placeholders there, using the
+        # args_updater function. For all other elements that don't match the
+        # command group, leave them unchanged.
         cmd_group_args = [
             (group, args_updater(arg, group_args, update_checker))
             if group == cmd_group
             else (group, group_args)
             for (group, group_args) in cmd_group_args
         ]
+        # If args_updater was not called above, i.e. there was no element
+        # with a matching command group, then let's add one.
         if not update_checker:
             newentry = (cmd_group, [arg])
             cmd_group_args.append(newentry)
@@ -440,6 +547,29 @@ def print_placeholders_set(
 
 
 def print_multi(commands):
+    """Pretty-print the info for multiple commands.
+
+    Call :func:`init_print_info_collections` to build the info and
+    associations that will be used for pretty-printing. At the coarsest
+    level, placeholders will be bucketed as "required values", "optional
+    values", and "toggles".
+
+    Define a sort function that will be used when arranging placeholders by
+    "command group" (commands that use those placeholders)... we want to
+    list larger groups first, and among command-groups of the same size, order
+    them by how early their first command appears in the list of commands.
+
+    For each of the top-level buckets of placeholder types (if non-empty),
+    pretty-print a header and call :func:`print_placeholders_set` to print
+    the info for those placeholders.
+
+    :param commands: names of commands to print
+    :type commands:  list[str]
+
+    :returns: exit status code; currently always returns 0
+    :rtype:   int
+
+    """
     num_commands = len(commands)
     command_dicts = []
     command_dicts_by_cmd = dict()
@@ -453,10 +583,21 @@ def print_multi(commands):
         placeholders_sets,
     )
 
-    # This sort function aims to list bigger command-groups first; and among
-    # command-groups of the same size, order them by how early their first
-    # command appears in the sequence.
     def cga_sort_keyvalue(cmd_group_args):
+        """Sort function for command-groups-with-placeholders.
+
+        First priority: size of group. Second priority: how close is the first
+        command in the group to the head of the overall commands list.
+
+        :param cmd_group_args:       list of 2-tuples containing: a list of
+                                     commands, and a list of placeholders
+                                     those commands have in common
+        :type cmd_group_args:        list[tuple[list[str], list[str]]]
+
+        :returns: sort key value
+        :rtype:   int
+
+        """
         group = cmd_group_args[0]
         return num_commands * len(group) + (
             num_commands - commands.index(group[0]) - 1
