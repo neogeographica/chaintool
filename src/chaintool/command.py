@@ -180,7 +180,7 @@ def cli_edit(cmd, print_after_set):
         # do; any concurrent seq creation will see it when checking for name
         # conflicts.
         old_cmdline = ""
-        cleanup_fun = lambda: command_impl_op.delete(cmd, True)  # noqa: E731
+        cleanup_fun = lambda: command_impl_op.delete(cmd, True)
         atexit.register(cleanup_fun)
         command_impl_core.create_temp(cmd)
     locks.release_inventory_lock("cmd", locks.LockType.WRITE)

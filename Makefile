@@ -32,13 +32,14 @@ testpub: dist
 format:
 	black -t py37 -l 79 --experimental-string-processing src/chaintool
 
-# For flake8, W503 should stay suppressed (W504 is instead correct). So should
-# E203 (not PEP 8 compliant for slicing). E501 is disabled in favor of B950.
+# For flake8, W503 should stay suppressed (W504 is instead correct), and I
+# often disagree with E731. E203 also needs to stay suppressed (not PEP 8
+# compliant for slicing). E501 is disabled in favor of B950.
 # For pylint, R0801 is worth checking every now and then but can be too
 # twitchy. May need to disable C0330 and C0326 for black-compliance but that
 # hasn't been an issue yet.
 lint:
-	flake8 --select C,E,F,W,B,B950 --ignore W503,E203,E501 src/chaintool
+	flake8 --select C,E,F,W,B,B950 --ignore W503,E203,E501,E731 src/chaintool
 	pylint -d R0801 src/chaintool
 
 clean:

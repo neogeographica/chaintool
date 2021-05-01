@@ -210,7 +210,7 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         # do; any concurrent cmd creation will see it when checking for name
         # conflicts.
         old_commands_str = ""
-        cleanup_fun = lambda: sequence_impl.delete(seq, True)  # noqa: E731
+        cleanup_fun = lambda: sequence_impl.delete(seq, True)
         atexit.register(cleanup_fun)
         sequence_impl.create_temp(seq)
         locks.release_inventory_lock("cmd", locks.LockType.READ)

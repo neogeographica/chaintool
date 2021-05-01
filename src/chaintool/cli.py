@@ -32,6 +32,7 @@ from colorama import Fore
 
 from . import command
 from . import completions_setup
+from . import info
 from . import sequence
 from . import shortcuts_setup
 from . import xfer
@@ -605,8 +606,8 @@ def set_import_options(group_subparsers):
 def set_extended_options(group_subparsers):
     """Define the subparser for the "x" commandgroup.
 
-    Create the "x" subparser. Add the option used to specify the "shortcuts"
-    or "completions" operation. Return the created "x" subparser.
+    Create the "x" subparser. Add the option used to specify the "shortcuts",
+    "completions", or "info" operation. Return the created "x" subparser.
 
     :param group_subparsers: the parser (created by add_subparsers) used to
                              collect the commandgroup subparsers
@@ -620,17 +621,17 @@ def set_extended_options(group_subparsers):
         "x",
         help=(
             "Configure extended functionality (shortcut commands and bash"
-            " completions)."
+            " completions), or examine current config."
         ),
         description=(
             "Configure extended functionality (shortcut commands and bash"
-            " completions)."
+            " completions), or examine current config."
         ),
     )
     group_parser_extended.add_argument(
         "functionality",
-        choices=["shortcuts", "completions"],
-        help="Functionality to enable/configure.",
+        choices=["shortcuts", "completions", "info"],
+        help="Functionality to enable/configure/examine.",
     )
     return group_parser_extended
 
@@ -782,7 +783,8 @@ def handle_extended(args):
 
     Configure either shortcuts (:func:`.shortcuts_setup.configure`) or
     completions (:func:`.completions_setup.configure`), depending on the
-    specified ``args.functionality``.
+    specified ``args.functionality``. Also possible just to invoke
+    :func:`.info.print` to see the lay of the land.
 
     :param args: the namespace object populated by argparse, with the results
                  of the command-line parsing
@@ -794,7 +796,9 @@ def handle_extended(args):
     """
     if args.functionality == "shortcuts":
         return shortcuts_setup.configure()
-    return completions_setup.configure()
+    if args.functionality == "completions":
+        return completions_setup.configure()
+    return info.dump()
 
 
 CMDGROUP_DISPATCH = {

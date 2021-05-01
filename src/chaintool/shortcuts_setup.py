@@ -20,7 +20,7 @@
 """Handle setting/unsetting the PATH modification for shortcuts."""
 
 
-__all__ = ["configure"]
+__all__ = ["configure", "probe_config"]
 
 
 import os
@@ -68,8 +68,8 @@ def unconfigure(startup_script_path):
     return unconfigured
 
 
-def existing_config_kept():
-    """Determine whether an existing PATH modification is preserved.
+def probe_config(ask_to_change):
+    """Determine existing PATH modification; optionally offer to change.
 
     Work through various possibilities of whether the current PATH setting
     includes the desired shortcuts directory, and whether there is an existing
@@ -83,8 +83,13 @@ def existing_config_kept():
     return ``True`` to indicate we won't be auto-changing things.
 
     If there is already a modified script file setting PATH appropriately,
-    inform the user and call :func:`unconfigure` to see if they want to undo
-    that. Return the boolean inverse of whatever :func:`unconfigure` returns.
+    inform the user. If ``ask_to_change`` is ``False``, immediately return
+    ``True``. Otherwise, call :func:`unconfigure` to see if they want to undo
+    the script modification. Return the boolean inverse of whatever
+    :func:`unconfigure` returns.
+
+    :param ask_to_change: whether to offer to change a current valid config
+    :type ask_to_change:  bool
 
     :returns: whether there is an existing config that has been preserved
     :rtype:   bool
@@ -133,15 +138,16 @@ def existing_config_kept():
             " your PATH through\na setting in this file:\n  "
             + location_choice
         )
-        print()
-        return not unconfigure(location_choice)
-    print(
-        "The following file already includes a line to set the PATH"
-        " appropriately.\nIf it's a valid startup script, then shortcuts"
-        " should be active next time a\nshell is started.\n  "
-        + location_choice
-    )
+    else:
+        print(
+            "The following file already includes a line to set the PATH"
+            " appropriately.\nIf it's a valid startup script, then shortcuts"
+            " should be active next time a\nshell is started.\n  "
+            + location_choice
+        )
     print()
+    if not ask_to_change:
+        return True
     return not unconfigure(location_choice)
 
 
@@ -229,7 +235,7 @@ def configure():
         "    {}".format(SHORTCUTS_DIR)
     )
     print()
-    if existing_config_kept():
+    if probe_config(True):
         return 0
     # If we reach this point, any existing shortcuts setup has been
     # unconfigured.

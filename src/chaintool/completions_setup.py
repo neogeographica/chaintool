@@ -20,7 +20,7 @@
 """Handle configuring or disabling the bash completions feature."""
 
 
-__all__ = ["configure"]
+__all__ = ["configure", "probe_config"]
 
 
 import os
@@ -280,27 +280,32 @@ def check_oldstyle(startup_script_path):
     return True
 
 
-def existing_config_kept():
-    """Determine whether an existing completions setup is preserved.
+def probe_config(ask_to_change):
+    """Determine existing completions setup; optionally offer to change.
 
     If a completions configuration does not exist, or does not check out as
     valid (via :func:`check_dynamic` or :func`check_oldstyle`), then return
     ``False``.
+
+    Then if ``ask_to_change`` is ``False``, immediately return ``True``.
 
     Otherwise, ask the user if they want to preserve the existing setup. If
     they do, return ``True``. Otherwise use :func:`disable_dynamic` or
     :func:`disable_oldstyle` to attempt removing the current setup, returning
     the boolean inverse or whatever that disable operation returns.
 
+    :param ask_to_change: whether to offer to change a current valid setup
+    :type ask_to_change:  bool
+
     :returns: whether there is an existing setup that has been preserved
     :rtype:   bool
 
     """
-    dynamic = False
     userdir_choice = shared.read_choicefile(USERDIR_LOCATION)
     script_choice = shared.read_choicefile(SOURCESCRIPT_LOCATION)
+    disable_func = lambda: disable_oldstyle(script_choice)
     if userdir_choice is not None:
-        dynamic = True
+        disable_func = lambda: disable_dynamic(userdir_choice)
         if not check_dynamic(userdir_choice):
             return False
         print(
@@ -319,14 +324,14 @@ def existing_config_kept():
     else:
         return False
     print()
+    if not ask_to_change:
+        return True
     print("Do you want to leave this configuration as-is? ", end="")
     choice = input("[y/n] ")
     print()
     if choice.lower() != "n":
         return True
-    if dynamic:
-        return not disable_dynamic(userdir_choice)
-    return not disable_oldstyle(script_choice)
+    return not disable_func()
 
 
 def early_bailout():
@@ -442,7 +447,7 @@ def configure():
 
     """
     print()
-    if existing_config_kept():
+    if probe_config(True):
         return 0
     # If we reach this point, any existing completions setup has been
     # unconfigured.

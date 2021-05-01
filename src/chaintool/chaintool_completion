@@ -482,7 +482,7 @@ _chaintool()
       _chaintool_vals_completions 0
     elif [[ "$CMD_GROUP" == "x" ]]
     then
-      COMPREPLY=( $(compgen -W "--help shortcuts completions" -- "$CUR") )
+      COMPREPLY=( $(compgen -W "--help shortcuts completions info" -- "$CUR") )
     fi
     return 0
   fi
