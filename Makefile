@@ -1,4 +1,4 @@
-.PHONY: readme docs install devinstall uninstall dist pub testpub format lint clean distclean
+.PHONY: readme docs install devinstall uninstall dist pub testpub check-format format lint pre-commit clean distclean
 
 readme:
 	./make_readme.py
@@ -29,6 +29,10 @@ pub: dist
 testpub: dist
 	twine upload -r testpypi dist/*
 
+check-format:
+	black --check -t py37 -l 79 --experimental-string-processing src/chaintool
+	black --check -t py37 -l 79 --experimental-string-processing src/chaintool_completions_helper.py
+
 format:
 	black -t py37 -l 79 --experimental-string-processing src/chaintool
 	black -t py37 -l 79 --experimental-string-processing src/chaintool_completions_helper.py
@@ -44,6 +48,9 @@ lint:
 	flake8 --select C,E,F,W,B,B950 --ignore W503,E203,E501,E731 src/chaintool_completions_helper.py
 	pylint -d R0801 src/chaintool
 	pylint -d R0801 src/chaintool_completions_helper.py
+
+# A helpful target for using in a pre-commit hook if you don't mind waiting a bit.
+pre-commit: check-format lint
 
 clean:
 	-rm -rf build
