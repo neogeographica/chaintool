@@ -38,9 +38,9 @@ export CHAINTOOL_BASH_COMPLETIONS=1
 
 if [[ "$CHAINTOOL_PYTHON" == "" ]]
 then
-  CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON=python3
+  CHAINTOOL_COMPLETIONS_PYTHON=python3
 else
-  CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON="$CHAINTOOL_PYTHON"
+  CHAINTOOL_COMPLETIONS_PYTHON="$CHAINTOOL_PYTHON"
 fi
 
 # Subroutine to populate COMPREPLY with file/directory completions.
@@ -102,7 +102,7 @@ _chaintool_cmd_completions()
     set)
       if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
       then
-        GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+        GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper cmd))
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
@@ -112,7 +112,7 @@ _chaintool_cmd_completions()
     edit)
       if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
       then
-        GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+        GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper cmd))
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
@@ -122,7 +122,7 @@ _chaintool_cmd_completions()
     print)
       if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
       then
-        GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+        GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper cmd))
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
@@ -132,7 +132,7 @@ _chaintool_cmd_completions()
     del)
       if [[ $MIGHT_MATCH_NAME == 1 ]]
       then
-        GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+        GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper cmd))
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
@@ -144,13 +144,13 @@ _chaintool_cmd_completions()
       then
         if [[ $MIGHT_MATCH_NAME == 1 ]]
         then
-          GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper cmd))
         fi
       else
         if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
         then
           local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
-          GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper run cmd $CMDNAME))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper run cmd $CMDNAME))
           GENWORDS_INCLUDE_PLACEHOLDERS=1
         fi
       fi
@@ -164,13 +164,13 @@ _chaintool_cmd_completions()
       then
         if [[ $MIGHT_MATCH_NAME == 1 ]]
         then
-          GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper cmd))
         fi
       else
         if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
         then
           local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
-          GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper vals cmd $CMDNAME))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper vals cmd $CMDNAME))
           GENWORDS_INCLUDE_PLACEHOLDERS=1
         fi
       fi
@@ -227,9 +227,9 @@ _chaintool_seq_completions()
       then
         if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
         then
-          GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper seq))
         else
-          GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper cmd))
         fi
       fi
       if [[ $NO_FLAGS == 0 ]]
@@ -240,7 +240,7 @@ _chaintool_seq_completions()
     edit)
       if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
       then
-        GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
+        GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper seq))
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
@@ -250,7 +250,7 @@ _chaintool_seq_completions()
     print)
       if [[ $FIRST_POSITIONAL_INDEX == 0 && $MIGHT_MATCH_NAME == 1 ]]
       then
-        GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
+        GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper seq))
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
@@ -260,7 +260,7 @@ _chaintool_seq_completions()
     del)
       if [[ $MIGHT_MATCH_NAME == 1 ]]
       then
-        GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
+        GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper seq))
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
@@ -293,16 +293,16 @@ _chaintool_seq_completions()
           then
             CUR=""
           fi
-          GENWORDS=($("${COMP_WORDS[0]}" cmd list --column))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper cmd))
         else
           if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
           then
-            GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
+            GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper seq))
           else
             if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
             then
               local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
-              GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper run seq $SEQNAME))
+              GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper run seq $SEQNAME))
               GENWORDS_INCLUDE_PLACEHOLDERS=1
             fi
           fi
@@ -318,13 +318,13 @@ _chaintool_seq_completions()
       then
         if [[ $MIGHT_MATCH_NAME == 1 ]]
         then
-          GENWORDS=($("${COMP_WORDS[0]}" seq list --column))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper seq))
         fi
       else
         if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
         then
           local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
-          GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper vals seq $SEQNAME))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper vals seq $SEQNAME))
           GENWORDS_INCLUDE_PLACEHOLDERS=1
         fi
       fi
@@ -425,7 +425,7 @@ _chaintool_vals_completions()
   local IFS=$'\n'
   if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
   then
-    GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper vals))
+    GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper vals))
   fi
   if [[ $NO_FLAGS == 0 ]]
   then

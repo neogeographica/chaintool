@@ -162,17 +162,26 @@ def dump_placeholders(commands, is_run):  # pylint: disable=too-many-branches
 
 
 def main(args):
-    """Dump placeholders for a command, sequence, or all commands.
+    """Dump commands, sequences, or placeholders for bash completion support.
 
-    The first arg is expected to be either "run" or "vals" to determine the
-    dump format.
+    The args are expected to be in one of the following arrangements:
 
-    If there is no second argument, the dump is done for all current commands.
+    - cmd: list all command names
+    - seq: list all sequence names
+    - run: dump placeholders for all commands, in "run" format
+    - vals: dump placeholders for all commands, in "vals" format
+    - run cmd <command_name>: dump placeholders for command <command_name>,
+      in "run" format
+    - vals cmd <command_name>: dump placeholders for command <command_name>,
+      in "vals" format
+    - run seq <sequence_name>: dump placeholders for the commands in sequence
+      <sequence_name>, in "run" format
+    - vals seq <sequence_name>: dump placeholders for the commands in sequence
+      <sequence_name>, in "vals" format
 
-    Otherwise the remaining arguments are either "cmd" followed by the
-    command name, or "seq" followed by the sequence name.
+    So if the first arg is "cmd" or "seq", print that list and exit.
 
-    Form the appropriate list of command names and delegate to
+    Otherwise, form the appropriate list of command names and delegate to
     :func:`dump_placeholders`.
 
     Note that this is an internally-used utility so we don't do extra
@@ -187,6 +196,14 @@ def main(args):
     :rtype:   int
 
     """
+    if args[0] == "cmd":
+        commands = command_impl_core.all_names()
+        print("\n".join(commands))
+        return 0
+    if args[0] == "seq":
+        sequences = sequence_impl_core.all_names()
+        print("\n".join(sequences))
+        return 0
     is_run = args[0] == "run"
     if len(args) == 1:
         commands = command_impl_core.all_names()
