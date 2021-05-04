@@ -18,7 +18,7 @@
 # along with chaintool.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Dump placeholder info used in bash completions for chaintool."""
+"""Dump info used in bash completions for chaintool."""
 
 
 __all__ = ["main"]

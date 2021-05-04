@@ -15,14 +15,21 @@
 
 # ----------
 
-# Note that if you have an old version of bash that doesn't support the
+# Note that if you have an old version of bash (pre-4.0) that doesn't have the
 # "compopt" builtin, then some of the behaviors here won't be quite as nice.
 # Specifically there will be extraneous space characters after directory
 # completions and after some chaintool-placeholder completions, and when doing
 # file completions on a path that uses the "~" character it won't properly
-# detect when that path is a directory. Might be time to update to a recent
-# version of bash! Likely this will only be a problem if you are on macOS;
-# see: https://itnext.io/upgrading-bash-on-macos-7138bd1066ba
+# detect when that path is a directory. Pre-4.0 bash also won't be able to
+# do filepath autocompletions in a placeholder value, like if you start with
+# mypath=/home/mystuff and try to hit TAB to complete that.
+
+# Also bash versions before 5.0 will have autocompletions broken if you use
+# quotes around a placeholder value, like: mypath="/my dir/my file.txt"
+
+# Might be time to update to a recent version of bash! Your bash version is
+# especially likely to be a problem if you are on macOS; see:
+#   https://itnext.io/upgrading-bash-on-macos-7138bd1066ba
 
 # Final note that applies in general to bash completions (not just chaintool):
 # In an "ambiguous" case where multiple things could match what you have
@@ -46,7 +53,7 @@ fi
 # Subroutine to populate COMPREPLY with file/directory completions.
 _chaintool_file_completions()
 {
-  local CUR="${COMP_WORDS[$COMP_CWORD]}"
+  local CUR="$1"
   if compopt -o filenames 2> /dev/null
   then
     # If compopt worked, we can just get filename completions and they will
@@ -84,6 +91,7 @@ _chaintool_cmd_completions()
   NO_FLAGS="$2"
   FIRST_POSITIONAL_INDEX="$3"
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
+  local BEFORE_CUR="${COMP_WORDS[$COMP_CWORD-1]}"
   local GENWORDS=()
   local IFS=$'\n'
   local MIGHT_MATCH_NAME=1
@@ -152,6 +160,14 @@ _chaintool_cmd_completions()
           local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
           GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper run cmd $CMDNAME))
           GENWORDS_INCLUDE_PLACEHOLDERS=1
+        elif [[ "$CUR" == "=" || "$BEFORE_CUR" == "=" ]]
+        then
+          if [[ "$CUR" == "=" ]]
+          then
+            CUR=""
+          fi
+          _chaintool_file_completions "$CUR"
+          return
         fi
       fi
       if [[ $NO_FLAGS == 0 ]]
@@ -172,6 +188,14 @@ _chaintool_cmd_completions()
           local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
           GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper vals cmd $CMDNAME))
           GENWORDS_INCLUDE_PLACEHOLDERS=1
+        elif [[ "$CUR" == "=" || "$BEFORE_CUR" == "=" ]]
+        then
+          if [[ "$CUR" == "=" ]]
+          then
+            CUR=""
+          fi
+          _chaintool_file_completions "$CUR"
+          return
         fi
       fi
       if [[ $NO_FLAGS == 0 ]]
@@ -304,6 +328,14 @@ _chaintool_seq_completions()
               local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
               GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper run seq $SEQNAME))
               GENWORDS_INCLUDE_PLACEHOLDERS=1
+            elif [[ "$CUR" == "=" || "$BEFORE_CUR" == "=" ]]
+            then
+              if [[ "$CUR" == "=" ]]
+              then
+                CUR=""
+              fi
+              _chaintool_file_completions "$CUR"
+              return
             fi
           fi
         fi
@@ -326,6 +358,14 @@ _chaintool_seq_completions()
           local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
           GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper vals seq $SEQNAME))
           GENWORDS_INCLUDE_PLACEHOLDERS=1
+        elif [[ "$CUR" == "=" || "$BEFORE_CUR" == "=" ]]
+        then
+          if [[ "$CUR" == "=" ]]
+          then
+            CUR=""
+          fi
+          _chaintool_file_completions "$CUR"
+          return
         fi
       fi
       if [[ $NO_FLAGS == 0 ]]
@@ -383,7 +423,7 @@ _chaintool_import_export_completions()
   # against options, so provide file matches.
   if [[ $NO_FLAGS == 1 ]]
   then
-    _chaintool_file_completions
+    _chaintool_file_completions "$CUR"
     return
   fi
   if [[ "$CUR" == "" ]]
@@ -399,7 +439,7 @@ _chaintool_import_export_completions()
     COMPREPLY=( $(compgen -W "$OPTLIST" -- "$CUR") )
   else
     # The first char is not a hyphen. Do the filename completions.
-    _chaintool_file_completions
+    _chaintool_file_completions "$CUR"
   fi
 }
 
@@ -421,11 +461,20 @@ _chaintool_vals_completions()
 {
   NO_FLAGS="$1"
   local CUR="${COMP_WORDS[$COMP_CWORD]}"
+  local BEFORE_CUR="${COMP_WORDS[$COMP_CWORD-1]}"
   local GENWORDS=()
   local IFS=$'\n'
   if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
   then
     GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper vals))
+  elif [[ "$CUR" == "=" || "$BEFORE_CUR" == "=" ]]
+  then
+    if [[ "$CUR" == "=" ]]
+    then
+      CUR=""
+    fi
+    _chaintool_file_completions "$CUR"
+    return
   fi
   if [[ $NO_FLAGS == 0 ]]
   then
