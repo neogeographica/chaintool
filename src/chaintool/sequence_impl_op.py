@@ -20,18 +20,12 @@
 """Low-level logic for "seq" operations.
 
 Called from sequence, command, and xfer modules. Does the bulk of the work
-for reading/writing/modifying sequence definitions.
+for creating/modifying/deleting sequence definitions.
 
 """
 
 
 __all__ = [
-    "init",
-    "exists",
-    "all_names",
-    "read_dict",
-    "write_dict",
-    "create_temp",
     "define",
     "delete",
 ]
@@ -39,106 +33,10 @@ __all__ = [
 
 import os
 
-import yaml  # from pyyaml
-
 from . import command_impl_print
+from . import sequence_impl_core
 from . import shared
-from .shared import DATA_DIR
-
-
-SEQ_DIR = os.path.join(DATA_DIR, "sequences")
-
-
-def init():
-    """Initialize module at load time.
-
-    Called from ``__init__`` when package is loaded. Creates the sequences
-    directory, inside the data appdir, if necessary.
-
-    """
-    os.makedirs(SEQ_DIR, exist_ok=True)
-
-
-def exists(seq):
-    """Test whether the given sequence already exists.
-
-    Return whether a file of name ``seq`` exists in the sequences directory.
-
-    :param seq: name of sequence to check
-    :type seq:  str
-
-    :returns: whether the given sequence exists
-    :rtype:   bool
-
-    """
-    return os.path.exists(os.path.join(SEQ_DIR, seq))
-
-
-def all_names():
-    """Get the names of all current sequences.
-
-    Return the filenames in the sequences directory.
-
-    :returns: current sequence names
-    :rtype:   list[str]
-
-    """
-    return os.listdir(SEQ_DIR)
-
-
-def read_dict(seq):
-    """Fetch the contents of a sequence as a dictionary.
-
-    From the sequences directory, load the YAML for the named sequence.
-    Return its properties as a dictionary.
-
-    :param seq: name of sequence to read
-    :type seq:  str
-
-    :raises: FileNotFoundError if the sequence does not exist
-
-    :returns: dictionary of sequence properties/values
-    :rtype:   dict[str, str]
-
-    """
-    with open(os.path.join(SEQ_DIR, seq), "r") as seq_file:
-        seq_dict = yaml.safe_load(seq_file)
-    return seq_dict
-
-
-def write_dict(seq, seq_dict, mode):
-    """Write the contents of a sequence as a dictionary.
-
-    Dump the sequence dictionary into a YAML document and write it into the
-    sequences directory.
-
-    :param seq:      name of sequence to write
-    :type seq:       str
-    :param seq_dict: dictionary of sequence properties/values
-    :type seq_dict:  dict[str, str]
-    :param mode:     mode used in the open-to-write
-    :type mode:      "w" | "x"
-
-    :raises: FileExistsError if mode is "x" and the sequence exists
-
-    """
-    seq_doc = yaml.dump(seq_dict, default_flow_style=False)
-    with open(os.path.join(SEQ_DIR, seq), mode) as seq_file:
-        seq_file.write(seq_doc)
-
-
-def create_temp(seq):
-    """Create an empty sequence used to "reserve the name" during edit-create.
-
-    If the sequence is being created by interactive edit, an empty-valued
-    temporary YAML document is first created via this function, so that the
-    inventory lock doesn't need to be held during the edit.
-
-    :param seq: name of sequence to make a temp document for
-    :type seq:  str
-
-    """
-    write_dict(seq, {"commands": []}, "w")
+from .sequence_impl_core import SEQ_DIR
 
 
 def define(  # pylint: disable=too-many-arguments
@@ -209,7 +107,7 @@ def define(  # pylint: disable=too-many-arguments
     else:
         mode = "x"
     try:
-        write_dict(seq, {"commands": cmds}, mode)
+        sequence_impl_core.write_dict(seq, {"commands": cmds}, mode)
     except FileExistsError:
         print("Sequence '{}' already exists... not modified.".format(seq))
         print()

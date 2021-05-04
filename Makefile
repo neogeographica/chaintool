@@ -31,6 +31,7 @@ testpub: dist
 
 format:
 	black -t py37 -l 79 --experimental-string-processing src/chaintool
+	black -t py37 -l 79 --experimental-string-processing src/chaintool_completions_helper.py
 
 # For flake8, W503 should stay suppressed (W504 is instead correct), and I
 # often disagree with E731. E203 also needs to stay suppressed (not PEP 8
@@ -40,7 +41,9 @@ format:
 # hasn't been an issue yet.
 lint:
 	flake8 --select C,E,F,W,B,B950 --ignore W503,E203,E501,E731 src/chaintool
+	flake8 --select C,E,F,W,B,B950 --ignore W503,E203,E501,E731 src/chaintool_completions_helper.py
 	pylint -d R0801 src/chaintool
+	pylint -d R0801 src/chaintool_completions_helper.py
 
 clean:
 	-rm -rf build

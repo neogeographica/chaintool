@@ -36,6 +36,13 @@
 
 export CHAINTOOL_BASH_COMPLETIONS=1
 
+if [[ "$CHAINTOOL_PYTHON" == "" ]]
+then
+  CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON=python3
+else
+  CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON="$CHAINTOOL_PYTHON"
+fi
+
 # Subroutine to populate COMPREPLY with file/directory completions.
 _chaintool_file_completions()
 {
@@ -143,7 +150,7 @@ _chaintool_cmd_completions()
         if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
         then
           local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
-          GENWORDS=($("${COMP_WORDS[0]}" cmd print $CMDNAME --dump-placeholders run))
+          GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper run cmd $CMDNAME))
           GENWORDS_INCLUDE_PLACEHOLDERS=1
         fi
       fi
@@ -163,7 +170,7 @@ _chaintool_cmd_completions()
         if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
         then
           local CMDNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
-          GENWORDS=($("${COMP_WORDS[0]}" cmd print $CMDNAME --dump-placeholders vals))
+          GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper vals cmd $CMDNAME))
           GENWORDS_INCLUDE_PLACEHOLDERS=1
         fi
       fi
@@ -295,7 +302,7 @@ _chaintool_seq_completions()
             if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
             then
               local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
-              GENWORDS=($("${COMP_WORDS[0]}" seq print $SEQNAME --dump-placeholders run))
+              GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper run seq $SEQNAME))
               GENWORDS_INCLUDE_PLACEHOLDERS=1
             fi
           fi
@@ -317,7 +324,7 @@ _chaintool_seq_completions()
         if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
         then
           local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
-          GENWORDS=($("${COMP_WORDS[0]}" seq print $SEQNAME --dump-placeholders vals))
+          GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper vals seq $SEQNAME))
           GENWORDS_INCLUDE_PLACEHOLDERS=1
         fi
       fi
@@ -418,7 +425,7 @@ _chaintool_vals_completions()
   local IFS=$'\n'
   if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
   then
-    GENWORDS=($("${COMP_WORDS[0]}" print --dump-placeholders vals))
+    GENWORDS=($("$CHAINTOOL_DUMP_PLACEHOLDERS_PYTHON" -m chaintool_completions_helper vals))
   fi
   if [[ $NO_FLAGS == 0 ]]
   then

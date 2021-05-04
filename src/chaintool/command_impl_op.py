@@ -19,8 +19,8 @@
 
 """Low-level logic for "cmd" operations (other than pretty-printing).
 
-Called from command, sequence, sequence_impl, and xfer modules. Does the
-bulk of the work for reading/writing/modifying command definitions.
+Called from command, sequence, sequence_impl_op, and xfer modules. Does the
+bulk of the work for creating/modifying/executing/deleting command definitions.
 
 """
 

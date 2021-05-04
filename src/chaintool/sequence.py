@@ -20,7 +20,7 @@
 """Top-level logic for "seq" operations.
 
 Called from cli module. Handles locking and shortcuts/completions; delegates
-to sequence_impl module for most of the work.
+to sequence_impl_* modules for most of the work.
 
 Note that most locks acquired here are released only when the program exits.
 Operations are meant to be invoked one per program instance, using the CLI.
@@ -49,7 +49,8 @@ from . import command_impl_op
 from . import command_impl_print
 from . import completions
 from . import locks
-from . import sequence_impl
+from . import sequence_impl_core
+from . import sequence_impl_op
 from . import shared
 from . import shortcuts
 
@@ -92,7 +93,7 @@ def cli_list(column):
 
     """
     print()
-    sequence_names = sequence_impl.all_names()
+    sequence_names = sequence_impl_core.all_names()
     if sequence_names:
         if column:
             print("\n".join(sequence_names))
@@ -109,7 +110,7 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
     sequence, also acquire the cmd inventory readlock and check to see whether
     a command of this same name already exists (reject if so).
 
-    Delegate to :func:`.sequence_impl.define` to create/update the sequence.
+    Delegate to :func:`.sequence_impl_op.define` to create/update the sequence.
 
     Finally: if we successfully created a new sequence, set up its shortcut
     (:func:`.shortcuts.create_seq_shortcut`) and autocompletion behavior
@@ -134,7 +135,7 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
     locks.inventory_lock("seq", locks.LockType.WRITE)
     locks.item_lock("seq", seq, locks.LockType.WRITE)
     creating = False
-    if not sequence_impl.exists(seq):
+    if not sequence_impl_core.exists(seq):
         creating = True
         locks.inventory_lock("cmd", locks.LockType.READ)
         if command_impl_core.exists(seq):
@@ -145,7 +146,7 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
             )
             print()
             return 1
-    status = sequence_impl.define(
+    status = sequence_impl_op.define(
         seq,
         cmds,
         undefined_cmds(cmds, ignore_undefined_cmds),
@@ -170,7 +171,7 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
     so). Then create a temporary empty sequence that we can edit.
 
     Release the inventory locks and let the user interactively edit any
-    existing list of cmds. The delegate to :func:`.sequence_impl.define` to
+    existing list of cmds. The delegate to :func:`.sequence_impl_op.define` to
     create/update the sequence.
 
     Finally: if we successfully created a new sequence, set up its shortcut
@@ -193,7 +194,7 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
     locks.item_lock("seq", seq, locks.LockType.WRITE)
     cleanup_fun = None
     try:
-        seq_dict = sequence_impl.read_dict(seq)
+        seq_dict = sequence_impl_core.read_dict(seq)
         old_commands_str = " ".join(seq_dict["commands"])
     except FileNotFoundError:
         locks.inventory_lock("cmd", locks.LockType.READ)
@@ -210,15 +211,15 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         # do; any concurrent cmd creation will see it when checking for name
         # conflicts.
         old_commands_str = ""
-        cleanup_fun = lambda: sequence_impl.delete(seq, True)
+        cleanup_fun = lambda: sequence_impl_op.delete(seq, True)
         atexit.register(cleanup_fun)
-        sequence_impl.create_temp(seq)
+        sequence_impl_core.create_temp(seq)
         locks.release_inventory_lock("cmd", locks.LockType.READ)
     locks.release_inventory_lock("seq", locks.LockType.WRITE)
     print()
     new_commands_str = shared.editline("commands: ", old_commands_str)
     new_commands = new_commands_str.split()
-    status = sequence_impl.define(
+    status = sequence_impl_op.define(
         seq,
         new_commands,
         undefined_cmds(new_commands, ignore_undefined_cmds),
@@ -238,15 +239,8 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
     return status
 
 
-def cli_print(seq, dump_placeholders):
+def cli_print(seq):
     """Pretty-print the info for all commands in a sequence.
-
-    If ``dump_placeholders`` is not ``None``, read the sequence's command list
-    (without locking) and delegate to
-    :func:`.command_impl_print.dump_placeholders`. (This is not a user-facing
-    option; it is used for generating argument completions.)
-
-    Otherwise:
 
     Acquire the seq item readlock and cmd inventory readlock. Read the
     sequence's command list. Readlock those commands and delegate to
@@ -255,32 +249,22 @@ def cli_print(seq, dump_placeholders):
 
     :param seq:               name of sequence to print
     :type seq:                str
-    :param dump_placeholders: whether to print in a "rawer" format, and
-                              without locking (used internally)
-    :type dump_placeholders:  "run" | "vals" | None
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
 
     """
-    if dump_placeholders is None:
-        locks.item_lock("seq", seq, locks.LockType.READ)
-        locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.item_lock("seq", seq, locks.LockType.READ)
+    locks.inventory_lock("cmd", locks.LockType.READ)
     try:
-        seq_dict = sequence_impl.read_dict(seq)
+        seq_dict = sequence_impl_core.read_dict(seq)
     except FileNotFoundError:
-        if dump_placeholders is None:
-            print()
-            shared.errprint("Sequence '{}' does not exist.".format(seq))
+        print()
+        shared.errprint("Sequence '{}' does not exist.".format(seq))
         print()
         return 1
     commands = seq_dict["commands"]
-    if dump_placeholders is None:
-        locks.multi_item_lock("cmd", commands, locks.LockType.READ)
-    if dump_placeholders is not None:
-        return command_impl_print.dump_placeholders(
-            commands, dump_placeholders == "run"
-        )
+    locks.multi_item_lock("cmd", commands, locks.LockType.READ)
     print()
     return command_impl_print.print_multi(commands, False)
 
@@ -289,8 +273,8 @@ def cli_del(delseqs):
     """Delete one or more sequences.
 
     Acquire the seq inventory writelock, and item writelocks on the sequences
-    to delete. Delete each sequence (via :func:`.sequence_impl.delete`), and
-    tear down its shortcut (:func:`.shortcuts.delete_seq_shortcut`) and
+    to delete. Delete each sequence (via :func:`.sequence_impl_op.delete`),
+    and tear down its shortcut (:func:`.shortcuts.delete_seq_shortcut`) and
     autocompletion behavior (:func:`.completions.delete_completion`).
 
     :param delseqs: names of sequences to delete
@@ -305,7 +289,7 @@ def cli_del(delseqs):
     print()
     for seq in delseqs:
         try:
-            sequence_impl.delete(seq, False)
+            sequence_impl_op.delete(seq, False)
         except FileNotFoundError:
             print("Sequence '{}' does not exist.".format(seq))
             continue
@@ -349,7 +333,7 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     locks.inventory_lock("cmd", locks.LockType.READ)
     print()
     try:
-        seq_dict = sequence_impl.read_dict(seq)
+        seq_dict = sequence_impl_core.read_dict(seq)
     except FileNotFoundError:
         shared.errprint("Sequence '{}' does not exist.".format(seq))
         print()
@@ -413,7 +397,7 @@ def cli_vals(seq, args, print_after_set):
     locks.item_lock("seq", seq, locks.LockType.WRITE)
     locks.inventory_lock("cmd", locks.LockType.READ)
     try:
-        seq_dict = sequence_impl.read_dict(seq)
+        seq_dict = sequence_impl_core.read_dict(seq)
     except FileNotFoundError:
         print()
         shared.errprint("Sequence '{}' does not exist.".format(seq))

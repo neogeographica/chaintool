@@ -20,7 +20,7 @@
 """Top-level logic for "export" and "import" operations.
 
 Called from cli module. Handles locking and shortcuts/completions; delegates
-to command_impl_* and sequence_impl modules for most of the work.
+to command_impl_* and sequence_impl_* modules for most of the work.
 
 Note that most locks acquired here are released only when the program exits.
 Operations are meant to be invoked one per program instance, using the CLI.
@@ -38,7 +38,8 @@ from colorama import Fore
 from . import command_impl_core
 from . import command_impl_op
 from . import completions
-from . import sequence_impl
+from . import sequence_impl_core
+from . import sequence_impl_op
 from . import locks
 from . import shortcuts
 
@@ -51,8 +52,9 @@ def cli_export(export_file):
 
     Open the given file and write a YAML doc to it. Commands (from
     :func:`.command_impl_core.read_dict`) are written to a list value for the
-    "commands" property, and sequences (from :func:`.sequence_impl.read_dict`)
-    similarly to the "sequences" property.
+    "commands" property, and sequences (from
+    :func:`.sequence_impl_core.read_dict`) similarly to the "sequences"
+    property.
 
     :param export_file: filepath to write to
     :type export_file:  str
@@ -64,7 +66,7 @@ def cli_export(export_file):
     locks.inventory_lock("seq", locks.LockType.READ)
     locks.inventory_lock("cmd", locks.LockType.READ)
     command_names = command_impl_core.all_names()
-    sequence_names = sequence_impl.all_names()
+    sequence_names = sequence_impl_core.all_names()
     locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
     locks.multi_item_lock("seq", sequence_names, locks.LockType.READ)
     print()
@@ -87,7 +89,7 @@ def cli_export(export_file):
     print()
     for seq in sequence_names:
         try:
-            seq_dict = sequence_impl.read_dict(seq)
+            seq_dict = sequence_impl_core.read_dict(seq)
         except FileNotFoundError:
             print("Failed to read sequence '{}' ... skipped.".format(seq))
             print()
@@ -114,7 +116,7 @@ def cli_import(import_file, overwrite):
     list value for the "commands" property, and sequences similary from the
     "sequences" property. The ``overwrite`` argument is passed along to
     command and sequence creation (via :func:`.command_impl_op.define` and
-    :func:`.sequence_impl.define`) to control whether an imported item is
+    :func:`.sequence_impl_op.define`) to control whether an imported item is
     allowed to replace an existing item of the same name.
 
     For each successfully created item, also set up its shortcut
@@ -135,7 +137,7 @@ def cli_import(import_file, overwrite):
     locks.inventory_lock("cmd", locks.LockType.WRITE)
     if overwrite:
         command_names = command_impl_core.all_names()
-        sequence_names = sequence_impl.all_names()
+        sequence_names = sequence_impl_core.all_names()
         locks.multi_item_lock("cmd", command_names, locks.LockType.WRITE)
         locks.multi_item_lock("seq", sequence_names, locks.LockType.WRITE)
     print()
@@ -155,7 +157,7 @@ def cli_import(import_file, overwrite):
     print()
     for seq_dict in import_dict["sequences"]:
         seq = seq_dict["name"]
-        status = sequence_impl.define(
+        status = sequence_impl_op.define(
             seq, seq_dict["commands"], [], overwrite, False, True
         )
         if not status:

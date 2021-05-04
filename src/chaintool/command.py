@@ -50,7 +50,7 @@ from . import command_impl_core
 from . import command_impl_op
 from . import command_impl_print
 from . import completions
-from . import sequence_impl
+from . import sequence_impl_core
 from . import shared
 from . import shortcuts
 from . import locks
@@ -112,7 +112,7 @@ def cli_set(cmd, cmdline, overwrite, print_after_set):
     creating = False
     if not command_impl_core.exists(cmd):
         creating = True
-        if sequence_impl.exists(cmd):
+        if sequence_impl_core.exists(cmd):
             print()
             shared.errprint(
                 "Command '{}' cannot be created because a sequence exists with"
@@ -167,7 +167,7 @@ def cli_edit(cmd, print_after_set):
         old_cmdline = cmd_dict["cmdline"]
     except FileNotFoundError:
         # Check whether there's a seq of the same name.
-        if sequence_impl.exists(cmd):
+        if sequence_impl_core.exists(cmd):
             print()
             shared.errprint(
                 "Command '{}' cannot be created because a sequence exists with"
@@ -202,20 +202,13 @@ def cli_edit(cmd, print_after_set):
     return status
 
 
-def cli_print(cmd, dump_placeholders):
+def cli_print(cmd):
     """Pretty-print the info for a command.
 
-    If ``dump_placeholders`` is not ``None``, delegate to
-    :func:`.command_impl_print.dump_placeholders`. (This is not a user-facing
-    option; it is used for generating argument completions.)
-
-    Otherwise delegate to :func:`.command_impl_print.print_one`.
+    Delegate to :func:`.command_impl_print.print_one`.
 
     :param cmd:               name of command to print
     :type cmd:                str
-    :param dump_placeholders: whether to print in a "rawer" format, and
-                              without locking (used internally)
-    :type dump_placeholders:  "run" | "vals" | None
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -224,46 +217,25 @@ def cli_print(cmd, dump_placeholders):
     # No locking needed. We read a cmd yaml file and format/print it. If
     # the file is being deleted right now that's fine, either we get in
     # before the delete or after.
-    if dump_placeholders is not None:
-        return command_impl_print.dump_placeholders(
-            [cmd], dump_placeholders == "run"
-        )
     print()
     return command_impl_print.print_one(cmd)
 
 
-def cli_print_all(dump_placeholders):
+def cli_print_all():
     """Pretty-print the info for all commands.
-
-    If ``dump_placeholders`` is not ``None``, get the list of all commands
-    (without locking) and delegate to
-    :func:`.command_impl_print.dump_placeholders`. (This is not a user-facing
-    option; it is used for generating argument completions.)
-
-    Otherwise:
 
     Acquire the cmd inventory readlock and get the list of all commands.
     Readlock those commands and delegate to
     :func:`.command_impl_print.print_multi` to pretty-print the info for that
     list of commands.
 
-    :param dump_placeholders: whether to print in a "rawer" format, and
-                              without locking (used internally)
-    :type dump_placeholders:  "run" | "vals" | None
-
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
 
     """
-    if dump_placeholders is None:
-        locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.inventory_lock("cmd", locks.LockType.READ)
     command_names = command_impl_core.all_names()
-    if dump_placeholders is None:
-        locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
-    else:
-        return command_impl_print.dump_placeholders(
-            command_names, dump_placeholders == "run"
-        )
+    locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
     print()
     return command_impl_print.print_multi(command_names, True)
 
@@ -296,7 +268,7 @@ def cli_del(delcmds, ignore_seq_usage):
     """
     if not ignore_seq_usage:
         locks.inventory_lock("seq", locks.LockType.READ)
-        sequence_names = sequence_impl.all_names()
+        sequence_names = sequence_impl_core.all_names()
         locks.multi_item_lock("seq", sequence_names, locks.LockType.READ)
     locks.inventory_lock("cmd", locks.LockType.WRITE)
     locks.multi_item_lock("cmd", delcmds, locks.LockType.WRITE)
@@ -306,7 +278,7 @@ def cli_del(delcmds, ignore_seq_usage):
         seq_dicts = []
         for seq in sequence_names:
             try:
-                seq_dict = sequence_impl.read_dict(seq)
+                seq_dict = sequence_impl_core.read_dict(seq)
             except FileNotFoundError:
                 continue
             seq_dict["name"] = seq

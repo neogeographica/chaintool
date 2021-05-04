@@ -193,12 +193,6 @@ def set_cmd_options(group_subparsers):
         help="Display a commandline and its placeholders/defaults.",
         description="Display a commandline and its placeholders/defaults.",
     )
-    cmd_parser_print.add_argument(
-        "--dump-placeholders",
-        choices=["run", "vals"],
-        dest="dump_placeholders",
-        help=argparse.SUPPRESS,
-    )
     cmd_parser_print.add_argument("cmdname")
     cmd_parser_del = cmd_subparsers.add_parser(
         "del",
@@ -380,12 +374,6 @@ def set_seq_options(group_subparsers):
             " available placeholders."
         ),
     )
-    seq_parser_print.add_argument(
-        "--dump-placeholders",
-        choices=["run", "vals"],
-        dest="dump_placeholders",
-        help=argparse.SUPPRESS,
-    )
     seq_parser_print.add_argument("seqname")
     seq_parser_del = seq_subparsers.add_parser(
         "del",
@@ -500,12 +488,6 @@ def set_print_options(group_subparsers):
         "print",
         help="Display placeholders across all commandlines.",
         description="Display placeholders across all commandlines.",
-    )
-    group_parser_print.add_argument(
-        "--dump-placeholders",
-        choices=["run", "vals"],
-        dest="dump_placeholders",
-        help=argparse.SUPPRESS,
     )
     return group_parser_print
 
@@ -642,9 +624,7 @@ CMD_DISPATCH = {
         args.cmdname, args.cmdline, True, not args.quiet
     ),
     "edit": lambda args: command.cli_edit(args.cmdname, not args.quiet),
-    "print": lambda args: command.cli_print(
-        args.cmdname, args.dump_placeholders
-    ),
+    "print": lambda args: command.cli_print(args.cmdname),
     "del": lambda args: command.cli_del(args.cmdnames, args.force),
     "run": lambda args: command.cli_run(args.cmdname, args.placeholder_args),
     "vals": lambda args: command.cli_vals(
@@ -677,9 +657,7 @@ SEQ_DISPATCH = {
     "edit": lambda args: sequence.cli_edit(
         args.seqname, args.force, not args.quiet
     ),
-    "print": lambda args: sequence.cli_print(
-        args.seqname, args.dump_placeholders
-    ),
+    "print": lambda args: sequence.cli_print(args.seqname),
     "del": lambda args: sequence.cli_del(args.seqnames),
     "run": lambda args: sequence.cli_run(
         args.seqname,
@@ -709,11 +687,11 @@ def handle_seq(args):
     return SEQ_DISPATCH[args.operation](args)
 
 
-def handle_print(args):
+def handle_print(_args):
     """Dispatch for the "print" command.
 
-    No sub-operations, just pass ``args.dump_placeholders`` to
-    :func:`.command.cli_print_all` to print all commands.
+    No sub-operations, just delegate :func:`.command.cli_print_all` to print
+    all commands.
 
     :param args: the namespace object populated by argparse, with the results
                  of the command-line parsing
@@ -723,7 +701,7 @@ def handle_print(args):
     :rtype:   int
 
     """
-    return command.cli_print_all(args.dump_placeholders)
+    return command.cli_print_all()
 
 
 def handle_vals(args):

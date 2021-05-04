@@ -28,12 +28,12 @@ import colorama
 from . import command_impl_core
 from . import completions
 from . import locks
-from . import sequence_impl
+from . import sequence_impl_core
 from . import shared
 from . import shortcuts
 
 
-__version__ = "0.2.0"
+__version__ = "0.3.0-dev"
 
 if sys.version_info < (3, 7):
     sys.stderr.write("Python version 3.7 or later is required.\n")
@@ -45,6 +45,6 @@ atexit.register(colorama.deinit)
 command_impl_core.init()
 completions.init()
 locks.init()
-sequence_impl.init()
+sequence_impl_core.init()
 shared.init()
 shortcuts.init()

@@ -59,6 +59,14 @@ chaintool.completions\_setup module
    :undoc-members:
    :show-inheritance:
 
+chaintool.info module
+---------------------
+
+.. automodule:: chaintool.info
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 chaintool.locks module
 ----------------------
 
@@ -75,10 +83,18 @@ chaintool.sequence module
    :undoc-members:
    :show-inheritance:
 
-chaintool.sequence\_impl module
--------------------------------
+chaintool.sequence\_impl\_core module
+-------------------------------------
 
-.. automodule:: chaintool.sequence_impl
+.. automodule:: chaintool.sequence_impl_core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+chaintool.sequence\_impl\_op module
+-----------------------------------
+
+.. automodule:: chaintool.sequence_impl_op
    :members:
    :undoc-members:
    :show-inheritance:
