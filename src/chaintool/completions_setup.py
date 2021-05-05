@@ -169,7 +169,7 @@ def check_dynamic(userdir):
         print(
             "Dynamic completion loading was previously configured using the"
             " following\ndirectory, but that directory no longer exists:\n  "
-            + userdir
+            + shlex.quote(userdir)
         )
         print()
         return False
@@ -178,7 +178,7 @@ def check_dynamic(userdir):
         print(
             "Dynamic completion loading was previously configured using the"
             " following\ndirectory, but that seems to no longer be true:\n  "
-            + userdir
+            + shlex.quote(userdir)
         )
         print()
         return False
@@ -262,7 +262,7 @@ def check_oldstyle(startup_script_path):
         print(
             "Old-style completion loading was previously configured using the"
             " following\nfile, but that file no longer exists:\n  "
-            + startup_script_path
+            + shlex.quote(startup_script_path)
         )
         print()
         return False
@@ -273,7 +273,7 @@ def check_oldstyle(startup_script_path):
         print(
             "Old-style completion loading was previously configured using the"
             " following\file, but that seems to no longer be true:\n  "
-            + startup_script_path
+            + shlex.quote(startup_script_path)
         )
         print()
         return False
@@ -311,7 +311,7 @@ def probe_config(ask_to_change):
         print(
             "You currently have dynamic completions enabled, using this"
             " directory:\n  "
-            + userdir_choice
+            + shlex.quote(userdir_choice)
         )
     elif script_choice is not None:
         if not check_oldstyle(script_choice):
@@ -319,7 +319,7 @@ def probe_config(ask_to_change):
         print(
             "You currently have old-style completions enabled, using this"
             " file:\n  "
-            + script_choice
+            + shlex.quote(script_choice)
         )
     else:
         return False

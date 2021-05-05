@@ -116,7 +116,7 @@ def probe_config(ask_to_change):
         print(
             "The PATH value for shortcuts used to be set in the following"
             " file, but this\nfile no longer exists:\n  "
-            + location_choice
+            + shlex.quote(location_choice)
         )
         print()
         return False
@@ -127,7 +127,7 @@ def probe_config(ask_to_change):
         print(
             "The PATH value for shortcuts used to be set in the following"
             " file, but that\nseems to no longer be true:\n  "
-            + location_choice
+            + shlex.quote(location_choice)
         )
         print()
         return False
@@ -136,14 +136,14 @@ def probe_config(ask_to_change):
             "Command and sequence names should currently be available to run"
             " as\nshortcuts, because the shortcuts directory is already in"
             " your PATH through\na setting in this file:\n  "
-            + location_choice
+            + shlex.quote(location_choice)
         )
     else:
         print(
             "The following file already includes a line to set the PATH"
             " appropriately.\nIf it's a valid startup script, then shortcuts"
             " should be active next time a\nshell is started.\n  "
-            + location_choice
+            + shlex.quote(location_choice)
         )
     print()
     if not ask_to_change:
