@@ -1,11 +1,15 @@
 Overview
 =================================
 
-.. include:: blurb.txt
+.. include:: shared/blurb.txt
 
 Documentation sections:
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
-   chaintool
+   prereqs
+   installation
+   configuration
+   usage
+   devdocs

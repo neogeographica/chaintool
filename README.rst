@@ -46,7 +46,7 @@ First, the bash shell is required for the autocompletion feature to work at all.
 Having a *recent* version of bash also helps to avoid a couple of annoying issues:
 
 - If you don't have bash 5 or later, double-quoting a placeholder value on the command line will break autocompletions for all subsequent arguments.
-- If you don't have bash 4 or later, the lack of the "compopt" builtin will cause filename completions for directory paths (e.g. when composing the file argument to import/export) to be awkward... you'll get a trailing space instead of a trailing slash.
+- If you don't have bash 4 or later, the lack of the "compopt" builtin will cause filename completions for directory paths (e.g. when composing the file argument to import/export) to be awkward... you'll get a trailing space instead of a trailing slash. Other quirks are also possible, and in general this code is not often tested with bash versions older than 4.0.
 
 If you need to update bash, the process will be specific to your platform and package manager. FYI macOS is likely to have an extremely old version of bash by default; for updating bash on macOS, one approach is to `use the homebrew package manager`_.
 
@@ -55,6 +55,7 @@ Finally, the ``bash-completion`` package (version 2.2 or later) is a nice-to-hav
 You can use your package manager to check whether you have bash-completion installed (and which version). Also if you use "chaintool x completions" to interactively configure the completions feature, it can walk you through a method of checking whether a recent-enough version of the bash-completion package is installed and in use by your shell.
 
 .. _use the homebrew package manager: https://itnext.io/upgrading-bash-on-macos-7138bd1066ba
+
 
 .. _installation_section:
 
@@ -81,6 +82,7 @@ An alternative to installing from PyPI is to install chaintool directly from Git
 
 .. _Python Package Index: https://pypi.org/project/chaintool
 
+
 .. _configuration_section:
 
 Configuration
@@ -92,10 +94,8 @@ The documentation goes into this in more detail, but running "chaintool x comple
 
 Depending on your configuration, you may need to start a new shell for these features to be available.
 
+For more details, see the full documentation linked below.
+
 .. _documentation_section:
 
-Documentation
--------------
-
 XXX Eventually need a link here to the relevant readthedocs page.
-
