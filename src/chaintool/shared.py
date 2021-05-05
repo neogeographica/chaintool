@@ -27,6 +27,8 @@ __all__ = [
     "LOCATIONS_DIR",
     "MSG_WARN_PREFIX",
     "init",
+    "get_last_version",
+    "set_last_version",
     "errprint",
     "is_valid_name",
     "editline",
@@ -56,6 +58,7 @@ CACHE_DIR = appdirs.user_cache_dir(APP_NAME, APP_AUTHOR)
 CONFIG_DIR = appdirs.user_config_dir(APP_NAME, APP_AUTHOR)
 DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
 LOCATIONS_DIR = os.path.join(CONFIG_DIR, "locations")
+VERSION_MARKER_PATH = os.path.join(CONFIG_DIR, "last_version")
 
 MSG_WARN_PREFIX = Fore.YELLOW + "Warning:" + Fore.RESET
 
@@ -68,6 +71,26 @@ def init():
 
     """
     os.makedirs(LOCATIONS_DIR, exist_ok=True)
+
+
+def get_last_version():
+    """Return the last-run version of chaintool, if known.
+
+    :returns: version string from previous run, if any
+    :rtype:   str | None
+
+    """
+    return read_choicefile(VERSION_MARKER_PATH)
+
+
+def set_last_version(version):
+    """Update the stored last-run version of chaintool.
+
+    :param version: version string to write
+    :type version:  str
+
+    """
+    write_choicefile(VERSION_MARKER_PATH, version)
 
 
 def errprint(msg):
@@ -178,10 +201,11 @@ def read_choicefile(choicefile_path):
     :rtype:   str | None
 
     """
-    if not os.path.exists(choicefile_path):
+    try:
+        with open(choicefile_path, "r") as instream:
+            return instream.read()
+    except FileNotFoundError:
         return None
-    with open(choicefile_path, "r") as instream:
-        return instream.read()
 
 
 def write_choicefile(choicefile_path, choice):

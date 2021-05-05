@@ -40,11 +40,16 @@ from .shared import DATA_DIR
 CMD_DIR = os.path.join(DATA_DIR, "commands")
 
 
-def init():
+def init(_prev_version, _cur_version):
     """Initialize module at load time.
 
     Called from ``__init__`` when package is loaded. Creates the commands
     directory, inside the data appdir, if necessary.
+
+    :param _prev_version: version string of previous chaintool run; not used
+    :type _prev_version:  str
+    :param _cur_version:  version string of current chaintool run; not used
+    :type _cur_version:   str
 
     """
     os.makedirs(CMD_DIR, exist_ok=True)

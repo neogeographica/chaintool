@@ -79,7 +79,7 @@ SOURCESCRIPT_LOCATION = os.path.join(
 USERDIR_LOCATION = os.path.join(LOCATIONS_DIR, "completions_lazy_load_userdir")
 
 
-def init():
+def init(prev_version, cur_version):
     """Initialize module at load time.
 
     Called from ``__init__`` when package is loaded. Creates the completions
@@ -88,24 +88,32 @@ def init():
 
     Once those directories are ensured, the "main script" and "helper script"
     files can be extracted from the package resources and placed in the
-    completions directory. The "omnibus" file is also created there.
+    completions directory. The "omnibus" file is also created there. These
+    three files will be (re)created if missing or if the chaintool version
+    has changed since last run.
+
+    :param prev_version: version string of previous chaintool run
+    :type prev_version:  str
+    :param cur_version:  version string of current chaintool run
+    :type cur_version:   str
 
     """
     os.makedirs(COMPLETIONS_DIR, exist_ok=True)
     os.makedirs(SHORTCUTS_COMPLETIONS_DIR, exist_ok=True)
-    if not os.path.exists(MAIN_SCRIPT_PATH):
+    version_change = prev_version != cur_version
+    if version_change or not os.path.exists(MAIN_SCRIPT_PATH):
         script = importlib.resources.read_text(
             __package__, "chaintool_completion"
         )
         with open(MAIN_SCRIPT_PATH, "w") as outstream:
             outstream.write(script)
-    if not os.path.exists(HELPER_SCRIPT_PATH):
+    if version_change or not os.path.exists(HELPER_SCRIPT_PATH):
         script = importlib.resources.read_text(
             __package__, "chaintool_run_op_common_completion"
         )
         with open(HELPER_SCRIPT_PATH, "w") as outstream:
             outstream.write(script)
-    if not os.path.exists(OMNIBUS_SCRIPT_PATH):
+    if version_change or not os.path.exists(OMNIBUS_SCRIPT_PATH):
         with open(OMNIBUS_SCRIPT_PATH, "w") as outstream:
             outstream.write(
                 "source {}\n".format(shlex.quote(MAIN_SCRIPT_PATH))
