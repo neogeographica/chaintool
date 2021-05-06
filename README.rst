@@ -17,7 +17,7 @@ chaintool: a tool to chain tools into toolchains
 
 .. _blurb_section:
 
-**chaintool** is a GPLv3_-licensed tool to manage certain kinds of "toolchain" usecases that require executing a sequence of commandlines.
+**chaintool** is a utility to manage certain kinds of "toolchain" usecases that require executing a sequence of commandlines.
 
 This is not a replacement for a build system, but rather an alternative to creating one-off scripts for usecases that fit the following characteristics:
 
@@ -32,8 +32,6 @@ Obviously, you could instead just manually author a script that contains the com
 If you're using the bash shell, another major benefit from chaintool is that the shortcuts you create will have full autocompletion support, for the options that you have defined and chosen to surface.
 
 chaintool also helps export definitions for these command sequences that are fairly portable. If there are paths or argument values that are specific to a particular OS, or to a particular user's environment, those values can be left as required parameters that an importer must fill in before running the sequence.
-
-.. _GPLv3: http://www.gnu.org/copyleft/gpl.html
 
 
 .. _prerequisites_section:
