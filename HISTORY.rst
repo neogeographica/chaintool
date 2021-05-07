@@ -1,6 +1,15 @@
 Changelog
 ---------
 
+- **0.3.0** (2021-??-??)
+
+  - Use a separate lightweight module for bash completions support; might make
+    bash completions slightly speedier.
+  - Support filepath completions for placeholder values.
+  - Handle updating completion scripts across chaintool version upgrades.
+  - Support import-from-URL.
+  - More work on Sphinx docs.
+
 - **0.2.0** (2021-04-30)
 
   - New "chaintool x info" command to dump configuration info.
