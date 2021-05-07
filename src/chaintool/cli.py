@@ -566,9 +566,13 @@ def set_import_options(group_subparsers):
     """
     group_parser_import = group_subparsers.add_parser(
         "import",
-        help="Load commandline and sequence definitions from a flat file.",
+        help=(
+            "Load commandline and sequence definitions from a flat file."
+            " Accepts either a local filepath or an http/https URL."
+        ),
         description=(
             "Load commandline and sequence definitions from a flat file."
+            " Accepts either a local filepath or an http/https URL."
         ),
     )
     group_parser_import.add_argument(

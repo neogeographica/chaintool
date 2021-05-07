@@ -31,6 +31,7 @@ Operations are meant to be invoked one per program instance, using the CLI.
 __all__ = ["cli_export", "cli_import"]
 
 
+import requests
 import yaml  # from pyyaml
 
 from colorama import Fore
@@ -106,15 +107,15 @@ def cli_export(export_file):
 
 
 def cli_import(import_file, overwrite):
-    """Import commands and sequences from a file.
+    """Import commands and sequences from a filepath or an http/https URL.
 
     Acquire the seq and cmd inventory writelocks. If ``overwrite`` is
     ``True``, get all sequence and command names, and writelock all those
     items.
 
-    Open the given file and read a YAML doc from it. Commands are read from a
-    list value for the "commands" property, and sequences similary from the
-    "sequences" property. The ``overwrite`` argument is passed along to
+    Open the given file or URL and read a YAML doc from it. Commands are read
+    from a list value for the "commands" property, and sequences similary from
+    the "sequences" property. The ``overwrite`` argument is passed along to
     command and sequence creation (via :func:`.command_impl_op.define` and
     :func:`.sequence_impl_op.define`) to control whether an imported item is
     allowed to replace an existing item of the same name.
@@ -124,7 +125,7 @@ def cli_import(import_file, overwrite):
     :func:`.shortcuts.create_cmd_shortcut`) and autocompletion behavior
     (:func:`.completions.create_completion`).
 
-    :param import_file:   filepath to read from
+    :param import_file:   filepath or http/https URL to read from
     :type import_file:    str
     :param overwrite:     whether to allow replacing existing items
     :type overwrite:      bool
@@ -141,8 +142,12 @@ def cli_import(import_file, overwrite):
         locks.multi_item_lock("cmd", command_names, locks.LockType.WRITE)
         locks.multi_item_lock("seq", sequence_names, locks.LockType.WRITE)
     print()
-    with open(import_file, "r") as infile:
-        import_dict = yaml.safe_load(infile)
+    if import_file.startswith("https://") or import_file.startswith("http://"):
+        with requests.get(import_file) as response:
+            import_dict = yaml.safe_load(response.text)
+    else:
+        with open(import_file, "r") as infile:
+            import_dict = yaml.safe_load(infile)
     print(Fore.MAGENTA + "* Importing commands..." + Fore.RESET)
     print()
     for cmd_dict in import_dict["commands"]:

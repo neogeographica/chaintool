@@ -85,6 +85,7 @@ setuptools.setup(
         'filelock>=3.0.12',
         'psutil>=5.8.0',
         'PyYAML>=5.4.1',
+        'requests>=2.25.1',
     ],
     entry_points = {
         'console_scripts': [
