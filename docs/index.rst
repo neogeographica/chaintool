@@ -6,7 +6,7 @@ Overview
 Documentation sections:
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    prereqs
    installation

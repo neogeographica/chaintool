@@ -57,6 +57,18 @@ exclude_patterns = ['_build', 'shared', 'Thumbs.db', '.DS_Store', 'modules.rst']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
+rst_prolog = """
+.. role:: mono
+.. role:: red
+    :class: red mono
+.. role:: green
+    :class: green mono
+.. role:: magenta
+    :class: magenta mono
+.. role:: cyan
+    :class: cyan mono
+"""
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -67,9 +79,14 @@ html_theme = 'sphinxdoc'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['_static']
+html_static_path = ['_static']
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {"nosidebar": "true", "body_max_width": "none"}
+
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+html_css_files = ['css/colors.css']
+
