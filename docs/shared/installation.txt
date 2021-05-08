@@ -1,4 +1,4 @@
-The latest version of chaintool (hosted at the `Python Package Index`_, PyPI) can be installed via Python's ``pip`` package manager:
+The latest version of chaintool (hosted at the `Python Package Index`_, PyPI) can be installed via Python's :py:mod:`pip` package manager:
 
 .. code-block:: none
 

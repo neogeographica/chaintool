@@ -1,3 +1,6 @@
+.. role:: py:mod(literal)
+.. role:: command(literal)
+
 .. _header_section:
 
 chaintool: a tool to chain tools into toolchains
@@ -40,7 +43,7 @@ Configuration
 
 Once chaintool has been installed, it can help you configure your shell environment to enable support for shortcuts and autocompletions... in most cases it is able to do this setup automatically for you.
 
-The documentation goes into this in more detail, but running "chaintool x completions" will get you into an interactive process for setting up the autocompletions feature, and "chaintool x shortcuts" is a similar helper for the shortcuts feature.
+The documentation goes into this in more detail, but running :command:`chaintool x completions` will get you into an interactive process for setting up the autocompletions feature, and :command:`chaintool x shortcuts` is a similar helper for the shortcuts feature.
 
 Depending on your configuration, you may need to start a new shell for these features to be available.
 
