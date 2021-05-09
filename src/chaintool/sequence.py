@@ -192,12 +192,12 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
     """
     locks.inventory_lock("seq", locks.LockType.WRITE)
     locks.item_lock("seq", seq, locks.LockType.WRITE)
+    locks.inventory_lock("cmd", locks.LockType.READ)
     cleanup_fun = None
     try:
         seq_dict = sequence_impl_core.read_dict(seq)
         old_commands_str = " ".join(seq_dict["commands"])
     except FileNotFoundError:
-        locks.inventory_lock("cmd", locks.LockType.READ)
         if command_impl_core.exists(seq):
             print()
             shared.errprint(
@@ -214,10 +214,15 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         cleanup_fun = lambda: sequence_impl_op.delete(seq, True)
         atexit.register(cleanup_fun)
         sequence_impl_core.create_temp(seq)
-        locks.release_inventory_lock("cmd", locks.LockType.READ)
+    current_commands = command_impl_core.all_names()
+    locks.release_inventory_lock("cmd", locks.LockType.READ)
     locks.release_inventory_lock("seq", locks.LockType.WRITE)
-    print()
-    new_commands_str = shared.editline("commands: ", old_commands_str)
+    # We're including the newline in the prompt here, so that if the line gets
+    # re-displayed after showing some completion suggestions it will get some
+    # separation from the completions list.
+    new_commands_str = shared.editline(
+        "\ncommands: ", old_commands_str, current_commands
+    )
     new_commands = new_commands_str.split()
     status = sequence_impl_op.define(
         seq,

@@ -67,10 +67,15 @@ def init():
     """Initialize module at load time.
 
     Called from ``__init__`` when package is loaded. Creates the locations
-    directory, inside the config appdir, if necessary.
+    directory, inside the config appdir, if necessary. Also configure readline
+    to allow tab-completion during seq edit.
 
     """
     os.makedirs(LOCATIONS_DIR, exist_ok=True)
+    if "libedit" in readline.__doc__:
+        readline.parse_and_bind("bind ^I rl_complete")
+    else:
+        readline.parse_and_bind("tab: complete")
 
 
 def get_last_version():
@@ -125,17 +130,88 @@ def is_valid_name(name):
     return True
 
 
-def editline(prompt, oldline):
+def completion(text, state, all_completions, current_completions):
+    """Tab-completion function used by editline below.
+
+    If ``state`` is 0, populate ``current_completions`` with the words from
+    ``all_completions`` that could serve as completions for ``text``. (One
+    twist here is that a space is added to the end of each suggestion so that
+    it is clear when an entire word has been completed.) Finish by adding
+    ``None`` to the end of that list.
+
+    Then, for any value of ``state``, return the element of
+    ``current_completions`` at index ``state``.
+
+    :param text:                current word to be completed
+    :type text:                 str
+    :param state:               suggestion # requested, starting with 0
+    :type state:                int
+    :param all_completions:     all possible completions
+    :type all_completions:      list[str]
+    :param current_completions: suggestions list for this text, valid if
+                                state is not 0
+    :type current_completions:  list[str]
+
+    :returns: next completion suggestion, or None if all done
+    :rtype:   str | None
+
+    """
+    if state == 0:
+        current_len = len(current_completions)
+        current_index = 0
+        for comp in all_completions:
+            if comp.startswith(text):
+                if current_index < current_len:
+                    current_completions[current_index] = comp + " "
+                else:
+                    current_completions.append(comp + " ")
+                current_index += 1
+        if current_index < current_len:
+            current_completions[current_index] = None
+        else:
+            current_completions.append(None)
+    return current_completions[state]
+
+
+def completion_blocker(_text, _state):
+    """Make sure no completion suggestions happen.
+
+    Since tab autocompletion is configured in init regardless, if a particular
+    invocation of editline is NOT supposed to do autocompletions then we have
+    to explicitly give it a function that returns no suggestions.
+
+    :param _text:  current word to be completed; not used here
+    :type _text:   str
+    :param _state: suggestion # requested, starting with 0; not used here
+    :type _state:  int
+
+    :returns: next completion suggestion; always None in this case
+    :rtype:   None
+
+    """
+    return None
+
+
+def editline(prompt, oldline, all_completions=None):
     """Interactively edit a string.
 
     Print the ``prompt`` and the old/default string value (``oldline``), and
     allow the user to readline-edit that string value. When the user presses
     enter, return that edited value.
 
-    :param prompt:  prompt to print before the editable string
-    :type prompt:   str
-    :param oldline: original value to present for editing
-    :type oldline:  str
+    If ``all_completions`` is set to some list of valid autocompletions, also
+    set up the appropriate readline hooks to implement tab-completion for
+    those strings. Otherwise block tab-completion.
+
+    Just before returning the result string, make sure to revert any hooks
+    we set.
+
+    :param prompt:          prompt to print before the editable string
+    :type prompt:           str
+    :param oldline:         original value to present for editing
+    :type oldline:          str
+    :param all_completions: valid autocompletions, if any; defaults to None
+    :type all_completions:  list[str] | None, optional
 
     :returns: user-edited new version of the string
     :rtype:   str
@@ -145,14 +221,50 @@ def editline(prompt, oldline):
     def startup_hook():
         readline.insert_text(oldline)
 
+    # Set the hook that populates the line with any existing content.
     readline.set_startup_hook(startup_hook)
+    # Record some state we're about to change, so we can revert later.
+    old_completer = readline.get_completer()
+    old_delims = readline.get_completer_delims()
+    # If we have a list of completions, set up tab-completion to use it;
+    # otherwise explicitly disable tab-completion.
+    if all_completions:
+        current_completions = []
+
+        def completion_wrapper(text, state):
+            """Completion function wrapper.
+
+            Passed to set_completer below; used to capture the lists of all
+            available completions and the current completion suggestions.
+
+            :param text:  current word to be completed
+            :type text:   str
+            :param state: suggestion # requested, starting with 0
+            :type state:  int
+
+            :returns: next completion suggestion, or None if all done
+            :rtype:   str | None
+
+            """
+            return completion(
+                text, state, all_completions, current_completions
+            )
+
+        readline.set_completer(completion_wrapper)
+        readline.set_completer_delims(" ")
+    else:
+        readline.set_completer(completion_blocker)
+    # OK get the user input!
     # Note that using color codes as part of the prompt will mess up cursor
     # positioning in some edit situations. The solution is probably: put
     # \x01 before any color code and put \x02 after any color code. Haven't
     # tested that though because currently am happy without using colors here.
     newline = input(prompt)
+    # Now revert the things we changed and return the result.
     readline.set_startup_hook()
-    return newline
+    readline.set_completer_delims(old_delims)
+    readline.set_completer(old_completer)
+    return newline.strip()
 
 
 def check_shell():

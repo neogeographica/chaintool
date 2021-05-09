@@ -8,6 +8,7 @@ Changelog
   - Support filepath completions for placeholder values.
   - Handle updating completion scripts across chaintool version upgrades.
   - Support import-from-URL.
+  - Support tab-completion of command names during "seq edit".
   - More work on Sphinx docs.
 
 - **0.2.0** (2021-04-30)
