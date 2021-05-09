@@ -1,15 +1,22 @@
-.PHONY: readme docs install devinstall uninstall dist pub testpub check-format format lint pre-commit clean distclean
+.PHONY: readme docs check-installed install devinstall uninstall dist pub \
+testpub check-format format lint pre-commit clean distclean
 
 readme:
 	./make_readme.py
 
-docs: readme
+docs: check-installed readme
 	rm -f docs/chaintool.rst docs/modules.rst
 	sphinx-apidoc -o docs src/chaintool
-	cat docs/chaintool.rst | sed '/^Submodules$$/{s/.*/:ref:`search`/;N;s/\n.*//;}' | sed '/^Module contents$$/,$$ d' > docs/chaintool.rst.modified
+	cat docs/chaintool.rst | \
+	    sed '/^Submodules$$/{s/.*/:ref:`search`/;N;s/\n.*//;}' | \
+	    sed '/^Module contents$$/,$$ d' > docs/chaintool.rst.modified
 	mv docs/chaintool.rst.modified docs/chaintool.rst
 	cd docs; make html
 	rm -f docs/modules.rst
+
+check-installed:
+	@pip show chaintool > /dev/null 2>&1 || \
+	    (echo "chaintool not installed" && false)
 
 install: readme
 	python3 -m pip install .

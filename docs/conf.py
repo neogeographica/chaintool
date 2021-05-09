@@ -57,17 +57,13 @@ exclude_patterns = ['_build', 'shared', 'Thumbs.db', '.DS_Store', 'modules.rst']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
-rst_prolog = """
-.. role:: mono
-.. role:: red
-    :class: red mono
-.. role:: green
-    :class: green mono
-.. role:: magenta
-    :class: magenta mono
-.. role:: cyan
-    :class: cyan mono
-"""
+# A string of reStructuredText that will be included at the beginning of
+# every source file that is read.
+try:
+    with open("shared/prolog.txt", "r") as prolog_stream:
+        rst_prolog = prolog_stream.read()
+except FileNotFoundError:
+    pass
 
 # -- Options for HTML output -------------------------------------------------
 
