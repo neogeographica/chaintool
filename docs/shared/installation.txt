@@ -1,19 +1,23 @@
-The latest version of chaintool (hosted at the `Python Package Index`_, PyPI) can be installed via Python's :py:mod:`pip` package manager:
+The latest version of chaintool (hosted at the `Python Package Index`_, PyPI) can be installed via Python's :py:mod:`pip` package manager. For example, if you are installing for Python 3.7, you would invoke pip as follows:
 
 .. code-block:: none
 
-    python3 -m pip install chaintool
+    python3.7 -m pip install chaintool
 
 Similarly, an existing chaintool installation can be updated to the latest version:
 
 .. code-block:: none
 
-    python3 -m pip install --upgrade chaintool
+    python3.7 -m pip install --upgrade chaintool
 
 An alternative to installing from PyPI is to install chaintool directly from GitHub. For example the following command would install the version of chaintool currently on the main branch:
 
 .. code-block:: none
 
-    python3 -m pip install git+https://github.com/neogeographica/chaintool
+    python3.7 -m pip install git+https://github.com/neogeographica/chaintool
+
+Note that it's preferable to use an explicit Python-version executable like :command:`python3.7` instead of just :command:`python3`. If you install using :command:`python3` and it is a symbolic link that is later changed to point to some different Python version, chaintool will stop working. (This has to do with how the package-installation process hardcodes Python executable paths into the command scripts that it generates.)
+
+If you later need to uninstall chaintool (with :command:`pip uninstall`) and then re-install it for a newer version of Python, your local data and configuration will be preserved. 
 
 .. _Python Package Index: https://pypi.org/project/chaintool
