@@ -44,7 +44,9 @@ def dump():
         print()
     print("Directory used to store shortcuts/completions configuration:")
     print("  " + shared.CONFIG_DIR)
-    print("Directory used to store command and sequence data:")
+    print(
+        "Directory used to store command/sequence data and generated scripts:"
+    )
     print("  " + shared.DATA_DIR)
     print("Directory used to store temporary locks:")
     print("  " + shared.CACHE_DIR)

@@ -61,6 +61,7 @@ __all__ = [
 import importlib.resources
 import os
 import shlex
+import sys
 
 from . import shared
 from .shared import DATA_DIR
@@ -105,6 +106,7 @@ def init(prev_version, cur_version):
         script = importlib.resources.read_text(
             __package__, "chaintool_completion"
         )
+        script = script.replace("###MY_PYTHON###", sys.executable)
         with open(MAIN_SCRIPT_PATH, "w") as outstream:
             outstream.write(script)
     if version_change or not os.path.exists(HELPER_SCRIPT_PATH):
