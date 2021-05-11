@@ -347,8 +347,14 @@ def set_seq_options(group_subparsers):
     )
     seq_parser_edit = seq_subparsers.add_parser(
         "edit",
-        help="Interactively edit a new or existing sequence.",
-        description="Interactively edit a new or existing sequence.",
+        help=(
+            "Interactively edit a new or existing sequence. Tab-completion of"
+            " command names is available."
+        ),
+        description=(
+            "Interactively edit a new or existing sequence. Tab-completion of"
+            " command names is available."
+        ),
     )
     seq_parser_edit.add_argument(
         "-f",
