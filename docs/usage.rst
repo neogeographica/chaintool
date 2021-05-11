@@ -1,4 +1,4 @@
-Usage
+User Guide
 =================================
 
 XXX TBD, not sure about necessary high-level text or the order of the below sections

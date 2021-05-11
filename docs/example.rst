@@ -91,19 +91,21 @@ In the ``myflake8`` commandline that we defined, there are two placeholders: ``t
 
 The definition for the ``+nolong`` toggle specifies values to subsitute into the commandline at that location depending on whether the toggle is "off" or "on". We'll dig into this more in following sections, but for now you can just observe that the value substituted when this toggle is "off" (the part between the ``=`` symbol and the colon) is the string ``,B950``. The value substituted when this toggle is "on" (the part after the colon) is emptystring.
 
-The definition for the ``target`` placeholder has no ``=`` symbol. This is valid for a non-toggle placeholder; it means that the user must at runtime supply a value for this placeholder. That's why we got the error above; we didn't specify what the value for ``target`` should be.
+The ``target`` placeholder is not a toggle; it marks a spot where any value might be substituted. In this example, no value is assigned by default (there is no ``=`` symbol after the placeholder name), so the user *must* at runtime supply a value. That's why we got the error above; we didn't specify what the value for ``target`` should be.
 
-(Note that when we created the ``myflake8`` command, the nature of this ``target`` placeholder was highlighted by it being placed in the "required values" section of the printed command info.)
+.. note::
 
-So we need to specify a value when running the command. In this case we should specify a path to some Python sourcecode that can be evaluated by flake8. If for example the chaintool project sourcecode is at the path :file:`/Users/jbaxter/source/chaintool`, then this invocation of the :command:`myflake8` shortcut will work:
+    When we created the ``myflake8`` command, the nature of this ``target`` placeholder was highlighted by it being placed in the "required values" section of the printed command info.
+
+So we need to specify a value when running the command. In this case we should specify a path to some Python sourcecode that can be evaluated by flake8. If for example the chaintool project's Python sourcecode is at the path :file:`/home/bob/chaintool/src/chaintool`, then this invocation of the :command:`myflake8` shortcut will work:
 
 .. code-block:: none
 
-    myflake8 target=/Users/jbaxter/source/chaintool
+    myflake8 target=/home/bob/chaintool/src/chaintool
 
 Of course if your Python source-to-evaluate is at a different path, specify that path instead. If you have chaintool autocompletions enabled, you can use tab-completion to help fill out the path value. And if your path includes spaces, be sure to quote it, e.g. ``target="/foo/bar/dirname with spaces/subdir"``.
 
-It's also possible to define a default value for such a placeholder, so that it's not necessary to type out a value for the placeholder at runtime. We'll cover that, and other placeholder-related topics, in more detail below after we have built a sequence of commands that we want to run.
+As implied above, it's possible to define a default value for such a placeholder, so that it's not necessary to type out a value for the placeholder at runtime. We'll cover that, and other placeholder-related topics, in more detail below after we have built a sequence of commands that we want to run.
 
 
 Defining a Sequence
@@ -120,6 +122,10 @@ At the resulting ``commands:`` prompt, paste this:
 .. code-block:: none
 
     myflake8 mypylint
+
+.. note::
+
+    You can use tab-completion during this edit, to help find and autocomplete available command names.
 
 After you press Enter to create the sequence, chaintool will print info about the sequence. This is very similar to the printed command info we saw previously, except that placeholders common to some set of commands in the sequence will be grouped together. In this case you should see:
 
@@ -161,7 +167,7 @@ So this invocation would process our example code target:
 
 .. code-block:: none
 
-    lint target=/Users/jbaxter/source/chaintool
+    lint target=/home/bob/chaintool/src/chaintool
 
 Because the ``target`` placeholder appears in both commands, each commandline will get this path value substituted at the location of that placeholder.
 
@@ -169,12 +175,12 @@ Running a sequence will execute all of its commands, sequentially, until it fini
 
     | :magenta:`* running command 'myflake8':`
     |
-    | :cyan:`flake8 --select C,E,F,W,B,B950 --ignore W503,E203,E501,E731 /Users/jbaxter/source/chaintool`
+    | :cyan:`flake8 --select C,E,F,W,B,B950 --ignore W503,E203,E501,E731 /home/bob/chaintool/src/chaintool`
     |
     |
     | :magenta:`* running command 'mypylint':`
     |
-    | :cyan:`pylint -d R0801   /Users/jbaxter/source/chaintool`
+    | :cyan:`pylint -d R0801   /home/bob/chaintool/src/chaintool`
     |
     | :mono:`-------------------------------------------------------------------`
     | :mono:`Your code has been rated at 10.00/10 (previous run: 10.00/10, +0.00)`
@@ -187,7 +193,7 @@ More Fun With Placeholders
 
 If you're going to be frequently linting the same target, it doesn't make sense to keep typing that path for every run.
 
-There are several ways you could change the commands to set a default value for that placeholder. For example you could use :command:`chaintool cmd set` or :command:`chaintool cmd edit` to modify each of the commandlines, changing each occurence of ``{target}`` to ``{target=/Users/jbaxter/source/chaintool}``.
+There are several ways you could change the commands to set a default value for that placeholder. For example you could use :command:`chaintool cmd set` or :command:`chaintool cmd edit` to modify each of the commandlines, changing each occurence of ``{target}`` to ``{target=/home/bob/chaintool/src/chaintool}``.
 
 However, :command:`chaintool cmd set` and :command:`chaintool cmd edit` are more applicable for making structural/syntax changes to a commandline. If you just want to change or remove the default value for a non-toggle placeholder, or change the off/on values for a toggle, then it's easier to use :command:`chaintool cmd vals`. You can also use :command:`chaintool seq vals` to set values for all commands in a sequence, or even :command:`chaintool vals` to set values across all currently defined commands.
 
@@ -195,7 +201,7 @@ In this case, let's use :command:`chaintool seq vals` to set the same default va
 
 .. code-block:: none
 
-    chaintool seq vals lint target=/Users/jbaxter/source/chaintool
+    chaintool seq vals lint target=/home/bob/chaintool/src/chaintool
 
 Now we can run the :command:`lint` shortcut without any runtime arguments at all. If we do want to temporarily point it at some other path, we're still allowed to specify a value for ``target`` at runtime, which will override the default. And of course if we want to permanently change the default we could run :command:`chaintool seq vals` again.
 
@@ -207,7 +213,7 @@ How about those toggle placeholders? Those toggles can be "activated" at runtime
 
 In this sequence, the ``+dup`` toggle only happens to affect the ``mypylint`` command. By activating this toggle, the spot in that commandline that would normally contain ``-d R0801`` is instead populated with emptystring. The effect of this change is to remove the suppression of the "duplicate code" check in pylint; in other words, by specifying ``+dup`` you are asking pylint to do the duplicate-code checks that we normally are not asking it to do. When the command runs, you will see that the executed :command:`pylint` commandline now looks like this:
 
-    | :cyan:`pylint    /Users/jbaxter/source/chaintool`
+    | :cyan:`pylint    /home/bob/chaintool/src/chaintool`
 
 (With the current chaintool codebase, this will in fact cause pylint to complain about some stuff!)
 
@@ -224,7 +230,7 @@ If you have bash completions configured, you can get suggestions for available p
     | :mono:`+dup`
     | :mono:`+nodoc`
     | :mono:`+nolong`
-    | :mono:`target=/Users/jbaxter/source/chaintool`
+    | :mono:`target=/home/bob/chaintool/src/chaintool`
 
 which tells me that I have three toggles available, plus another normal placeholder that currently has the given default.
 
