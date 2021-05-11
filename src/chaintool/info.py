@@ -22,6 +22,7 @@
 
 __all__ = ["dump"]
 
+import shlex
 
 from . import completions_setup
 from . import shared
@@ -43,12 +44,12 @@ def dump():
         print("bash completions are not enabled.")
         print()
     print("Directory used to store shortcuts/completions configuration:")
-    print("  " + shared.CONFIG_DIR)
+    print("  " + shlex.quote(shared.CONFIG_DIR))
     print(
         "Directory used to store command/sequence data and generated scripts:"
     )
-    print("  " + shared.DATA_DIR)
+    print("  " + shlex.quote(shared.DATA_DIR))
     print("Directory used to store temporary locks:")
-    print("  " + shared.CACHE_DIR)
+    print("  " + shlex.quote(shared.CACHE_DIR))
     print()
     return 0

@@ -6,7 +6,8 @@ Changelog
   - Use a separate lightweight module for bash completions support; might make
     bash completions slightly speedier.
   - Support filepath completions for placeholder values.
-  - Handle updating completion scripts across chaintool version upgrades.
+  - Handle updating the format of stored config/data across chaintool version
+    upgrades.
   - Support import-from-URL.
   - Support tab-completion of command names during "seq edit".
   - More work on Sphinx docs.

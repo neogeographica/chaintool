@@ -42,6 +42,7 @@ to be invoked one per program instance, using the CLI.
 
 
 __all__ = [
+    "META_LOCK",
     "LockType",
     "init",
     "inventory_lock",
@@ -80,16 +81,11 @@ class LockType(enum.Enum):
     WRITE = "write"
 
 
-def init(_prev_version, _cur_version):
+def init():
     """Initialize module at load time.
 
     Called from ``__init__`` when package is loaded. Creates the locks
     directory, inside the cache appdir, if necessary.
-
-    :param _prev_version: version string of previous chaintool run; not used
-    :type _prev_version:  str
-    :param _cur_version:  version string of current chaintool run; not used
-    :type _cur_version:   str
 
     """
     os.makedirs(LOCKS_DIR, exist_ok=True)

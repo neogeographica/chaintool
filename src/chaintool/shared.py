@@ -27,8 +27,12 @@ __all__ = [
     "LOCATIONS_DIR",
     "MSG_WARN_PREFIX",
     "init",
-    "get_last_version",
-    "set_last_version",
+    "get_last_schema_version",
+    "set_last_schema_version",
+    "get_last_chaintool_version",
+    "set_last_chaintool_version",
+    "get_last_python_version",
+    "set_last_python_version",
     "errprint",
     "is_valid_name",
     "editline",
@@ -58,7 +62,9 @@ CACHE_DIR = appdirs.user_cache_dir(APP_NAME, APP_AUTHOR)
 CONFIG_DIR = appdirs.user_config_dir(APP_NAME, APP_AUTHOR)
 DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
 LOCATIONS_DIR = os.path.join(CONFIG_DIR, "locations")
-VERSION_MARKER_PATH = os.path.join(CONFIG_DIR, "last_version")
+SCHEMA_VER_MARKER_PATH = os.path.join(CONFIG_DIR, "last_schema_version")
+CHAINTOOL_VER_MARKER_PATH = os.path.join(CONFIG_DIR, "last_chaintool_version")
+PYTHON_VER_MARKER_PATH = os.path.join(CONFIG_DIR, "last_python_version")
 
 MSG_WARN_PREFIX = Fore.YELLOW + "Warning:" + Fore.RESET
 
@@ -78,24 +84,76 @@ def init():
         readline.parse_and_bind("tab: complete")
 
 
-def get_last_version():
-    """Return the last-run version of chaintool, if known.
+def get_last_schema_version():
+    """Return the last-used schema version.
 
-    :returns: version string from previous run, if any
-    :rtype:   str | None
+    Note that if the choicefile for schema version is absent, that
+    corresponds to version 0.
 
-    """
-    return read_choicefile(VERSION_MARKER_PATH)
-
-
-def set_last_version(version):
-    """Update the stored last-run version of chaintool.
-
-    :param version: version string to write
-    :type version:  str
+    :returns: schema version from previous run
+    :rtype:   int
 
     """
-    write_choicefile(VERSION_MARKER_PATH, version)
+    version_str = read_choicefile(SCHEMA_VER_MARKER_PATH)
+    if version_str is None:
+        return 0
+    return int(version_str)
+
+
+def set_last_schema_version(version):
+    """Update the stored last-used schema version.
+
+    :param version: schema version to write
+    :type version:  int
+
+    """
+    write_choicefile(SCHEMA_VER_MARKER_PATH, str(version))
+
+
+def get_last_chaintool_version():
+    """Return the last-used chaintool version.
+
+    :returns: chaintool version from previous run
+    :rtype:   str
+
+    """
+    version_str = read_choicefile(CHAINTOOL_VER_MARKER_PATH)
+    if version_str is None:
+        return "<unknown>"
+    return version_str
+
+
+def set_last_chaintool_version(version_str):
+    """Update the stored last-used chaintool version.
+
+    :param version_str: chaintool version to write
+    :type version_str:  str
+
+    """
+    write_choicefile(CHAINTOOL_VER_MARKER_PATH, version_str)
+
+
+def get_last_python_version():
+    """Return the last-used Python version.
+
+    :returns: Python version from previous run
+    :rtype:   str
+
+    """
+    version_str = read_choicefile(PYTHON_VER_MARKER_PATH)
+    if version_str is None:
+        return "<unknown>"
+    return version_str
+
+
+def set_last_python_version(version_str):
+    """Update the stored last-used Python version.
+
+    :param version_str: Python version to write
+    :type version_str:  str
+
+    """
+    write_choicefile(PYTHON_VER_MARKER_PATH, version_str)
 
 
 def errprint(msg):
