@@ -6,7 +6,12 @@ XXX TBD, not sure about necessary high-level text or the order of the below sect
 .. toctree::
    :maxdepth: 1
 
-   simple_example
-   concepts
-   user_guide
+   overview
+   example
+   placeholders
+   modifiers
+   virtual_tools
+   shortcuts
+   import_export
    complex_example
+   reference
