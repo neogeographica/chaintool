@@ -1,9 +1,9 @@
 .. role:: mono
 .. role:: red
-    :class: red mono
+   :class: red mono
 .. role:: green
-    :class: green mono
+   :class: green mono
 .. role:: magenta
-    :class: magenta mono
+   :class: magenta mono
 .. role:: cyan
-    :class: cyan mono
+   :class: cyan mono

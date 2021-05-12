@@ -7,16 +7,16 @@ chaintool: a tool to chain tools into toolchains
 ===============================================================
 
 .. image:: https://img.shields.io/pypi/l/chaintool
-    :target: https://www.gnu.org/licenses/gpl-3.0.html
-    :alt: license
+   :target: https://www.gnu.org/licenses/gpl-3.0.html
+   :alt: license
 
 .. image:: https://img.shields.io/pypi/pyversions/chaintool.svg
-    :target: https://www.python.org/
-    :alt: supported Python versions
+   :target: https://www.python.org/
+   :alt: supported Python versions
 
 .. image:: http://img.shields.io/pypi/v/chaintool.svg
-    :target: https://pypi.python.org/pypi/chaintool
-    :alt: current version
+   :target: https://pypi.python.org/pypi/chaintool
+   :alt: current version
 
 .. _blurb_section:
 
@@ -71,19 +71,19 @@ The latest version of chaintool (hosted at the `Python Package Index`_, PyPI) ca
 
 .. code-block:: none
 
-    python3.7 -m pip install chaintool
+   python3.7 -m pip install chaintool
 
 Similarly, an existing chaintool installation can be updated to the latest version:
 
 .. code-block:: none
 
-    python3.7 -m pip install --upgrade chaintool
+   python3.7 -m pip install --upgrade chaintool
 
 An alternative to installing from PyPI is to install chaintool directly from GitHub. For example the following command would install the version of chaintool currently on the main branch:
 
 .. code-block:: none
 
-    python3.7 -m pip install git+https://github.com/neogeographica/chaintool
+   python3.7 -m pip install git+https://github.com/neogeographica/chaintool
 
 Note that it's preferable to use an explicit Python-version executable like :command:`python3.7` instead of just :command:`python3`. If you install using :command:`python3` and it is a symbolic link that is later changed to point to some different Python version, chaintool will stop working. (This has to do with how the package-installation process hardcodes Python executable paths into the command scripts that it generates.)
 

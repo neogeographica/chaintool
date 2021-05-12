@@ -1,5 +1,6 @@
+**********
 User Guide
-=================================
+**********
 
 XXX TBD, not sure about necessary high-level text or the order of the below sections
 
@@ -10,8 +11,9 @@ XXX TBD, not sure about necessary high-level text or the order of the below sect
    example
    placeholders
    modifiers
-   virtual_tools
+   virtual-tools
    shortcuts
-   import_export
-   complex_example
+   import-export
+   complex-example
    reference
+   advanced-configuration

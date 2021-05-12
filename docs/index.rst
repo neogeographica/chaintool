@@ -1,15 +1,16 @@
-Overview
-=================================
+#########
+chaintool
+#########
 
 .. include:: shared/blurb.txt
 
-Documentation sections:
+XXX TBD some text to introduce docs sections
 
 .. toctree::
    :maxdepth: 2
 
-   prereqs
+   prerequisites
    installation
    configuration
    usage
-   devdocs
+   developer-docs

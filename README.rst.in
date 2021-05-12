@@ -7,16 +7,16 @@ chaintool: a tool to chain tools into toolchains
 ===============================================================
 
 .. image:: https://img.shields.io/pypi/l/chaintool
-    :target: https://www.gnu.org/licenses/gpl-3.0.html
-    :alt: license
+   :target: https://www.gnu.org/licenses/gpl-3.0.html
+   :alt: license
 
 .. image:: https://img.shields.io/pypi/pyversions/chaintool.svg
-    :target: https://www.python.org/
-    :alt: supported Python versions
+   :target: https://www.python.org/
+   :alt: supported Python versions
 
 .. image:: http://img.shields.io/pypi/v/chaintool.svg
-    :target: https://pypi.python.org/pypi/chaintool
-    :alt: current version
+   :target: https://pypi.python.org/pypi/chaintool
+   :alt: current version
 
 .. _blurb_section:
 

@@ -1,5 +1,6 @@
+**************
 Developer Docs
-=================================
+**************
 
 The other sections of the documentation are about using chaintool; this final section is about the chaintool code itself.
 
