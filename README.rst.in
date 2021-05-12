@@ -27,7 +27,7 @@ chaintool: a tool to chain tools into toolchains
 Prerequisites
 -------------
 
-.. include:: docs/shared/prereqs.txt
+.. include:: docs/shared/prerequisites.txt
 
 .. _installation_section:
 

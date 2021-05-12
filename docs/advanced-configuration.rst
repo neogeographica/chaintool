@@ -9,7 +9,7 @@ Advanced Configuration
 Forcing the Python Version
 --------------------------
 
-As mentioned in the :doc:`prerequisites <prerequisites>`, Python 3.7 or later is required to use chaintool. The chaintool installation process checks that you are installing it into the packages for a valid Python version, and any time chaintool is used, it will run using the Python executable that was originally used to install it. Which should be fine.
+As mentioned in the :doc:`prerequisites<prerequisites>`, Python 3.7 or later is required to use chaintool. The chaintool installation process checks that you are installing it into the packages for a valid Python version, and any time chaintool is used, it will run using the Python executable that was originally used to install it. Which should be fine.
 
 However:
 

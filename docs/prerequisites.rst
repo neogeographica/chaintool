@@ -2,4 +2,4 @@
 Prerequisites
 *************
 
-.. include:: shared/prereqs.txt
+.. include:: shared/prerequisites.txt

@@ -10,10 +10,10 @@ This example will involve running Python code checkers, or "linters". To follow 
 
 - The Python packages :py:mod:`flake8`, :py:mod:`flake8-bugbear`, and :py:mod:`pylint` must be installed.
 - You will need some Python code to run the linters against. (The example below will use chaintool's own sourcecode.)
-- You must have configured chaintool shortcuts, likely by using :command:`chaintool x shortcuts`.
+- You must have configured chaintool shortcuts, by using :ref:`chaintool x shortcuts<configuration:shortcuts>`.
 - After the initial configuration of chaintool shortcuts you must have started a new shell, so that you now have the updated :envvar:`PATH` environment variable in your current shell.
 
-Ideally you will also be working in a bash shell, specifically, and you have configured chaintool's bash autocompletions by using :command:`chaintool x completions`.
+Ideally you will also be working in a bash shell, specifically, and you have configured chaintool's bash autocompletions by using :ref:`chaintool x completions<configuration:completions>`.
 
 
 Defining Commands
@@ -35,7 +35,7 @@ This will bring up a ``commandline:`` prompt. Since you are editing a command th
 
    flake8 --select C,E,F,W,B{+nolong=,B950:} --ignore W503,E203,E501,E731 {target}
 
-Broadly speaking, we're trying to capture some options we commonly use with that tool. The curly-bracket-enclosed bits express some common variations on those options; we'll describe the specifics of that mechanism in later sections. For now, after you paste the above commandline at the prompt, just press Enter to complete the command creation. chaintool will then print info about the resulting command:
+Broadly speaking, we're trying to capture the options we commonly use with that tool. The curly-bracket-enclosed bits express some common variations on those options; we'll describe the specifics of that mechanism in later sections. For now, after you paste the above commandline at the prompt, just press Enter to complete the command creation. chaintool will then print info about the resulting command:
 
    | :mono:`Command 'myflake8' set.`
    |
