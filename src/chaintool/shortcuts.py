@@ -26,6 +26,8 @@ typing. They are placed in a directory that can be added to the user's PATH.
 
 
 __all__ = [
+    "SHORTCUTS_DIR",
+    "PATHSCRIPT_LOCATION",
     "init",
     "create_cmd_shortcut",
     "delete_cmd_shortcut",
@@ -52,7 +54,7 @@ PATHSCRIPT_LOCATION = os.path.join(
 def init(_prev_version, _cur_version):
     """Initialize module at load time.
 
-    Called from ``__init__`` when package is loaded. Creates the shortcuts
+    Called from :mod:`.__init__` when package is loaded. Creates the shortcuts
     directory, inside the data appdir, if necessary.
 
     :param _prev_version: version string of previous chaintool run; not used

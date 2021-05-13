@@ -49,9 +49,9 @@ def schema_ver_for_package_ver(query_package_ver_str):
     """Return the schema version for a given chaintool package version.
 
     The config/data format used by chaintool has changed at the package
-    versions listed in ``SCHEMA_CHANGE_VERSIONS``. This function takes the
+    versions listed in :const:`SCHEMA_CHANGE_VERSIONS`. This function takes the
     base of the given package version (e.g. if given "0.3.0.dev0" it will
-    work with "0.3.0") and compares it to the ``SCHEMA_CHANGE_VERSIONS``
+    work with "0.3.0") and compares it to the :const:`SCHEMA_CHANGE_VERSIONS`
     to determine the appropriate schema version number used by that version
     of chaintool.
 
@@ -77,8 +77,8 @@ def schema_ver_for_package_ver(query_package_ver_str):
 def init_modules():
     """If schema is changing, check for validity; then init modules.
 
-    Initialize the non-schema-dependent :mod:`colorama`, :mod:`shared`, and
-    :mod:`locks` modules. Then grab the meta-lock.
+    Initialize the non-schema-dependent :mod:`colorama`, :mod:`.shared`, and
+    :mod:`.locks` modules. Then grab the meta-lock.
 
     While holding the meta-lock, load the schema version for the current
     stored config/data and compare it to the schema version used by our
@@ -86,10 +86,10 @@ def init_modules():
     chaintool that uses a different format has been running, and has changed
     the schema to something we don't understand. In that case, exit with error.
 
-    Otherwise, call the init functions for :mod:`command_impl_core`,
-    :mod:`sequence_impl_core`, :mod:`shortcuts`, and :mod:`completions`. Pass
-    them the old and new schema versions in case they need to update their
-    stored data formats.
+    Otherwise, call the init functions for :mod:`.command_impl_core`,
+    :mod:`.sequence_impl_core`, :mod:`.shortcuts`, and :mod:`.completions`.
+    Pass them the old and new schema versions in case they need to update
+    their stored data formats.
 
     Finally update the last-stored-version info for schema, the chaintool
     package, and Python (last two are just informative). Release the meta-lock

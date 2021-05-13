@@ -47,11 +47,17 @@ version = '.'.join(release.split('.')[:2])
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosectionlabel',
+#    'sphinx.ext.intersphinx',  see below for why this is commented out
     'sphinx.ext.viewcode',
 ]
 
 autosectionlabel_prefix_document = True
 autosectionlabel_maxdepth = 2
+
+# intersphinx is kind of nice for linking to some standard Python functions,
+# but it also (unavoidably?) creates links for parameter types like "str" and
+# "int". The clutter of the latter is not currently worth the former.
+#intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

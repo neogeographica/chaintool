@@ -128,7 +128,7 @@ def valid_modifiers(modifiers):
     """Check whether all of the given modifiers are valid.
 
     Return ``True`` if and only if every element of the input ``modifiers``
-    list is a key in the ``MODIFIERS_DISPATCH`` constant dictionary.
+    list is a key in the :const:`MODIFIERS_DISPATCH` constant dictionary.
 
     :param modifiers: modifiers to check
     :type modifiers:  list[str]
@@ -907,7 +907,7 @@ def run(cmd, args, unused_args):
     :func:`.virtual_tools.dispatch` to see whether the command is a "virtual
     tool" that should be executed internally (and do so). If so, then return
     the status from the virtual tool. If not, then execute the commandline
-    via subprocess.call and return its exit status.
+    via :func:`subprocess.call` and return its exit status.
 
     Note that :func:`.virtual_tools.dispatch` may modify ``args``.
 

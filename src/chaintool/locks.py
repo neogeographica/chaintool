@@ -84,7 +84,7 @@ class LockType(enum.Enum):
 def init():
     """Initialize module at load time.
 
-    Called from ``__init__`` when package is loaded. Creates the locks
+    Called from :mod:`.__init__` when package is loaded. Creates the locks
     directory, inside the cache appdir, if necessary.
 
     """
@@ -133,8 +133,8 @@ def lock_internal(lock_type, prefix):
 
     Now loop indefinitly trying to create the lock:
 
-    Holding the ``META_LOCK`` used to protect lockfile modifications, check
-    for conflicting locks. If there are conflicting locks we will invoke
+    Holding the :const:`META_LOCK` used to protect lockfile modifications,
+    check for conflicting locks. If there are conflicting locks we will invoke
     :func:`remove_dead_locks` just in case, then loop back to try again.
 
     If no conflicting locks, then create this lockfile, and register an atexit

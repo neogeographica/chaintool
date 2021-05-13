@@ -21,6 +21,7 @@
 
 
 __all__ = [
+    "SEQ_DIR",
     "init",
     "exists",
     "all_names",
@@ -43,7 +44,7 @@ SEQ_DIR = os.path.join(DATA_DIR, "sequences")
 def init(_prev_version, _cur_version):
     """Initialize module at load time.
 
-    Called from ``__init__`` when package is loaded. Creates the sequences
+    Called from :mod:`.__init__` when package is loaded. Creates the sequences
     directory, inside the data appdir, if necessary.
 
     :param _prev_version: version string of previous chaintool run; not used

@@ -45,8 +45,8 @@ def unconfigure(startup_script_path):
 
     If user chooses not to remove the modification, return False. Otherwise
     use :func:`.shared.remove_script_additions`, and if that succeeds, clear
-    the ``PATHSCRIPT_LOCATION`` choicefile. Finally return whether the
-    unconfigure succeeded.
+    the :const:`.shortcuts.PATHSCRIPT_LOCATION` choicefile. Finally return
+    whether the unconfigure succeeded.
 
     :param startup_script_path: filepath of currently modified script
     :type startup_script_path:  str
@@ -191,8 +191,8 @@ def update_startup_script(startup_script_path):
     Called in a situation where there is no current PATH modification
     configured.
 
-    Set the ``PATHSCRIPT_LOCATION`` choicefile to the indicated path. If it is
-    ``None``, return.
+    Set the :const:`.shortcuts.PATHSCRIPT_LOCATION` choicefile to the
+    indicated path. If it is ``None``, return.
 
     Write the PATH modification into the selected script, surrounded by
     marker comments so that we can later detect/remove it.

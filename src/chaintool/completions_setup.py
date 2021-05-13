@@ -100,8 +100,8 @@ def enable_dynamic(userdir):
 
     Called in a situation where completions are currently unconfigured.
 
-    Set the ``USERDIR_LOCATION`` choicefile to the indicated user dir path. If
-    it is ``None``, return.
+    Set the :const:`.completions.USERDIR_LOCATION` choicefile to the indicated
+    user dir path. If it is ``None``, return.
 
     Create the selected user dir if necessary. Create a script in that dir
     that will source our main completions script. Also create the script for
@@ -131,7 +131,7 @@ def disable_dynamic(userdir):
     configured.
 
     Delete all scripts that we created in the user dir. Clear the
-    ``USERDIR_LOCATION`` choicefile.
+    :const:`.completions.USERDIR_LOCATION` choicefile.
 
     :param userdir: filepath of current user dir for lazy loads
     :type userdir:  str
@@ -154,8 +154,9 @@ def check_dynamic(userdir):
     configured.
 
     If the user dir does not exist or does not contain the file that sources
-    our main completions script, clear the ``USERDIR_LOCATION`` choicefile and
-    return ``False``. Otherwise return ``True``.
+    our main completions script, clear the
+    :const:`.completions.USERDIR_LOCATION` choicefile and return ``False``.
+    Otherwise return ``True``.
 
     :param userdir: filepath of current user dir for lazy loads
     :type userdir:  str
@@ -190,8 +191,8 @@ def enable_oldstyle(startup_script_path):
 
     Called in a situation where completions are currently unconfigured.
 
-    Set the ``SOURCESCRIPT_LOCATION`` choicefile to the indicated path. If it
-    is ``None``, return.
+    Set the :const:`.completions.SOURCESCRIPT_LOCATION` choicefile to the
+    indicated path. If it is ``None``, return.
 
     Write the command that sources our completions scripts into the selected
     script, surrounded by marker comments so that we can later detect/remove
@@ -223,8 +224,8 @@ def disable_oldstyle(startup_script_path):
     Called in a situation where old-style completions are currently configured.
 
     Use :func:`.shared.remove_script_additions`, and if that succeeds, clear
-    the ``SOURCESCRIPT_LOCATION`` choicefile. Finally return whether the
-    disable succeeded.
+    the :const:`.completions.SOURCESCRIPT_LOCATION` choicefile. Finally return
+    whether the disable succeeded.
 
     :param startup_script_path: filepath of currently modified script
     :type startup_script_path:  str
@@ -247,8 +248,9 @@ def check_oldstyle(startup_script_path):
     Called in a situation where old-style completions are currently configured.
 
     If the indicated script does not exist or does not contain the command
-    that sources our completions scripts, clear the ``SOURCESCRIPT_LOCATION``
-    choicefile and return ``False``. Otherwise return ``True``.
+    that sources our completions scripts, clear the
+    :const:`.completions.SOURCESCRIPT_LOCATION` choicefile and return
+    ``False``. Otherwise return ``True``.
 
     :param startup_script_path: filepath of currently modified script
     :type startup_script_path:  str

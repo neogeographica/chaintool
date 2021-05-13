@@ -72,7 +72,7 @@ MSG_WARN_PREFIX = Fore.YELLOW + "Warning:" + Fore.RESET
 def init():
     """Initialize module at load time.
 
-    Called from ``__init__`` when package is loaded. Creates the locations
+    Called from :mod:`.__init__` when package is loaded. Creates the locations
     directory, inside the config appdir, if necessary. Also configure readline
     to allow tab-completion during seq edit.
 
@@ -346,7 +346,7 @@ def check_shell():
 def delete_if_exists(filepath):
     """Delete a file, silently succeeding if it is already gone.
 
-    Delegate to os.remove and swallow any FileNotFoundError exception.
+    Delegate to :func:`os.remove` and swallow any FileNotFoundError exception.
 
     :param filepath: file to delete
     :type filepath:  str

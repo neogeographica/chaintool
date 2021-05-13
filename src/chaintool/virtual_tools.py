@@ -101,7 +101,8 @@ def deltool(del_args, _run_args):
     Bail out with error if ``del_args`` has other than 1 element.
 
     Otherwise, treat that element as the filepath to delete. Delegate to
-    os.remove to do the copy. If remove raises any exception, return an error.
+    :func:`os.remove` to do the delete. If remove raises any exception, return
+    an error.
 
     :param del_args:  arguments to chaintool-del
     :type del_args:   list[str]
@@ -177,7 +178,7 @@ def dispatch(cmdline, run_args):
     """Run a "virtual tool" for a commandline, if appropriate.
 
     If the first word of the given commandline is not a key in
-    ``VTOOL_DISPATCH``, return ``None``.
+    :const:`VTOOL_DISPATCH`, return ``None``.
 
     Otherwise pass the remaining words from that commandline, as well as any
     runtime-specified placeholder args, to the virtual tool function selected

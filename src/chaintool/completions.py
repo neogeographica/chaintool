@@ -50,6 +50,12 @@ run the "complete" command for that shortcut.
 
 
 __all__ = [
+    "SHORTCUTS_COMPLETIONS_DIR",
+    "MAIN_SCRIPT",
+    "MAIN_SCRIPT_PATH",
+    "OMNIBUS_SCRIPT_PATH",
+    "SOURCESCRIPT_LOCATION",
+    "USERDIR_LOCATION",
     "init",
     "create_lazyload",
     "delete_lazyload",
@@ -83,9 +89,9 @@ USERDIR_LOCATION = os.path.join(LOCATIONS_DIR, "completions_lazy_load_userdir")
 def init(prev_version, cur_version):
     """Initialize module at load time.
 
-    Called from ``__init__`` when package is loaded. Creates the completions
-    directory, inside the data appdir, if necessary. Also creates the
-    shortcuts completions directory inside that, if necessary.
+    Called from :mod:`.__init__` when package is loaded. Creates the
+    completions directory, inside the data appdir, if necessary. Also creates
+    the shortcuts completions directory inside that, if necessary.
 
     Once those directories are ensured, the "main script" and "helper script"
     files can be extracted from the package resources and placed in the
@@ -203,9 +209,9 @@ def create_lazyload(item_name):
     Also called when enabling dynamic completions when some shortcuts already
     exist.
 
-    Read the user dir location from the ``USERDIR_LOCATION`` choicefile, and
-    create the per-shortcut file there that will: source the "main script" if
-    necessary, source the "helper script" if necessary, then invoke the
+    Read the user dir location from the :const:`USERDIR_LOCATION` choicefile,
+    and create the per-shortcut file there that will: source the "main script"
+    if necessary, source the "helper script" if necessary, then invoke the
     "complete" command.
 
     :param item_name: shortcut name
