@@ -1,7 +1,7 @@
 Overview
 ========
 
-The :doc:`introduction<index>` to these docs described the class of chaintool usecases in broad terms, but it didn't get into many specifics. This overview will get more concrete about the common chaintool concepts, terminology, and actions. For clarity, we'll use very simple (and sometimes contrived) examples... but don't worry, a :doc:`more interesting example<example>` is queued up next.
+The :doc:`introduction<index>` to these docs described chaintool usecases in broad terms, but it didn't go into specifics. This overview will get more concrete about the common chaintool concepts, terminology, and actions. For clarity, we'll use very simple (and sometimes contrived) examples... but don't worry, a :doc:`more interesting example<example>` is queued up next.
 
 Commands and Sequences
 ----------------------
@@ -79,6 +79,8 @@ A different kind of placeholder, a "toggle", is used to choose between two possi
 
 That example defines a toggle named ``+seeya`` (the leading ``+`` symbol marks it as a toggle). Normally the commandline will be executed as ``echo "hello!"``, but the ``+seeya`` toggle can be used to change it to ``echo "goodbye!"``.
 
+The full section on :doc:`placeholders<placeholders>` will go into detail about placeholder syntax and usage.
+
 Invoking chaintool
 ------------------
 
@@ -86,13 +88,13 @@ Let's now talk about the general syntax of running the :command:`chaintool` exec
 
 .. code-block:: none
 
-   chaintool <commandgroup> <operation> [flag flag flag] [argument argument argument]
+   chaintool <commandgroup> <operation> [flag flag ...] [argument argument ...]
 
 The "commandgroup" identifies a group of related tasks, while the "operation" is a specific task. In some cases a commandgroup only has one task, so there is no operation; in those cases the invocation would look like this:
 
 .. code-block:: none
 
-   chaintool <commandgroup> [flag flag flag] [argument argument argument]
+   chaintool <commandgroup> [flag flag ...] [argument argument ...]
 
 The optional flags are specific to the chosen commandgroup/operation and can be specified in single-hyphen single-letter form (e.g. ``-i``) or double-hyphen full-word form (e.g. ``--ignore-errors``). To finish out the commandline, the commandgroup/operation may have one or more required positional arguments and may support additional optional positional arguments.
 
@@ -108,13 +110,13 @@ In that example, the commandgroup is ``cmd``, the operation is ``set``, and ther
 
    chaintool cmd set -q foo 'echo "{message=hi!}"'
 
-We could then execute that command with this invocation:
+Once that command has been created, we could execute it like so:
 
 .. code-block:: none
 
    chaintool cmd run foo message=whoa
 
-In that case the first (required) positional argument specifies the command to run, and then we can specify additional arguments to manipulate the command's placeholders.
+In that case the first (required) positional argument after ``cmd run`` specifies the command to run, and then we can specify additional arguments to manipulate the command's placeholders.
 
 The subsections below, and the other pages of this user guide, go into more detail about how to use each of the commandgroups and their operations. Two more things should be mentioned at this point:
 
@@ -125,7 +127,59 @@ The subsections below, and the other pages of this user guide, go into more deta
 Command and Sequence Authoring
 ------------------------------
 
-XXX set/edit/list/print/del
+The ``cmd`` and ``seq`` commandgroups are used to work with commands and sequences, respectively.
+
+You can create or update a command with the ``cmd set`` operation, of the form:
+
+.. code-block:: none
+
+   chaintool cmd set [-q] <cmdname> <cmdline>
+
+``<cmdname>`` is the name of the command to create or update, and can be any sequence of non-whitespace characters. ``<cmdline>`` is the commandline to associate with that name; keep in mind that this is a single argument and so likely will need to be appropriately quoted/escaped to deal with spaces or special characters in it. The optional ``-q`` flag suppresses the pretty-printed command info that would normally happen after the set.
+
+Similarly you can create or update a sequence using ``seq set``:
+
+.. code-block:: none
+
+   chaintool seq set [-f] [-q] <seqname> <cmdname> [<cmdname> ...]
+
+``<seqname>`` is the name of the sequence to create or update. It must be followed by one or more command names to compose the sequence. The optional ``-q`` flag behaves similarly here. The optional ``-f`` (or ``--force``) flag allows you to specify command names that do not currently exist.
+
+While the ``set`` operations can be useful, they can also be tedious if you just want to modify an existing command or sequence. Also, in the case of ``cmd set``, the proper quoting/escaping of the commandline argument can be frustrating to figure out. For those reasons, often you will want to use ``edit`` instead of ``set``:
+
+.. code-block:: none
+
+   chaintool cmd edit [-q] <cmdname>
+
+   chaintool seq edit [-f] [-q] <seqname>
+
+When you invoke an ``edit`` operation, you are presented with a prompt where you can type the commandline or list of command names. No special quoting/escaping required. If you are modifying an existing command or sequence, the existing content will be placed there for you to edit.
+
+.. note::
+
+   During an ``edit`` operation, several familiar editing control-characters are supported, such as Ctrl-A to jump to beginning of line and Ctrl-E to jump to end. And for ``seq edit``, you can use tab-completion on the command names that make up the sequence.
+
+Once you have some commands and/or sequences, you can use ``cmd list`` and ``seq list`` to see their names. You can also pretty-print the info for a command, or for all the commands in a sequence:
+
+.. code-block:: none
+
+   chaintool cmd print <cmdname>
+
+   chaintool seq print <seqname>
+
+Or pretty-print the info for all commands using just :command:`chaintool print`. The placeholder information shown in the output of these ``print`` operations will be covered in more detail in the full section on :doc:`placeholders<placeholders>`.
+
+The final part of the authoring lifecycle is of course deleting stuff. You can use the ``del`` operation to delete multiple commands or sequences:
+
+.. code-block:: none
+
+   chaintool cmd del [-f] <cmdname> [<cmdname> ...]
+
+   chaintool seq del <seqname> [<seqname> ...]
+
+The optional ``-f`` flag for ``cmd del`` allows you to delete commands that are currently being used by some sequence.
+
+XXX general mention of bash completions?
 
 Command and Sequence Execution
 ------------------------------
@@ -134,11 +188,11 @@ XXX run
 
 XXX briefly mention shortcuts, link to full page
 
-XXX general mention of bash completions
+XXX general mention of bash completions?
 
 Updating Placeholder Values
 ---------------------------
 
 XXX vals
 
-XXX general mention of bash completions
+XXX general mention of bash completions?
