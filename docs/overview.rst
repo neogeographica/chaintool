@@ -77,7 +77,7 @@ A different kind of placeholder, a "toggle", is used to choose between two possi
 
    echo "{+seeya=hello!:goodbye!}"
 
-That example defines a toggle named ``+seeya`` (the leading ``+`` symbol marks it as a toggle). Normally the commandline will be executed as ``echo "hello!"``, but the ``+seeya`` toggle can be used to change it to ``echo "goodbye!"``.
+That example defines a toggle named ``+seeya`` (the leading ``+`` symbol marks it as a toggle). Normally the commandline will be executed as ``echo "hello!"``, but the ``+seeya`` toggle can be used to change it to ``echo "goodbye!"``. The two values, ``hello!`` and ``goodbye!`` in this case, are referred to as the "off" and "on" values for this toggle.
 
 The full section on :doc:`placeholders<placeholders>` will go into detail about placeholder syntax and usage.
 
@@ -90,13 +90,15 @@ Let's now talk about the general syntax of running the :command:`chaintool` exec
 
    chaintool <commandgroup> <operation> [flag flag ...] [argument argument ...]
 
-The "commandgroup" identifies a group of related tasks, while the "operation" is a specific task. In some cases a commandgroup only has one task, so there is no operation; in those cases the invocation would look like this:
+The "commandgroup" identifies a group of related tasks, while the "operation" is a specific task. In some cases a commandgroup only does one thing, so there are no "operations" to choose among; in those cases the invocation would look like this:
 
 .. code-block:: none
 
    chaintool <commandgroup> [flag flag ...] [argument argument ...]
 
-The optional flags are specific to the chosen commandgroup/operation and can be specified in single-hyphen single-letter form (e.g. ``-i``) or double-hyphen full-word form (e.g. ``--ignore-errors``). To finish out the commandline, the commandgroup/operation may have one or more required positional arguments and may support additional optional positional arguments.
+The optional flags are specific to the chosen commandgroup/operation and can be specified in single-hyphen single-letter form (e.g. ``-i``) or double-hyphen full-word form (e.g. ``--ignore-errors``).
+
+To finish out the commandline, the commandgroup/operation may have one or more required positional arguments and may support additional optional positional arguments.
 
 For example, the following invocation would create one of the variations on the ``foo`` command that was mentioned in the previous subsection:
 
@@ -159,7 +161,31 @@ When you invoke an ``edit`` operation, you are presented with a prompt where you
 
    During an ``edit`` operation, several familiar editing control-characters are supported, such as Ctrl-A to jump to beginning of line and Ctrl-E to jump to end. And for ``seq edit``, you can use tab-completion on the command names that make up the sequence.
 
-Once you have some commands and/or sequences, you can use ``cmd list`` and ``seq list`` to see their names. You can also pretty-print the info for a command, or for all the commands in a sequence:
+The final editing tool at your disposal is the ``vals`` operation. This allows you to update placeholder values in an existing command, or in all the commands of a sequence, or in *all* commands:
+
+.. code-block:: none
+
+   chaintool cmd vals [-q] <cmdname> <placeholder_arg> [<placeholder_arg> ...]
+
+   chaintool seq vals [-q] <seqname> <placeholder_arg> [<placeholder_arg> ...]
+
+   chaintool vals <placeholder_arg> [<placeholder_arg> ...]
+
+With each ``<placeholder_arg>`` you can set the default value for a placeholder, clear the default value for a placeholder, or set the "off" and "on" values for a toggle. For example the following invocation would modify all commands in sequence ``foo`` to (where applicable) set default values for placeholders ``fishes`` and ``bicycles``, clear any default value for ``dinnertime``, and set "off" and "on" values for the ``power`` toggle:
+
+.. code-block:: none
+
+   chaintool seq vals foo fishes=3 dinnertime bicycles=large +power=0V:120V
+
+Once you have some commands and/or sequences, you can use ``list`` operations to see their names:
+
+.. code-block:: none
+
+   chaintool cmd list
+
+   chaintool seq list
+
+You can also pretty-print the info for a command, or for all the commands in a sequence, or for *all* commands:
 
 .. code-block:: none
 
@@ -167,7 +193,9 @@ Once you have some commands and/or sequences, you can use ``cmd list`` and ``seq
 
    chaintool seq print <seqname>
 
-Or pretty-print the info for all commands using just :command:`chaintool print`. The placeholder information shown in the output of these ``print`` operations will be covered in more detail in the full section on :doc:`placeholders<placeholders>`.
+   chaintool print
+
+The placeholder information shown in the output of these ``print`` operations will be covered in more detail in the full section on :doc:`placeholders<placeholders>`.
 
 The final part of the authoring lifecycle is of course deleting stuff. You can use the ``del`` operation to delete multiple commands or sequences:
 
@@ -179,20 +207,38 @@ The final part of the authoring lifecycle is of course deleting stuff. You can u
 
 The optional ``-f`` flag for ``cmd del`` allows you to delete commands that are currently being used by some sequence.
 
-XXX general mention of bash completions?
-
 Command and Sequence Execution
 ------------------------------
 
-XXX run
+You can use the ``run`` operation to execute the commandline of an existing command, or to execute all commands in a sequence:
 
-XXX briefly mention shortcuts, link to full page
+.. code-block:: none
 
-XXX general mention of bash completions?
+   chaintool cmd run <cmdname> <placeholder_arg> [<placeholder_arg> ...]
 
-Updating Placeholder Values
----------------------------
+   chaintool seq run [-i] [-s <skip_cmdname>] <seqname> <placeholder_arg> [<placeholder_arg> ...]
 
-XXX vals
+The optional ``-i`` flag for ``seq run`` tells chaintool to ignore any error status from an individual command execution and continue running the next command in the sequence.
 
-XXX general mention of bash completions?
+The ``seq run`` operation also accepts multiple ``-s <skip_cmdname>`` arguments to identify any commands in the sequence that should not be run this time.
+
+As with the ``vals`` operation, each ``<placeholder_arg>`` affects the value substituted for a placeholder in the command (or in all commands in the sequence). However, here you are specifying values only for this run, and not modifying any stored default values. Two other differences from the ``vals`` syntax are also important:
+
+   - For non-toggle placeholders, you can *not* indicate that a placeholder has no value. You can only set a value.
+   - For toggles, you cannot specify the "off" or "on" value. You can only specify the toggle (to activate it), or not.
+
+So for example if we refer back to the imagined ``foo`` sequence from the description of the ``vals`` operation, the following invocation would run the ``foo`` sequence setting values for ``fishes`` and ``dinnertime``, and activating the ``+power`` toggle:
+
+.. code-block:: none
+
+   chaintool seq run foo fishes=5 dinnertime=7PM +power
+
+.. note::
+
+   All non-toggle placeholders in an executed commandline must either have a default value, or have a value specified for them at runtime. If any placeholders are left without a value, an attempt to run the command will result in an error status.
+
+Ideally, the ``run`` operation will be the one you do most frequently. So chaintool has a feature called :doc:`shortcuts<shortcuts>` that cuts down on the amount of typing needed to run a command or sequence; you can omit the ``chaintool cmd run`` or ``chaintool seq run`` part of the invocation. E.g. if you have shortcuts :ref:`configured<configuration:shortcuts>` then this would be equivalent to the ``seq run`` invocation above:
+
+.. code-block:: none
+
+   foo fishes=5 dinnertime=7PM +power
