@@ -6,7 +6,7 @@
 chaintool: a tool to chain tools into toolchains
 ===============================================================
 
-.. image:: https://img.shields.io/pypi/l/chaintool
+.. image:: https://img.shields.io/pypi/l/chaintool.svg
    :target: https://www.gnu.org/licenses/gpl-3.0.html
    :alt: license
 
@@ -17,6 +17,10 @@ chaintool: a tool to chain tools into toolchains
 .. image:: http://img.shields.io/pypi/v/chaintool.svg
    :target: https://pypi.python.org/pypi/chaintool
    :alt: current version
+
+.. image:: https://img.shields.io/readthedocs/chaintool/latest.svg
+   :target: https://chaintool.readthedocs.io/en/latest/
+   :alt: docs
 
 .. _blurb_section:
 
@@ -87,7 +91,7 @@ An alternative to installing from PyPI is to install chaintool directly from Git
 
 Note that it's preferable to use an explicit Python-version executable like :command:`python3.7` instead of just :command:`python3`. If you install using :command:`python3` and it is a symbolic link that is later changed to point to some different Python version, chaintool will stop working. (This has to do with how the package-installation process hardcodes Python executable paths into the command scripts that it generates.)
 
-If you later need to uninstall chaintool (with :command:`pip uninstall`) and then re-install it for a newer version of Python, your local data and configuration will be preserved. 
+If you later need to uninstall chaintool (with :command:`pip uninstall`) and then re-install it for a newer version of Python, your local data and configuration will be preserved.
 
 .. _Python Package Index: https://pypi.org/project/chaintool
 
@@ -105,6 +109,9 @@ Depending on your configuration, you may need to start a new shell for these fea
 
 For more details, see the full documentation linked below.
 
-.. _documentation_section:
+User Guide and Reference
+------------------------
 
-XXX Eventually need a link here to the relevant readthedocs page.
+The full configuration guide, user guide, helptext reference, and code docs are `hosted at "Read the Docs"`_.
+
+.. _hosted at "Read the Docs": https://chaintool.readthedocs.io/en/latest/

@@ -18,6 +18,6 @@ An alternative to installing from PyPI is to install chaintool directly from Git
 
 Note that it's preferable to use an explicit Python-version executable like :command:`python3.7` instead of just :command:`python3`. If you install using :command:`python3` and it is a symbolic link that is later changed to point to some different Python version, chaintool will stop working. (This has to do with how the package-installation process hardcodes Python executable paths into the command scripts that it generates.)
 
-If you later need to uninstall chaintool (with :command:`pip uninstall`) and then re-install it for a newer version of Python, your local data and configuration will be preserved. 
+If you later need to uninstall chaintool (with :command:`pip uninstall`) and then re-install it for a newer version of Python, your local data and configuration will be preserved.
 
 .. _Python Package Index: https://pypi.org/project/chaintool
