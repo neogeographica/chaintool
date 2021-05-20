@@ -9,7 +9,6 @@ User Guide
    example
    shortcuts
    placeholders
-   modifiers
    virtual-tools
    import-export
    complex-example

@@ -195,8 +195,6 @@ You can also pretty-print the info for a command, or for all the commands in a s
 
    chaintool print
 
-The placeholder information shown in the output of these ``print`` operations will be covered in more detail in the full section on :doc:`placeholders<placeholders>`.
-
 The final part of the authoring lifecycle is of course deleting stuff. You can use the ``del`` operation to delete multiple commands or sequences:
 
 .. code-block:: none
@@ -237,7 +235,7 @@ So for example if we refer back to the imagined ``foo`` sequence from the descri
 
    All non-toggle placeholders in an executed commandline must either have a default value, or have a value specified for them at runtime. If any placeholders are left without a value, an attempt to run the command will result in an error status.
 
-Ideally, the ``run`` operation will be the one you do most frequently. So chaintool has a feature called :doc:`shortcuts<shortcuts>` that cuts down on the amount of typing needed to run a command or sequence; you can omit the ``chaintool cmd run`` or ``chaintool seq run`` part of the invocation. E.g. if you have shortcuts :ref:`configured<configuration:shortcuts>` then this would be equivalent to the ``seq run`` invocation above:
+Ideally, the ``run`` operation will be the one you do most frequently. So chaintool has a feature called :doc:`shortcuts<shortcuts>` that cuts down on the amount of typing needed to run a command or sequence; you can omit the ``chaintool cmd run`` or ``chaintool seq run`` part of the invocation. E.g. if you have shortcuts :ref:`configured<configuration:shortcuts>` then the following would be equivalent to the ``seq run`` invocation above:
 
 .. code-block:: none
 

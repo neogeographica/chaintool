@@ -11,7 +11,7 @@ Shortcuts
 =========
 
 What are Shortcuts?
-^^^^^^^^^^^^^^^^^^^
+-------------------
 
 When you created a "command" or "sequence" with chaintool, a "shortcut" script with the same name will automatically be created as well. That shortcut can then be used to run the associated command or sequence. So for example if you have created a sequence ``foo``, you *could* execute it by entering this at your shell prompt:
 
@@ -26,7 +26,7 @@ But if you have shortcuts properly configured, you could alternately just run it
    foo
 
 Setup
-^^^^^
+-----
 
 "Configuring shortcuts" means making sure that a necessary directory is part of your :envvar:`PATH` environment variable. This isn't rocket science, but chaintool still provides a little automated assistance to set up (or tear down) this modification of :envvar:`PATH`.
 
@@ -69,7 +69,7 @@ Completions
    If you're not using the bash shell, this section is probably not relevant for you. Some other shells may be able to make use of bash autocompletions through a compatibility feature (e.g. ``bashcompinit`` in zsh) but that is untested.
 
 What are Completions?
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 
 The bash shell provides nice facilities for "autocompletion" of command-line arguments: type the first few letters of some argument on the command line, then press Tab and the rest of the argument will appear. Or if there are multiple possible arguments that could follow from those initial letters, you will be shown the list of possibilities.
 
@@ -78,7 +78,7 @@ In chaintool's case, this autocompletion is especially handy because many of the
 Correct completion for command-line arguments is of course very context-dependent; it is driven by the semantics of the program being invoked and by other arguments that may have already been typed. So bash needs application-specific help in order to perform this trick. The task of "configuring completions" for chaintool means providing the code (in the form of bash functions) that bash will use to do autocompletion for chaintool and for any chaintool shortcut script.
 
 General Configuration
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 
 Before getting into chaintool-specific setup though, you may want to tweak the overall behavior of autocompletion. One common modification is to have the following line in your :file:`~/.inputrc` file (creating that file if necessary):
 
@@ -89,7 +89,7 @@ Before getting into chaintool-specific setup though, you may want to tweak the o
 This will change the behavior when there are multiple completion possibilities based on what you've typed so far. Normally in that case the first press of the Tab key would just cause a beep, and you would need to press Tab again to see the possible completions. If you make the above change however, the possible completions will be shown (without a beep) the first time you press Tab.
 
 Completions "Style"
-^^^^^^^^^^^^^^^^^^^
+-------------------
 
 When it comes to the chaintool-specific setup, an interactive configuration process is available (similar to the shortcuts setup). Unfortunately there's one bit of information that chaintool can't reliably detect on its own, so you'll need to figure it out. The question is this: is your shell currently using the ``bash-completion`` package, version 2.2 or later? 
 
@@ -104,7 +104,7 @@ You can determine your ``bash-completion`` situation by entering this at your ba
 If you see "yep" printed, then you do in fact currently have ``bash-completion`` active, and it's version 2.2 or later. If this is the case, you can configure "dynamic" completions in the process described below. Otherwise, you must use "old style" completions.
 
 Setup
-^^^^^
+-----
 
 To get into this configuration assistant, invoke this command:
 
@@ -119,7 +119,7 @@ First, if you have previously used this command to set up completions, it will a
 On the other hand, if you don't have completions set up (or if you chose to remove the previous configuration), chaintool will ask if you want to set up "dynamic" or "old style" completions now.
 
 Dynamic
-"""""""
+^^^^^^^
 
 Choosing "dynamic" completions will work if you determined (as per above) that you are currently using a recent version of the ``bash-completion`` package.
 
@@ -134,7 +134,7 @@ Once you have selected this directory, autocompletions will immediately be suppo
    If you attempted to do autocompletions for chaintool *before* running :command:`chaintool x completions`, then ``bash-completion`` may have installed a default completions handler for chaintool. This will prevent the "real" completion support from kicking in. In that case you do need to start a new shell once, after you have done the :command:`chaintool x completions` process.
 
 Old Style
-"""""""""
+^^^^^^^^^
 
 Choosing "old style" completions will always work, but has drawbacks described in detail at the end of this subsection.
 
