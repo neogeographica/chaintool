@@ -87,11 +87,11 @@ USERDIR_LOCATION = os.path.join(LOCATIONS_DIR, "completions_lazy_load_userdir")
 
 
 def init(prev_version, cur_version):
-    """Initialize module at load time.
+    """Initialize module.
 
-    Called from :mod:`.__init__` when package is loaded. Creates the
-    completions directory, inside the data appdir, if necessary. Also creates
-    the shortcuts completions directory inside that, if necessary.
+    Called when chaintool runs. Creates the completions directory, inside the
+    data appdir, if necessary. Also creates the shortcuts completions
+    directory inside that, if necessary.
 
     Once those directories are ensured, the "main script" and "helper script"
     files can be extracted from the package resources and placed in the

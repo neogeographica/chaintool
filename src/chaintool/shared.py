@@ -70,11 +70,11 @@ MSG_WARN_PREFIX = Fore.YELLOW + "Warning:" + Fore.RESET
 
 
 def init():
-    """Initialize module at load time.
+    """Initialize module.
 
-    Called from :mod:`.__init__` when package is loaded. Creates the locations
-    directory, inside the config appdir, if necessary. Also configure readline
-    to allow tab-completion during seq edit.
+    Called when chaintool runs. Creates the locations directory, inside the
+    config appdir, if necessary. Also configure readline to allow
+    tab-completion during seq edit.
 
     """
     os.makedirs(LOCATIONS_DIR, exist_ok=True)

@@ -82,10 +82,10 @@ class LockType(enum.Enum):
 
 
 def init():
-    """Initialize module at load time.
+    """Initialize module.
 
-    Called from :mod:`.__init__` when package is loaded. Creates the locks
-    directory, inside the cache appdir, if necessary.
+    Called when chaintool runs. Creates the locks directory, inside the cache
+    appdir, if necessary.
 
     """
     os.makedirs(LOCKS_DIR, exist_ok=True)

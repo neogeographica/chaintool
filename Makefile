@@ -8,8 +8,7 @@ docs: check-installed readme
 	rm -f docs/chaintool.rst docs/modules.rst
 	sphinx-apidoc -o docs src/chaintool
 	cat docs/chaintool.rst | \
-	    sed '/^Submodules$$/{s/.*/:ref:`search`/;N;s/\n.*//;}' | \
-	    sed '/^Module contents$$/,$$ d' > docs/chaintool.rst.modified
+	    sed '/^Submodules$$/{s/.*/:ref:`search`/;N;s/\n.*//;}' > docs/chaintool.rst.modified
 	mv docs/chaintool.rst.modified docs/chaintool.rst
 	cd docs; make html
 	rm -f docs/modules.rst

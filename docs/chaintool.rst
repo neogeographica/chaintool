@@ -139,3 +139,10 @@ chaintool.xfer module
    :undoc-members:
    :show-inheritance:
 
+Module contents
+---------------
+
+.. automodule:: chaintool
+   :members:
+   :undoc-members:
+   :show-inheritance:

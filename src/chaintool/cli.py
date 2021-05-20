@@ -30,6 +30,7 @@ import sys
 
 from colorama import Fore
 
+from . import init
 from . import command
 from . import completions_setup
 from . import info
@@ -803,6 +804,10 @@ CMDGROUP_DISPATCH = {
 def main(forced_progname=None):
     """Parse command-line args from ``sys.argv``, and dispatch to handlers.
 
+    Call :func:`chaintool.init` to make sure the chaintool files and
+    configurations exist and are updated to the current version. Then parse
+    the commandline and dispatch the appropriate handler.
+
     :param forced_progname: program name to use in help output; if None,
                             then sys.argv[0] will be used; defaults to None
     :type forced_progname:  str | None, optional
@@ -811,6 +816,7 @@ def main(forced_progname=None):
     :rtype:   int
 
     """
+    init()
     if forced_progname is not None:
         parser = argparse.ArgumentParser(prog=forced_progname, add_help=False)
     else:

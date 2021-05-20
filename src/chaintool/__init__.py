@@ -20,6 +20,9 @@
 """Initialize the package's modules."""
 
 
+__all__ = ["init"]
+
+
 import atexit
 import sys
 
@@ -127,4 +130,14 @@ def init_modules():
         shared.set_last_python_version(this_python_ver)
 
 
-init_modules()
+def init():
+    """Idempotent initialization of chaintool's files and configurations.
+
+    This function must be called at least once before using chaintool for
+    the first time, and after any upgrade to a newer chaintool version. It
+    is automatically invoked with every use of the chaintool command; you
+    would only need to explicitly invoke it if you are calling functions in
+    the chaintool modules from other code.
+
+    """
+    init_modules()
