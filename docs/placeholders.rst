@@ -111,7 +111,63 @@ At the end of the operation, chaintool will also tell you if any specified ``<pl
 Modifiers
 ---------
 
-XXX TBD
+Normally a placeholder token in a commandline will be replaced with the verbatim value for that placeholder. But for non-toggle placeholders, you can optionally indicate that the value will be changed by some common filepath manipulation(s). These manipulations are called "modifiers" and can be repeatedly prepended to the placeholder name using a slash.
+
+.. note::
+
+   Modifiers can only be used within the curly-bracket tokens in the commandlines. You can't specify modifiers in arguments for ``run`` or ``vals``. The arguments for ``run`` and ``vals`` are saying what a value *is*; modifiers are saying something about how to *change* a value once chaintool knows what it is. 
+
+A placeholder with one modifier would be in this form:
+
+.. code-block:: none
+
+   {<modifier>/<placeholder_name>}
+
+A placeholder with two modifiers, in this form:
+
+.. code-block:: none
+
+   {<modifier>/<modifier>/<placeholder_name>}
+
+and etc. There is no limit enforced on the number of modifiers that can be prepended, but in practice you won't need many.
+
+It's also fine for a modified placeholder to have a default value, e.g.:
+
+.. code-block:: none
+
+   {<modifier>/<modifier>/<placeholder_name>=<default_value>}
+
+Modifiers will always be applied to the value before it's substituted into the commandline, whether that value comes from the default or from a ``run`` argument. Modifiers are applied in order starting with the rightmost one (closest to the placeholder name) and then working leftward.
+
+The available modifiers are:
+
+- ``dirname`` : This modifier removes the final directory separator character (if it exists) and everything after it. It is the equivalent of ``os.path.dirname`` in Python.
+- ``basename`` : This modifier removes the final directory separator character (if it exists) and everything before it. It is the equivalent of ``os.path.basename`` in Python.
+- ``stem`` : This modifier removes the rightmost file extension (if any), as long as it is after the final directory separator character (if it exists).
+
+So let's look at a concrete example. Let's say this is part of your commandline:
+
+   | :mono:`--inputfile "{inputfile}" --outputfile "{stem/inputfile}.out"`
+
+If the ``inputfile`` value is given at runtime as ``/home/bob/foo.txt``, this portion of the commandline would end up looking like:
+
+   | :mono:`--inputfile "/home/bob/foo.txt" --outputfile "/home/bob/foo.out"`
+
+You could also have a default specified for ``inputfile`` -- with the constraint that multiple instances of a placeholder within a single commandline must have the same default. So the above commandline snippet could instead be:
+
+   | :mono:`--inputfile "{inputfile=default.txt}" --outputfile "{stem/inputfile=default.txt}.out"`
+
+This would give the same resulting commandline portion as above if you explicitly specified ``inputfile`` as ``/home/bob/foo.txt`` at runtime. However if you fail to specify ``inputfile`` at runtime, the commandline portion would then look like:
+
+   | :mono:`--inputfile "default.txt" --outputfile "default.out"`
+
+Finally, if you wanted the output file to be written to the "/tmp" directory, you could also change our example snippet to do that. Using multiple modifiers you can strip the directory from the filepath, giving you a filename that you can append to "/tmp/":
+
+   | :mono:`--inputfile "{inputfile=default.txt}" --outputfile "/tmp/{basename/stem/inputfile=default.txt}.out"`
+
+If we supply that ``/home/bob/foo.txt`` value for ``inputfile`` at runtime, the resulting commandline portion would be:
+
+   | :mono:`--inputfile "/home/bob/foo.txt" --outputfile "/tmp/foo.out"`
 
 Interpreting Print Output
 -------------------------

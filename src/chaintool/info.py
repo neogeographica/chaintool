@@ -43,10 +43,13 @@ def dump():
     if not completions_setup.probe_config(False):
         print("bash completions are not enabled.")
         print()
-    print("Directory used to store shortcuts/completions configuration:")
+    print(
+        "Directory used to store configuration for shortcuts and completions:"
+    )
     print("  " + shlex.quote(shared.CONFIG_DIR))
     print(
-        "Directory used to store command/sequence data and generated scripts:"
+        "Directory used to store command/sequence data, shortcuts, and other"
+        " scripts:"
     )
     print("  " + shlex.quote(shared.DATA_DIR))
     print("Directory used to store temporary locks:")

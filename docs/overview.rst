@@ -137,7 +137,7 @@ You can create or update a command with the ``cmd set`` operation, of the form:
 
    chaintool cmd set [-q] <cmdname> <cmdline>
 
-``<cmdname>`` is the name of the command to create or update, and can be any sequence of non-whitespace characters. ``<cmdline>`` is the commandline to associate with that name; keep in mind that this is a single argument and so likely will need to be appropriately quoted/escaped to deal with spaces or special characters in it. The optional ``-q`` flag suppresses the pretty-printed command info that would normally happen after the set.
+``<cmdname>`` is the name of the command to create or update, and can be any sequence of non-whitespace characters that is not already taken by some other command or sequence. ``<cmdline>`` is the commandline to associate with that name; keep in mind that this is a single argument and so likely will need to be appropriately quoted/escaped to deal with spaces or special characters in it. The optional ``-q`` flag suppresses the pretty-printed command info that would normally happen after the set.
 
 Similarly you can create or update a sequence using ``seq set``:
 
@@ -145,7 +145,7 @@ Similarly you can create or update a sequence using ``seq set``:
 
    chaintool seq set [-f] [-q] <seqname> <cmdname> [<cmdname> ...]
 
-``<seqname>`` is the name of the sequence to create or update. It must be followed by one or more command names to compose the sequence. The optional ``-q`` flag behaves similarly here. The optional ``-f`` (or ``--force``) flag allows you to specify command names that do not currently exist.
+``<seqname>`` is the name of the sequence to create or update; as with command names, sequence names must be unique and contain no whitespace. This sequence name must be followed by one or more command names to compose the sequence. The optional ``-q`` flag behaves similarly here. The optional ``-f`` (or ``--force``) flag allows you to specify command names that do not currently exist.
 
 While the ``set`` operations can be useful, they can also be tedious if you just want to modify an existing command or sequence. Also, in the case of ``cmd set``, the proper quoting/escaping of the commandline argument can be frustrating to figure out. For those reasons, often you will want to use ``edit`` instead of ``set``:
 

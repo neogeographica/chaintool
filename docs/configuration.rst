@@ -177,9 +177,9 @@ The output of this command will depend on whether (and how) you have configured 
    | :mono:`You currently have dynamic completions enabled, using this directory:`
    |   :mono:`/home/bob/.local/share/bash-completion/completions`
    |
-   | :mono:`Directory used to store shortcuts/completions configuration:`
+   | :mono:`Directory used to store configuration for shortcuts and completions:`
    |   :mono:`/home/bob/.config/chaintool`
-   | :mono:`Directory used to store command/sequence data and generated scripts:`
+   | :mono:`Directory used to store command/sequence data, shortcuts, and other scripts:`
    |   :mono:`/home/bob/.local/share/chaintool`
    | :mono:`Directory used to store temporary locks:`
    |   :mono:`/home/bob/.cache/chaintool`

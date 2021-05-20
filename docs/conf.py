@@ -93,7 +93,7 @@ html_static_path = ['_static']
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {"nosidebar": "true", "body_max_width": "none"}
+html_theme_options = {"nosidebar": "false", "body_max_width": "none"}
 
 # These paths are either relative to html_static_path
 # or fully qualified paths (eg. https://...)
