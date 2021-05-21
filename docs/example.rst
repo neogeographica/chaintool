@@ -19,11 +19,11 @@ Ideally you will also be working in a bash shell, specifically, and you have con
 Defining Commands
 -----------------
 
-The first part of this example is to define two commands. These will be used to run the :command:`flake8` and :command:`pylint` command-line tools with desired options.
+The first part of this example is to define two commands. These will be used to run the ``flake8`` and ``pylint`` command-line tools with desired options.
 
-You could use :command:`chaintool cmd set` to create a command in a single stroke, but that can involve figuring out how to properly quote a commandline so that it registers as a single argument. In most cases it's easier to instead use :command:`chaintool cmd edit` so you can type or paste the commandline at an interactive prompt.
+You could use ``chaintool cmd set`` to create a command in a single stroke, but that can involve figuring out how to properly quote a commandline so that it registers as a single argument. In most cases it's easier to instead use ``chaintool cmd edit`` so you can type or paste the commandline at an interactive prompt.
 
-Let's call these two commands ``myflake8`` and ``mypylint`` to distinguish them from the "real" :command:`flake8` and :command:`pylint` programs. To create ``myflake8``, invoke:
+Let's call these two commands ``myflake8`` and ``mypylint`` to distinguish them from the "real" ``flake8`` and ``pylint`` programs. To create ``myflake8``, invoke:
 
 .. code-block:: none
 
@@ -31,9 +31,7 @@ Let's call these two commands ``myflake8`` and ``mypylint`` to distinguish them 
 
 This will bring up a ``commandline:`` prompt. Since you are editing a command that doesn't exist yet, the commandline-to-edit is empty. At the prompt, paste the following line:
 
-.. code-block:: none
-
-   flake8 --select C,E,F,W,B{+nolong=,B950:} --ignore W503,E203,E501,E731 {target}
+   | :mono:`flake8 --select C,E,F,W,B{+nolong=,B950:} --ignore W503,E203,E501,E731 {target}`
 
 Broadly speaking, we're trying to capture the options we commonly use with that tool. The curly-bracket-enclosed bits express some common variations on those options; we'll describe the specifics of that mechanism in later sections. For now, after you paste the above commandline at the prompt, just press Enter to complete the command creation. chaintool will then print info about the resulting command:
 
@@ -56,9 +54,7 @@ Now let's create the ``mypylint`` command:
 
 And at the ``commandline:`` prompt, paste this:
 
-.. code-block:: none
-
-   pylint {+dup=-d R0801:} {+nodoc=:-d C0114,C0115,C0116} {+nolong=:-d C0301} {target}
+   | :mono:`pylint {+dup=-d R0801:} {+nodoc=:-d C0114,C0115,C0116} {+nolong=:-d C0301} {target}`
 
 Again, once you press Enter, chaintool will print info about the resulting command (not shown here).
 
@@ -66,7 +62,7 @@ Again, once you press Enter, chaintool will print info about the resulting comma
 Running a Command
 -----------------
 
-Once a command is defined, you can run it. For example you can run the ``myflake8`` command using :command:`chaintool cmd run myflake8`. However if you have chaintool shortcuts configured, you can run it with much less typing by just using the :command:`myflake8` shortcut command that has been created. Similarly for :command:`mypylint`.
+Once a command is defined, you can run it. For example you can run the ``myflake8`` command using ``chaintool cmd run myflake8``. However if you have chaintool shortcuts configured, you can run it with much less typing by just using the ``myflake8`` shortcut command that has been created. Similarly for ``mypylint``.
 
 .. note::
 
@@ -91,13 +87,13 @@ In the ``myflake8`` commandline that we defined, there are two placeholders: ``t
 
 The definition for the ``+nolong`` toggle specifies values to subsitute into the commandline at that location depending on whether the toggle is "off" or "on". We'll dig into this more in following sections, but for now you can just observe that the value substituted when this toggle is "off" (the part between the ``=`` symbol and the colon) is the string ``,B950``. The value substituted when this toggle is "on" (the part after the colon) is emptystring.
 
-The ``target`` placeholder is not a toggle; it marks a spot where any value might be substituted. In this example, no value is assigned by default (there is no ``=`` symbol after the placeholder name), so the user *must* at runtime supply a value. That's why we got the error above; we didn't specify what the value for ``target`` should be.
+The ``target`` placeholder is not a toggle; it marks a spot where any value might be substituted. In this example, no value is assigned by default (there is no ``=`` symbol after the placeholder name), so the user **must** at runtime supply a value. That's why we got the error above; we didn't specify what the value for ``target`` should be.
 
 .. note::
 
    When we created the ``myflake8`` command, the nature of this ``target`` placeholder was highlighted by it being placed in the "required values" section of the printed command info.
 
-So we need to specify a value when running the command. In this case we should specify a path to some Python sourcecode that can be evaluated by flake8. If for example the chaintool project's Python sourcecode is at the path :file:`/home/bob/chaintool/src/chaintool`, then this invocation of the :command:`myflake8` shortcut will work:
+So we need to specify a value when running the command. In this case we should specify a path to some Python sourcecode that can be evaluated by flake8. If for example the chaintool project's Python sourcecode is at the path :file:`/home/bob/chaintool/src/chaintool`, then this invocation of the ``myflake8`` shortcut will work:
 
 .. code-block:: none
 
@@ -119,9 +115,7 @@ If you're going to frequently run a given list of commands, you can create a seq
 
 At the resulting ``commands:`` prompt, paste this:
 
-.. code-block:: none
-
-   myflake8 mypylint
+   | :mono:`myflake8 mypylint`
 
 .. note::
 
@@ -157,7 +151,7 @@ This shows us that the required (no-default-value) ``target`` placeholder is com
 Running a Sequence
 ------------------
 
-Let's run that sequence now. Again assuming that you have chaintool shortcuts configured, the sequence can be invoked with the :command:`lint` shortcut command.
+Let's run that sequence now. Again assuming that you have chaintool shortcuts configured, the sequence can be invoked with the ``lint`` shortcut command.
 
 .. note::
 
@@ -193,17 +187,17 @@ More Fun With Placeholders
 
 If you're going to be frequently linting the same target, it doesn't make sense to keep typing that path for every run.
 
-There are several ways you could change the commands to set a default value for that placeholder. For example you could use :command:`chaintool cmd set` or :command:`chaintool cmd edit` to modify each of the commandlines, changing each occurence of ``{target}`` to ``{target=/home/bob/chaintool/src/chaintool}``.
+There are several ways you could change the commands to set a default value for that placeholder. For example you could use ``chaintool cmd set`` or ``chaintool cmd edit`` to modify each of the commandlines, changing each occurence of ``{target}`` to ``{target=/home/bob/chaintool/src/chaintool}``.
 
-However, :command:`chaintool cmd set` and :command:`chaintool cmd edit` are more applicable for making structural/syntax changes to a commandline. If you just want to change or remove the default value for a non-toggle placeholder, or change the off/on values for a toggle, then it's easier to use :command:`chaintool cmd vals`. You can also use :command:`chaintool seq vals` to set values for all commands in a sequence, or even :command:`chaintool vals` to set values across all currently defined commands.
+However, ``chaintool cmd set`` and ``chaintool cmd edit`` are more applicable for making structural/syntax changes to a commandline. If you just want to change or remove the default value for a non-toggle placeholder, or change the off/on values for a toggle, then it's easier to use ``chaintool cmd vals``. You can also use ``chaintool seq vals`` to set values for all commands in a sequence, or even ``chaintool vals`` to set values across all currently defined commands.
 
-In this case, let's use :command:`chaintool seq vals` to set the same default value for ``target`` in all commands in our ``lint`` sequence:
+In this case, let's use ``chaintool seq vals`` to set the same default value for ``target`` in all commands in our ``lint`` sequence:
 
 .. code-block:: none
 
    chaintool seq vals lint target=/home/bob/chaintool/src/chaintool
 
-Now we can run the :command:`lint` shortcut without any runtime arguments at all. If we do want to temporarily point it at some other path, we're still allowed to specify a value for ``target`` at runtime, which will override the default. And of course if we want to permanently change the default we could run :command:`chaintool seq vals` again.
+Now we can run the ``lint`` shortcut without any runtime arguments at all. If we do want to temporarily point it at some other path, we're still allowed to specify a value for ``target`` at runtime, which will override the default. And of course if we want to permanently change the default we could run ``chaintool seq vals`` again.
 
 How about those toggle placeholders? Those toggles can be "activated" at runtime by putting the toggle name on the commandline. For example, this invocation would activate the ``+dup`` toggle:
 
@@ -211,7 +205,7 @@ How about those toggle placeholders? Those toggles can be "activated" at runtime
 
    lint +dup
 
-In this sequence, the ``+dup`` toggle only happens to affect the ``mypylint`` command. By activating this toggle, the spot in that commandline that would normally contain ``-d R0801`` is instead populated with emptystring. The effect of this change is to remove the suppression of the "duplicate code" check in pylint; in other words, by specifying ``+dup`` you are asking pylint to do the duplicate-code checks that we normally are not asking it to do. When the command runs, you will see that the executed :command:`pylint` commandline now looks like this:
+In this sequence, the ``+dup`` toggle only happens to affect the ``mypylint`` command. By activating this toggle, the spot in that commandline that would normally contain ``-d R0801`` is instead populated with emptystring. The effect of this change is to remove the suppression of the "duplicate code" check in pylint; in other words, by specifying ``+dup`` you are asking pylint to do the duplicate-code checks that we normally are not asking it to do. When the command runs, you will see that the executed ``pylint`` commandline now looks like this:
 
    | :cyan:`pylint    /home/bob/chaintool/src/chaintool`
 
@@ -238,4 +232,4 @@ So if I do want to suppress the "long lines" checks in the linters, I don't need
 
 (And FYI for completeness' sake: the ``+nodoc`` toggle suppresses all docstrings checks, if you're evil that way.)
 
-These toggles don't give us access to all the :command:`flake8` and :command:`pylint` arguments of course; presumably these specific toggles were defined because they represent certain options that were frequently being fiddled with.
+These toggles don't give us access to all the ``flake8`` and ``pylint`` arguments of course; presumably these specific toggles were defined because they represent certain options that were frequently being fiddled with.

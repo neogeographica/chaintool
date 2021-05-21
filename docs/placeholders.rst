@@ -12,35 +12,29 @@ A placeholder's expression in a commandline (as defined in a ``cmd set`` or ``cm
 
 Placeholder without a default value:
 
-.. code-block:: none
-
-   {<placeholder_name>}
+   | :mono:`{`:ital:`<placeholder_name>`:mono:`}`
 
 Placeholder with a default value:
 
-.. code-block:: none
-
-   {<placeholder_name>=<default_value>}
+   | :mono:`{`:ital:`<placeholder_name>`:mono:`=`:ital:`<default_value>`:mono:`}`
 
 Or a "Toggle" style placeholder with "off" and "on" values:
 
-.. code-block:: none
+   | :mono:`{`:ital:`<toggle_placeholder_name>`:mono:`=`:ital:`<off_value>`:mono:`:`:ital:`<on_value>`:mono:`}`
 
-   {<toggle_placeholder_name>=<off_value>:<on_value>}
+A `<placeholder_name>` must start with a letter, which is optionally followed by letters, numbers, and/or underscores.
 
-A ``<placeholder_name>`` must start with a letter, which is optionally followed by letters, numbers, and/or underscores.
+A `<toggle_placeholder_name>` must start with a ``+`` symbol followed by a letter, which is optionally followed by letters, numbers, and/or underscores.
 
-A ``<toggle_placeholder_name>`` must start with a ``+`` symbol followed by a letter, which is optionally followed by letters, numbers, and/or underscores.
+A `<default_value>` or an `<on_value>` can be anything (including whitespace).
 
-A ``<default_value>`` or an ``<on_value>`` can be anything (including whitespace).
-
-An ``<off_value>`` can be anything except a colon; there's currently no way to express that an ``<off_value>`` must contain a literal colon character.
+An `<off_value>` can be anything except a colon; there's currently no way to express that an `<off_value>` must contain a literal colon character.
 
 .. note::
 
-   If you need to include a literal curly-bracket character as part of a ``<default_value>``, ``<off_value>``, or ``<on_value>``, when composing a placeholder token in a commandline, then you must use a double of that character. For example if you need the placeholder ``foo`` to have a default value of ``hey {howdy} ho``, you could express that within a commandline by using the token ``{foo=hey {{howdy}} ho}``.
+   If you need to include a literal curly-bracket character as part of a `<default_value>`, `<off_value>`, or `<on_value>`, when composing a placeholder token in a commandline, then you must use a double of that character. For example if you need the placeholder ``foo`` to have a default value of ``hey {howdy} ho``, you could express that within a commandline by using the token ``{foo=hey {{howdy}} ho}``.
 
-   That double-curly-bracket maneuver is only required when composing these curly-bracket-enclosed tokens within a commandline. If you are instead specifying the value as part of a ``<placeholder_arg>`` for a ``run`` or ``vals`` operation as described below, the doubling is not needed.
+   That double-curly-bracket maneuver is only required when composing these curly-bracket-enclosed tokens within a commandline. If you are instead specifying the value as part of a `<placeholder_arg>` for a ``run`` or ``vals`` operation as described below, the doubling is not needed.
 
    Finally, note that none of these cases allow/support interpreting a placeholder token nested inside the default value of some other placeholder token. If you need a default value to be based on another placeholder value in some way, using :ref:`chaintool-env<virtual-tools:chaintool-env>` in a sequence can get you the same effect.
 
@@ -49,64 +43,54 @@ Syntax in Vals Operations
 
 As described :ref:`in the overview<overview:command and sequence authoring>`, the ``vals`` operations can be used to modify the values for existing placeholders in commandlines.
 
-Each ``<placeholder_arg>`` in the invocation of a ``vals`` operation can take one of three forms.
+Each `<placeholder_arg>` in the invocation of a ``vals`` operation can take one of three forms.
 
 Remove any default value a placeholder might have:
 
-.. code-block:: none
-
-   <placeholder_name>
+   | :ital:`<placeholder_name>`
 
 Set a default value for a placeholder:
 
-.. code-block:: none
-
-   <placeholder_name>=<default_value>
+   | :ital:`<placeholder_name>`:mono:`=`:ital:`<default_value>`
 
 Or set the "off" and "on" values for a toggle:
 
-.. code-block:: none
-
-   <toggle_placeholder_name>=<off_value>:<on_value>
+   | :ital:`<toggle_placeholder_name>`:mono:`=`:ital:`<off_value>`:mono:`:`:ital:`<on_value>`
 
 You'll note that these formats are pretty much the same as in the commandline tokens described above; they are just missing any curly brackets.
 
-When composing the chaintool invocation for a ``vals`` operation, if you have configured :ref:`bash completions<configuration:completions>` for chaintool, you can use Tab to help autocomplete the available placeholders. The completion for a given placeholder will print the placeholder name followed by the ``=`` symbol, and also the current default value for the placeholder *if* it has a consistent default value in all affected commands. Your cursor will then be placed at the end of that completion so you can edit (or remove) the value as you like.
+When composing the chaintool invocation for a ``vals`` operation, if you have configured :ref:`bash completions<configuration:completions>` for chaintool, you can use Tab to help autocomplete the available placeholders. The completion for a given placeholder will print the placeholder name followed by the ``=`` symbol, and also the current default value for the placeholder **if** it has a consistent default value in all affected commands. Your cursor will then be placed at the end of that completion so you can edit (or remove) the value as you like.
 
 .. note::
 
-   If you want to remove the default value for a placeholder, make sure to *not* have the ``=`` symbol after the placeholder name. If you have the ``=`` symbol followed by nothing, you are setting the placeholder to a default value of emptystring, which is different than saying it has no default.
+   If you want to remove the default value for a placeholder, make sure to **not** have the ``=`` symbol after the placeholder name. If you have the ``=`` symbol followed by nothing, you are setting the placeholder to a default value of emptystring, which is different than saying it has no default.
 
-For each ``<placeholder_arg>`` in a ``vals`` operation, chaintool will go through all affected commands and update them if they use that placeholder. At the end of the operation, chaintool will also tell you if any specified ``<placeholder_arg>`` was "irrelevant", i.e. its placeholder name was not contained in any of the affected commandlines.
+For each `<placeholder_arg>` in a ``vals`` operation, chaintool will go through all affected commands and update them if they use that placeholder. At the end of the operation, chaintool will also tell you if any specified `<placeholder_arg>` was "irrelevant", i.e. its placeholder name was not contained in any of the affected commandlines.
 
 Syntax in Run Operations
 ------------------------
 
 Finally, as described :ref:`in the overview<overview:command and sequence execution>`, placeholder arguments can also be given to ``run`` operations.
 
-Each ``<placeholder_arg>`` in the invocation of a ``run`` operation can take one of two forms.
+Each `<placeholder_arg>` in the invocation of a ``run`` operation can take one of two forms.
 
 Set a runtime value for a placeholder:
 
-.. code-block:: none
-
-   <placeholder_name>=<value>
+   | :ital:`<placeholder_name>`:mono:`=`:ital:`<value>`
 
 Or activate a toggle:
 
-.. code-block:: none
+   | :ital:`<toggle_placeholder_name>`
 
-   <toggle_placeholder_name>
+For each non-toggle `<placeholder_arg>` in a ``run`` operation, chaintool will go through all affected commands and substitute in the specified value for that placeholder token, overriding any default value.
 
-For each non-toggle ``<placeholder_arg>`` in a ``run`` operation, chaintool will go through all affected commands and substitute in the specified value for that placeholder token, overriding any default value.
-
-For each toggle ``<placeholder_arg>`` in a ``run`` operation, chaintool will go through all affected commands and substitute the "on" value for that toggle placeholder token.
+For each toggle `<placeholder_arg>` in a ``run`` operation, chaintool will go through all affected commands and substitute the "on" value for that toggle placeholder token.
 
 Any remaining non-toggle placeholder tokens that have a default value will be replaced with that default value. Any remaining placeholder tokens for unactivated toggles will be replaced with their "off" value.
 
-Now we have the actual commandline(s) to run! If any commandline still has a placeholder left in it -- i.e. a non-toggle placeholder token that does *not* have a default value and did *not* get a value from a runtime ``<placeholder_arg>`` -- then that commandline will fail with an error status. Otherwise the commandline is executed.
+Now we have the actual commandline(s) to run! If any commandline still has a placeholder left in it -- i.e. a non-toggle placeholder token that does **not** have a default value and did **not** get a value from a runtime `<placeholder_arg>` -- then that commandline will fail with an error status. Otherwise the commandline is executed.
 
-At the end of the operation, chaintool will also tell you if any specified ``<placeholder_arg>`` was "irrelevant", i.e. its placeholder name was not contained in any of the affected commandlines.
+At the end of the operation, chaintool will also tell you if any specified `<placeholder_arg>` was "irrelevant", i.e. its placeholder name was not contained in any of the affected commandlines.
 
 Modifiers
 ---------
@@ -115,35 +99,31 @@ Normally a placeholder token in a commandline will be replaced with the verbatim
 
 .. note::
 
-   Modifiers can only be used within the curly-bracket tokens in the commandlines. You can't specify modifiers in arguments for ``run`` or ``vals``. The arguments for ``run`` and ``vals`` are saying what a value *is*; modifiers are saying something about how to *change* a value once chaintool knows what it is. 
-
-A placeholder with one modifier would be in this form:
-
-.. code-block:: none
-
-   {<modifier>/<placeholder_name>}
-
-A placeholder with two modifiers, in this form:
-
-.. code-block:: none
-
-   {<modifier>/<modifier>/<placeholder_name>}
-
-and etc. There is no limit enforced on the number of modifiers that can be prepended, but in practice you won't need many.
-
-It's also fine for a modified placeholder to have a default value, e.g.:
-
-.. code-block:: none
-
-   {<modifier>/<modifier>/<placeholder_name>=<default_value>}
-
-Modifiers will always be applied to the value before it's substituted into the commandline, whether that value comes from the default or from a ``run`` argument. Modifiers are applied in order starting with the rightmost one (closest to the placeholder name) and then working leftward.
+   Modifiers can only be used within the curly-bracket tokens in the commandlines. You can't specify modifiers in arguments for ``run`` or ``vals``. The arguments for ``run`` and ``vals`` are saying what a value **is**; modifiers are saying something about how to **change** a value once chaintool knows what it is. 
 
 The available modifiers are:
 
 - ``dirname`` : This modifier removes the final directory separator character (if it exists) and everything after it. It is the equivalent of ``os.path.dirname`` in Python.
 - ``basename`` : This modifier removes the final directory separator character (if it exists) and everything before it. It is the equivalent of ``os.path.basename`` in Python.
 - ``stem`` : This modifier removes the rightmost file extension (if any), as long as it is after the final directory separator character (if it exists).
+
+So you can see how it might be useful to apply more than one modifier to a value that is a filepath of some sort.
+
+A placeholder with one modifier would be in this form:
+
+   | :mono:`{`:ital:`<modifier>`:mono:`/`:ital:`<placeholder_name>`:mono:`}`
+
+A placeholder with two modifiers, in this form:
+
+   | :mono:`{`:ital:`<modifier>`:mono:`/`:ital:`<modifier>`:mono:`/`:ital:`<placeholder_name>`:mono:`}`
+
+and etc. There is no limit enforced on the number of modifiers that can be prepended, but in practice you won't need many.
+
+It's also fine for a modified placeholder to have a default value, e.g.:
+
+   | :mono:`{`:ital:`<modifier>`:mono:`/`:ital:`<modifier>`:mono:`/`:ital:`<placeholder_name>`:mono:`=`:ital:`<default_value>`:mono:`}`
+
+Modifiers will always be applied to the value before it's substituted into the commandline, whether that value comes from the default or from a ``run`` argument. Modifiers are applied in order starting with the rightmost one (closest to the placeholder name) and then working leftward.
 
 So let's look at a concrete example. Let's say this is part of your commandline:
 
@@ -212,7 +192,7 @@ The three sections describing the placeholders are really just repeating the inf
 
 .. note::
 
-   In these placeholder sections, values will be quoted as they would need to be if you were specifying them in a ``<placeholder_arg>`` for a ``run`` or ``vals`` operation (to protect whitespace or special characters). Emptystrings will also be highlighted with quotes, as for example with the "on" value for the ``+nophong`` toggle above.
+   In these placeholder sections, values will be quoted as they would need to be if you were specifying them in a `<placeholder_arg>` for a ``run`` or ``vals`` operation (to protect whitespace or special characters). Emptystrings will also be highlighted with quotes, as for example with the "on" value for the ``+nophong`` toggle above.
 
 Multiple Commands
 ^^^^^^^^^^^^^^^^^
@@ -318,7 +298,7 @@ Since there is now at least one command where this placeholder lacks a value, th
 
 .. note::
 
-   When a placeholder's value is set by ``run`` or ``vals``, the same value is applied wherever that placeholder appears in all affected commands. So, it also usually makes sense for a placeholder to have the same *default* value everywhere. If a placeholder is shown as having a different default in some commands, that might be an indication that a different placeholder name should be used in those cases.
+   When a placeholder's value is set by ``run`` or ``vals``, the same value is applied wherever that placeholder appears in all affected commands. So, it also usually makes sense for a placeholder to have the same **default** value everywhere. If a placeholder is shown as having a different default in some commands, that might be an indication that a different placeholder name should be used in those cases.
 
 "chaintool-env" Effects
 ^^^^^^^^^^^^^^^^^^^^^^^

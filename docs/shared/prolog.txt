@@ -1,4 +1,6 @@
 .. role:: mono
+.. role:: ital
+   :class: ital mono
 .. role:: red
    :class: red mono
 .. role:: green
@@ -7,3 +9,4 @@
    :class: magenta mono
 .. role:: cyan
    :class: cyan mono
+.. default-role:: ital

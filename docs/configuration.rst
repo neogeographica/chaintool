@@ -2,7 +2,7 @@
 Configuration
 *************
 
-Once chaintool is installed, a bit of initial configuration can help you get the best user experience. The :command:`chaintool x` command group ("x" for "extended functionality") is used for this setup.
+Once chaintool is installed, a bit of initial configuration can help you get the best user experience. The ``chaintool x`` command group ("x" for "extended functionality") is used for this setup.
 
 You can always come back and do this later, if you'd rather first check out the :doc:`User Guide<user-guide>` for an overview and some examples!
 
@@ -13,7 +13,7 @@ Shortcuts
 What are Shortcuts?
 -------------------
 
-When you created a "command" or "sequence" with chaintool, a "shortcut" script with the same name will automatically be created as well. That shortcut can then be used to run the associated command or sequence. So for example if you have created a sequence ``foo``, you *could* execute it by entering this at your shell prompt:
+When you created a "command" or "sequence" with chaintool, a "shortcut" script with the same name will automatically be created as well. That shortcut can then be used to run the associated command or sequence. So for example if you have created a sequence ``foo``, you **could** execute it by entering this at your shell prompt:
 
 .. code-block:: none
 
@@ -56,7 +56,7 @@ FYI chaintool will add lines to the selected script file in the following form:
 
 (The actual directory added to :envvar:`PATH` will vary depending on your OS and your home directory path.)
 
-If you leave these lines intact, you can later use :command:`chaintool x shortcuts` to automatically remove them.
+If you leave these lines intact, you can later use ``chaintool x shortcuts`` to automatically remove them.
 
 Once your shell startup script has been modified, you will need to start a new shell to get the benefit of this new :envvar:`PATH`. From then on, any new command or sequence creation will result in a new shortcut that is immediately available for use.
 
@@ -91,17 +91,17 @@ This will change the behavior when there are multiple completion possibilities b
 Completions "Style"
 -------------------
 
-When it comes to the chaintool-specific setup, an interactive configuration process is available (similar to the shortcuts setup). Unfortunately there's one bit of information that chaintool can't reliably detect on its own, so you'll need to figure it out. The question is this: is your shell currently using the ``bash-completion`` package, version 2.2 or later? 
+When it comes to the chaintool-specific setup, an interactive configuration process is available (similar to the shortcuts setup). Unfortunately there's one bit of information that chaintool can't reliably detect on its own, so you'll need to figure it out. The question is this: is your shell currently using the "bash-completion" package, version 2.2 or later? 
 
-The ``bash-completion`` package does not enable the basic autocompletion feature -- that's intrinsically part of the bash shell -- but it builds on it. If a recent-enough version of ``bash-completion`` is present, chaintool can use it to allow autocompletions to be enabled immediately for a newly created shortcut script, without requiring you to open a new shell.
+The bash-completion package does not enable the basic autocompletion feature -- that's intrinsically part of the bash shell -- but it builds on it. If a recent-enough version of bash-completion is present, chaintool can use it to allow autocompletions to be enabled immediately for a newly created shortcut script, without requiring you to open a new shell.
 
-You can determine your ``bash-completion`` situation by entering this at your bash shell prompt:
+You can determine your bash-completion situation by entering this at your bash shell prompt:
 
 .. code-block:: bash
 
    type __load_completion >/dev/null 2>&1 && echo yep
 
-If you see "yep" printed, then you do in fact currently have ``bash-completion`` active, and it's version 2.2 or later. If this is the case, you can configure "dynamic" completions in the process described below. Otherwise, you must use "old style" completions.
+If you see "yep" printed, then you do in fact currently have bash-completion active, and it's version 2.2 or later. If this is the case, you can configure "dynamic" completions in the process described below. Otherwise, you must use "old style" completions.
 
 Setup
 -----
@@ -121,17 +121,17 @@ On the other hand, if you don't have completions set up (or if you chose to remo
 Dynamic
 ^^^^^^^
 
-Choosing "dynamic" completions will work if you determined (as per above) that you are currently using a recent version of the ``bash-completion`` package.
+Choosing "dynamic" completions will work if you determined (as per above) that you are currently using a recent version of the bash-completion package.
 
-If you choose "dynamic" completions, then you must identify a directory where ``bash-completion`` will look to find user-specific completion scripts. If you haven't done any special work to explicitly set this directory to an unusual location, then you should just accept the directory that chaintool suggests.
+If you choose "dynamic" completions, then you must identify a directory where bash-completion will look to find user-specific completion scripts. If you haven't done any special work to explicitly set this directory to an unusual location, then you should just accept the directory that chaintool suggests.
 
-If however you have changed the value of the :envvar:`BASH_COMPLETION_USER_DIR` or :envvar:`XDG_DATA_HOME` environment variables, then the usual default directory will not be correct. If you have *exported* the values of those variables, so that chaintool can see them, chaintool can still suggest the correct directory. If not, you may need to modify the suggestion. Presumably if you have intentionally made such changes then you will know what the correct directory is.
+If however you have changed the value of the :envvar:`BASH_COMPLETION_USER_DIR` or :envvar:`XDG_DATA_HOME` environment variables, then the usual default directory will not be correct. If you have **exported** the values of those variables, so that chaintool can see them, chaintool can still suggest the correct directory. If not, you may need to modify the suggestion. Presumably if you have intentionally made such changes then you will know what the correct directory is.
 
-Once you have selected this directory, autocompletions will immediately be supported for the main :command:`chaintool` executable and any shortcuts you create, without the need to start a new shell.
+Once you have selected this directory, autocompletions will immediately be supported for the main ``chaintool`` executable and any shortcuts you create, without the need to start a new shell.
 
 .. note::
 
-   If you attempted to do autocompletions for chaintool *before* running :command:`chaintool x completions`, then ``bash-completion`` may have installed a default completions handler for chaintool. This will prevent the "real" completion support from kicking in. In that case you do need to start a new shell once, after you have done the :command:`chaintool x completions` process.
+   If you attempted to do autocompletions for chaintool **before** running ``chaintool x completions``, then bash-completion may have installed a default completions handler for chaintool. This will prevent the "real" completion support from kicking in. In that case you do need to start a new shell once, after you have done the ``chaintool x completions`` process.
 
 Old Style
 ^^^^^^^^^
@@ -154,9 +154,9 @@ FYI chaintool will add lines to the selected script file in the following form:
 
 (The actual filepath sourced will vary depending on your OS and your home directory path.)
 
-If you leave these lines intact, you can later use :command:`chaintool x completions` to automatically remove them.
+If you leave these lines intact, you can later use ``chaintool x completions`` to automatically remove them.
 
-Once you have configured "old style" completions, you will need to start a new shell to get autocompletion support for the main :command:`chaintool` executable. Also, after any new shortcut creation you must start a new shell for that shortcut to gain autocompletion support.
+Once you have configured "old style" completions, you will need to start a new shell to get autocompletion support for the main ``chaintool`` executable. Also, after any new shortcut creation you must start a new shell for that shortcut to gain autocompletion support.
 
 Current Config and Paths
 ========================
@@ -184,4 +184,4 @@ The output of this command will depend on whether (and how) you have configured 
    | :mono:`Directory used to store temporary locks:`
    |   :mono:`/home/bob/.cache/chaintool`
 
-The three "app directory" paths shown at the end of this output are normally not of any concern to someone using chaintool, but they're displayed in the interest of full disclosure of chaintool's footprint in your home directory. Also note that the contents of those app directories are intentionally *not* cleared out when chaintool is uninstalled, as they may be used again later if/when chaintool is reinstalled. If you care to completely erase chaintool's configuration and data from your system, then (currently) you would need to manually remove those directories.
+The three "app directory" paths shown at the end of this output are normally not of any concern to someone using chaintool, but they're displayed in the interest of full disclosure of chaintool's footprint in your home directory. Also note that the contents of those app directories are intentionally **not** cleared out when chaintool is uninstalled, as they may be used again later if/when chaintool is reinstalled. If you care to completely erase chaintool's configuration and data from your system, then (currently) you would need to manually remove those directories.

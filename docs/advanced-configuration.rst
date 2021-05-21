@@ -13,7 +13,7 @@ As mentioned in the :doc:`prerequisites<prerequisites>`, Python 3.7 or later is 
 
 However:
 
-That assumption -- "the install-time Python is the correct runtime Python to use" -- can possibly be broken by system changes. E.g. maybe you installed using :command:`python3` which is a symlink that has now been changed to point at a different Python version. If for some reason you need to be explicit about the version of Python that chaintool is installed for, then you can do that with some additional setup:
+That assumption -- "the install-time Python is the correct runtime Python to use" -- can possibly be broken by system changes. E.g. maybe you installed using ``python3`` which is a symlink that has now been changed to point at a different Python version. If for some reason you need to be explicit about the version of Python that chaintool is installed for, then you can do that with some additional setup:
 
 To begin with, modify your shell startup script (e.g. :file:`~/.bashrc`) to export the Python-executable-to-use as the value of the :envvar:`CHAINTOOL_PYTHON` environment variable. For example:
 
@@ -27,7 +27,7 @@ Once you've done that, you could run chaintool itself explicitly with a particul
 
     "$CHAINTOOL_PYTHON" -m chaintool <arguments>
 
-However that does require more typing and will prevent chaintool bash completions from triggering. To get around those issues you can create a wrapper script named :command:`chaintool`, and place it in a directory that is earlier in your :envvar:`PATH` than the "real" :command:`chaintool` command. That wrapper script's contents would look something like this:
+However that does require more typing and will prevent chaintool bash completions from triggering. To get around those issues you can create a wrapper script named ``chaintool``, and place it in a directory that is earlier in your :envvar:`PATH` than the "real" ``chaintool`` command. That wrapper script's contents would look something like this:
 
 .. code-block:: bash
 
