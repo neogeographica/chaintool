@@ -28,7 +28,6 @@ that run in Python code here rather than in a subprocess shell on the OS.
 __all__ = ["copytool", "deltool", "envtool", "dispatch", "update_env"]
 
 
-import os
 import re
 import shlex
 import shutil
@@ -36,21 +35,21 @@ import shutil
 from . import shared
 
 
-ENV_OP_RE = re.compile(r"^([a-zA-Z][a-zA-Z0-9_]*)(\??=)(.*)$")
+ENV_OP_RE = re.compile(r"^([a-zA-Z][a-zA-Z0-9_]*)=(.*)$")
 
 
 def env_op_parse(env_op):
     """Parse a chaintool-env argument into a tuple.
 
     Return ``None`` if the ``env_op`` argument is not in the correct format.
-    Otherwise return a 3-tuple with the destination placeholder name, an
-    indicator for "only if destination unset", and the value to apply.
+    Otherwise return a 2-tuple containing the destination placeholder name and
+    the value to apply.
 
     :param env_op: an argument to chaintool-env
     :type env_op:  str
 
     :returns: parse results
-    :rtype:   tuple[str, bool, str] | None
+    :rtype:   tuple[str, str] | None
 
     """
     match = ENV_OP_RE.match(env_op)
@@ -58,9 +57,8 @@ def env_op_parse(env_op):
         shared.errprint("Bad chaintool-env argument format.")
         return None
     dst_name = match.group(1)
-    only_if_dst_unset = match.group(2)[0] == "?"
-    src_value = match.group(3)
-    return (dst_name, only_if_dst_unset, src_value)
+    src_value = match.group(2)
+    return (dst_name, src_value)
 
 
 def copytool(copy_args, _run_args):
@@ -88,11 +86,11 @@ def copytool(copy_args, _run_args):
         return 1
     try:
         shutil.copy2(copy_args[0], copy_args[1])
-        print('copied "{}" to "{}"'.format(copy_args[0], copy_args[1]))
-        return 0
     except Exception as copy_exception:  # pylint: disable=broad-except
         print(repr(copy_exception))
-    return 1
+        return 1
+    print('copied "{}" to "{}"'.format(copy_args[0], copy_args[1]))
+    return 0
 
 
 def deltool(del_args, _run_args):
@@ -101,8 +99,8 @@ def deltool(del_args, _run_args):
     Bail out with error if ``del_args`` has other than 1 element.
 
     Otherwise, treat that element as the filepath to delete. Delegate to
-    :func:`os.remove` to do the delete. If remove raises any exception, return
-    an error.
+    :func:`.shared.delete_if_exists` to do the delete. If that raises any
+    exception, return an error.
 
     :param del_args:  arguments to chaintool-del
     :type del_args:   list[str]
@@ -117,12 +115,12 @@ def deltool(del_args, _run_args):
         shared.errprint("chaintool-del takes one argument: filepath")
         return 1
     try:
-        os.remove(del_args[0])
-        print('deleted "{}"'.format(del_args[0]))
-        return 0
+        shared.delete_if_exists(del_args[0])
     except Exception as del_exception:  # pylint: disable=broad-except
         print(repr(del_exception))
-    return 1
+        return 1
+    print('deleted "{}"'.format(del_args[0]))
+    return 0
 
 
 def envtool(env_args, run_args):
@@ -149,7 +147,7 @@ def envtool(env_args, run_args):
     if None in ops:
         return 1
     for env_op in ops:
-        (dst_name, only_if_dst_unset, src_value) = env_op
+        (dst_name, src_value) = env_op
         dst_currently_set = False
         for arg in run_args:
             if arg[0] == "+":
@@ -158,7 +156,7 @@ def envtool(env_args, run_args):
             if name == dst_name:
                 dst_currently_set = True
                 break
-        if only_if_dst_unset and dst_currently_set:
+        if dst_currently_set:
             print("{} already has value; not modifying".format(dst_name))
             continue
         new_arg = "=".join([dst_name, src_value])
@@ -199,8 +197,8 @@ def dispatch(cmdline, run_args):
     return VTOOL_DISPATCH[tokens[0]](tokens[1:], run_args)
 
 
-def update_env(cmdline, env_constant_values, env_optional_values):
-    """Get the constant or optional placeholder values set by a commandline.
+def update_env(cmdline, env_values):
+    """Get the optional placeholder values set by a commandline.
 
     This utility function is invoked during printing placedholder info for
     commands in a sequence; it determines whether a command affects how
@@ -211,20 +209,14 @@ def update_env(cmdline, env_constant_values, env_optional_values):
     that. Also return if there is any error parsing the remaining words of a
     "chaintool-env" command into a list of environment ops.
 
-    Iterate through the list of ops and examine them sequentially. If an op
-    has the "only if unset" flag, then add its placeholder name/value to
-    the ``env_optional_values`` dict. Otherwise append its placeholder name to
-    the ``env_constant_values`` list (and remove it from
-    ``env_optional_values`` if necessary).
+    Iterate through the list of ops and add each op's placeholder name/value
+    to the ``env_values`` dict.
 
-    :param cmdline:              commandline for the command to examine
-    :type cmdline:               str
-    :param env_constant_values:  list of placeholder names that have been set
-                                 to some constant value; to modify
-    :type env_constant_values:   list[str]
-    :param env_optional_values:  dict of optional placeholder values, keyed
-                                 by placeholder name; to modify
-    :type env_optional_values:   dict[str, str]
+    :param cmdline:    commandline for the command to examine
+    :type cmdline:     str
+    :param env_values: dict of optional placeholder values, keyed by
+                       placeholder name; to modify
+    :type env_values:  dict[str, str]
 
     """
     tokens = shlex.split(cmdline)
@@ -235,10 +227,5 @@ def update_env(cmdline, env_constant_values, env_optional_values):
     if None in ops:
         return
     for env_op in ops:
-        (dst_name, only_if_dst_unset, src_value) = env_op
-        if only_if_dst_unset:
-            env_optional_values[dst_name] = src_value
-        else:
-            env_constant_values.append(dst_name)
-            if dst_name in env_optional_values:
-                del env_optional_values[dst_name]
+        (dst_name, src_value) = env_op
+        env_values[dst_name] = src_value

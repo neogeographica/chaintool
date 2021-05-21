@@ -10,7 +10,11 @@ Changelog
     upgrades.
   - Support import-from-URL.
   - Support tab-completion of command names during "seq edit".
-  - More work on Sphinx docs.
+  - Make chaintool-del succeed even if file is already gone.
+  - Simplification of chaintool-env: only conditional assignment is now
+    supported in the env ops. The "=" assignment operator now does conditional
+    assignment.
+  - More work on Sphinx docs, and hosting them at "Read the Docs".
 
 - **0.2.0** (2021-04-30)
 

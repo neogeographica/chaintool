@@ -127,10 +127,6 @@ def init_print_info_collections(  # pylint: disable=too-many-arguments
     Deciding which "set" a placeholder name belongs in, to populate
     ``placeholders_sets``, goes according to the following rules:
 
-    - If a placeholder has been assigned a constant value from chaintool-env,
-      ignore its appearances in subsequent commands, as its value there is no
-      longer user-controllable. (Note that this is not relevant if
-      ``ignore_env`` is true.)
     - If a placeholder lacks a default value in some command, put it in the
       "required" set.
     - If a placeholder has some default everywhere it appears -- either
@@ -187,8 +183,7 @@ def init_print_info_collections(  # pylint: disable=too-many-arguments
             commands_by_placeholder[placeholder] = [cmd]
 
     commands_display = ""
-    env_constant_values = []
-    env_optional_values = dict()
+    env_values = dict()
     for cmd in commands:
         try:
             cmd_dict = command_impl_core.read_dict(cmd)
@@ -200,10 +195,8 @@ def init_print_info_collections(  # pylint: disable=too-many-arguments
         command_dicts.append(cmd_dict)
         command_dicts_by_cmd[cmd] = cmd_dict
         for key, value in cmd_dict["args"].items():
-            if key in env_constant_values:
-                continue
-            if key in env_optional_values:
-                value = Fore.GREEN + env_optional_values[key] + Fore.RESET
+            if key in env_values:
+                value = Fore.GREEN + env_values[key] + Fore.RESET
                 cmd_dict["args"][key] = value
             record_placeholder(cmd, key)
             if value is None:
@@ -216,11 +209,7 @@ def init_print_info_collections(  # pylint: disable=too-many-arguments
             record_placeholder(cmd, key)
             placeholders_sets["toggle"].add(key)
         if not ignore_env:
-            virtual_tools.update_env(
-                cmd_dict["cmdline"],
-                env_constant_values,
-                env_optional_values,
-            )
+            virtual_tools.update_env(cmd_dict["cmdline"], env_values)
     return commands_display[1:]
 
 

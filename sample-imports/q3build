@@ -4,7 +4,7 @@ commands:
   name: q3aas
 - cmdline: chaintool-copy "{stem/map}.bsp" "{q3basepath}/{q3mod=baseq3}/maps/{dstbase}.bsp"
   name: q3copy
-- cmdline: chaintool-env dstbase?="{basename/stem/map}"
+- cmdline: chaintool-env dstbase="{basename/stem/map}"
   name: q3set-opt-dest
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
     "{q3basepath}" -fs_game {q3mod=baseq3} -vis -saveprt {+fastvis=:-fast}

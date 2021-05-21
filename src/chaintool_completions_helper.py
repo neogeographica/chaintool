@@ -65,6 +65,8 @@ def update_placeholders_collections(
     if key in other_set:
         return
     if value is None:
+        if key in consistent_values_dict:
+            del consistent_values_dict[key]
         other_set.add(key)
         return
     if key not in consistent_values_dict:
@@ -88,8 +90,6 @@ def dump_placeholders(commands, is_run):  # pylint: disable=too-many-branches
     form useful for doing a command-line autocompletion given the first few
     characters of the placeholder name.
 
-    - If a placeholder has been assigned a constant value from chaintool-env,
-      before it is ever used in a command, skip it.
     - If a placeholder has a consistent value, we want to include the value
       setting in the autocompletion, so it can be observed and edited.
     - If a toggle has a consistent value, we want to include the value setting
@@ -112,18 +112,18 @@ def dump_placeholders(commands, is_run):  # pylint: disable=too-many-branches
     other_placeholders_set = set()
     toggles_with_consistent_value = dict()
     other_toggles_set = set()
-    env_constant_values = []
-    env_optional_values = dict()
+    env_values = dict()
     for cmd in commands:
         try:
             cmd_dict = command_impl_core.read_dict(cmd)
         except FileNotFoundError:
             continue
         for key, value in cmd_dict["args"].items():
-            if key in env_constant_values:
-                continue
-            if key in env_optional_values:
-                value = env_optional_values[key]
+            if key in env_values:
+                # Treat this as unset because this value cannot be entered
+                # on the commandline to the same effect... it will not be
+                # interpreted for placeholder substitution as a run arg.
+                value = None
                 cmd_dict["args"][key] = value
             update_placeholders_collections(
                 key,
@@ -139,11 +139,7 @@ def dump_placeholders(commands, is_run):  # pylint: disable=too-many-branches
                 other_toggles_set,
             )
         if is_run:
-            virtual_tools.update_env(
-                cmd_dict["cmdline"],
-                env_constant_values,
-                env_optional_values,
-            )
+            virtual_tools.update_env(cmd_dict["cmdline"], env_values)
     for key, value in placeholders_with_consistent_value.items():
         print("{}={}".format(key, value))
     for key in other_placeholders_set:
