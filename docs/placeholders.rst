@@ -22,7 +22,7 @@ Placeholder with a default value:
 
    {<placeholder_name>=<default_value>}
 
-"Toggle" style placeholder with "off" and "on" values:
+Or a "Toggle" style placeholder with "off" and "on" values:
 
 .. code-block:: none
 
@@ -42,7 +42,7 @@ An ``<off_value>`` can be anything except a colon; there's currently no way to e
 
    That double-curly-bracket maneuver is only required when composing these curly-bracket-enclosed tokens within a commandline. If you are instead specifying the value as part of a ``<placeholder_arg>`` for a ``run`` or ``vals`` operation as described below, the doubling is not needed.
 
-   Finally, note that none of these cases allow/support interpreting a placeholder token inside the value of some other placeholder token. I.e., no "nesting" of placeholders can be done.
+   Finally, note that none of these cases allow/support interpreting a placeholder token nested inside the default value of some other placeholder token. If you need a default value to be based on another placeholder value in some way, using :ref:`chaintool-env<virtual-tools:chaintool-env>` in a sequence can get you the same effect.
 
 Syntax in Vals Operations
 -------------------------
@@ -63,7 +63,7 @@ Set a default value for a placeholder:
 
    <placeholder_name>=<default_value>
 
-Set the "off" and "on" values for a toggle:
+Or set the "off" and "on" values for a toggle:
 
 .. code-block:: none
 
@@ -92,7 +92,7 @@ Set a runtime value for a placeholder:
 
    <placeholder_name>=<value>
 
-Activate a toggle:
+Or activate a toggle:
 
 .. code-block:: none
 
@@ -236,7 +236,7 @@ Here's the output:
    | :cyan:`* q3light`
    | :mono:`"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath "{q3basepath}" -fs_game {q3mod=baseq3} -light -samplesize {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows {+super=-samples:-super} {samples=3} -filter -bounce {bounce=8} -bouncegrid {+nophong=-shade:} "{map}"`
    | :cyan:`* q3set-opt-dest`
-   | :mono:`chaintool-env dstbase?="{basename/stem/map}"`
+   | :mono:`chaintool-env dstbase="{basename/stem/map}"`
    | :cyan:`* q3copy`
    | :mono:`chaintool-copy "{stem/map}.bsp" "{q3basepath}/{q3mod=baseq3}/maps/{dstbase}.bsp"`
    | :cyan:`* q3launch`
@@ -303,6 +303,18 @@ to this:
    | :mono:`threads = 7 (q3bsp), 7 (q3vis), 5 (q3light)`
 
 It still shows that ``threads`` is used by ``q3bsp``, ``q3vis``, and ``q3light``, but since the default value is not the same across all of those commands, it shows what that value is for each command.
+
+Now what if we were to remove the default value for ``threads`` in one of those commands?
+
+.. code-block:: none
+
+   chaintool cmd vals q3vis threads
+
+Since there is now at least one command where this placeholder lacks a value, the sequence cannot be executed without specifying a runtime value for that placeholder. Any default values for that placeholder in other commands are now irrelevant, as they will necessarily get overwritten at runtime. Since the pretty-print output is primarily geared toward "what you need to know when running this command/sequence", the part for ``threads`` will be moved from the "optional values" section to the "required values" section, and just look like this:
+
+   | :cyan:`* q3bsp, q3vis, q3light`
+   | :mono:`q3map2 = q3map2.x86_64`
+   | :mono:`threads`
 
 .. note::
 
