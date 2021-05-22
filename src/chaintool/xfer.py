@@ -144,7 +144,9 @@ def cli_import(import_file, overwrite):
 
     :param import_file:   filepath or http/https URL to read from
     :type import_file:    str
-    :param overwrite:     whether to allow replacing existing items
+    :param overwrite:     whether to allow replacing existing items (note this
+                          does NOT allow conflict between command name and
+                          sequence name)
     :type overwrite:      bool
 
     :returns: exit status code; currently always returns 0
@@ -169,6 +171,13 @@ def cli_import(import_file, overwrite):
     print()
     for cmd_dict in import_dict["commands"]:
         cmd = cmd_dict["name"]
+        if sequence_impl_core.exists(cmd):
+            print(
+                "Command '{}' cannot be created because a sequence exists with"
+                " the same name.".format(cmd)
+            )
+            print()
+            continue
         status = command_impl_op.define(
             cmd, cmd_dict["cmdline"], overwrite, False, True
         )
@@ -179,6 +188,13 @@ def cli_import(import_file, overwrite):
     print()
     for seq_dict in import_dict["sequences"]:
         seq = seq_dict["name"]
+        if command_impl_core.exists(seq):
+            print(
+                "Sequence '{}' cannot be created because a command exists with"
+                " the same name.".format(seq)
+            )
+            print()
+            continue
         status = sequence_impl_op.define(
             seq, seq_dict["commands"], [], overwrite, False, True
         )
