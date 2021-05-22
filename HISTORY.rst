@@ -7,7 +7,7 @@ Changelog
     bash completions slightly speedier.
   - Support filepath completions for placeholder values.
   - Handle updating the format of stored config/data across chaintool version
-    upgrades.
+    upgrades. Also add format-versioning to exported data.
   - Support import-from-URL.
   - Support tab-completion of command names during "seq edit".
   - Make chaintool-del succeed even if file is already gone.

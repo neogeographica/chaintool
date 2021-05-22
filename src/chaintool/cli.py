@@ -31,6 +31,7 @@ import sys
 from colorama import Fore
 
 from . import init
+
 from . import command
 from . import completions_setup
 from . import info

@@ -7,34 +7,31 @@ commands:
 - cmdline: chaintool-env dstbase="{basename/stem/map}"
   name: q3set-opt-dest
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{q3basepath}" -fs_game {q3mod=baseq3} -vis -saveprt {+fastvis=:-fast}
-    "{map}"'
+    "{q3basepath}" -fs_game {q3mod=baseq3} -vis -saveprt {+fastvis=:-fast} "{map}"'
   name: q3vis
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{q3basepath}" -fs_game {q3mod=baseq3} -light -samplesize
-    {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
-    -filter "{map}"'
+    "{q3basepath}" -fs_game {q3mod=baseq3} -light -samplesize {samplesize=8} -fast
+    -gamma {gamma=2} -compensate {compensate=4} -patchshadows -filter "{map}"'
   name: q3light-simple
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{q3basepath}" -fs_game {q3mod=baseq3} -light -samplesize
-    {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
-    {+super=-samples:-super} {samples=3} -filter -bounce {bounce=8} -bouncegrid {+nophong=-shade:}
-    "{map}"'
+    "{q3basepath}" -fs_game {q3mod=baseq3} -light -samplesize {samplesize=8} -fast
+    -gamma {gamma=2} -compensate {compensate=4} -patchshadows {+super=-samples:-super}
+    {samples=3} -filter -bounce {bounce=8} -bouncegrid {+nophong=-shade:} "{map}"'
   name: q3light
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{q3basepath}" -fs_game {q3mod=baseq3} -meta -samplesize
-    {samplesize=8} {+leaktest=:-leaktest} -skyfix "{map}"'
+    "{q3basepath}" -fs_game {q3mod=baseq3} -meta -samplesize {samplesize=8} {+leaktest=:-leaktest}
+    -skyfix "{map}"'
   name: q3bsp
 - cmdline: '"{q3map2=q3map2.x86_64}" -v -threads {threads=7} -game quake3 -fs_basepath
-    "{q3basepath}" -fs_game {q3mod=baseq3} -light -samplesize
-    {samplesize=8} -fast -gamma {gamma=2} -compensate {compensate=4} -patchshadows
-    {+super=-samples:-super} {samples=3} -filter -bounce {bounce=8} -bouncegrid {+nophong=-shade:}
-    -dirty -dirtmode {dirtmode=0} -dirtscale {dirtscale=2.5} -dirtdepth {dirtdepth=24}
-    "{map}"'
+    "{q3basepath}" -fs_game {q3mod=baseq3} -light -samplesize {samplesize=8} -fast
+    -gamma {gamma=2} -compensate {compensate=4} -patchshadows {+super=-samples:-super}
+    {samples=3} -filter -bounce {bounce=8} -bouncegrid {+nophong=-shade:} -dirty -dirtmode
+    {dirtmode=0} -dirtscale {dirtscale=2.5} -dirtdepth {dirtdepth=24} "{map}"'
   name: q3light-dirtmap
-- cmdline: '"{q3basepath}/{q3exe=quake3e.x64}" +set sv_pure
-    0 +set fs_game {q3mod=baseq3} {+lightmap=:+r_lightmap 1} +devmap "{dstbase}"'
+- cmdline: '"{q3basepath}/{q3exe=quake3e.x64}" +set sv_pure 0 +set fs_game {q3mod=baseq3}
+    {+lightmap=:+r_lightmap 1} +devmap "{dstbase}"'
   name: q3launch
+schema_version: 1
 sequences:
 - commands:
   - q3bsp

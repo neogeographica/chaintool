@@ -20,7 +20,7 @@
 """Initialize the package's modules."""
 
 
-__all__ = ["init"]
+__all__ = ["init", "current_export_schema_ver"]
 
 
 import atexit
@@ -40,7 +40,8 @@ from . import shortcuts
 
 __version__ = "0.3.0.dev0"
 
-SCHEMA_CHANGE_VERSIONS = ["0.3.0"]
+INTERNAL_SCHEMA_CHANGE_VERSIONS = ["0.3.0"]
+EXPORT_SCHEMA_CHANGE_VERSIONS = ["0.3.0"]
 
 
 if sys.version_info < (3, 7):
@@ -48,18 +49,18 @@ if sys.version_info < (3, 7):
     sys.exit(1)
 
 
-def schema_ver_for_package_ver(query_package_ver_str):
-    """Return the schema version for a given chaintool package version.
+def schema_ver_for_package_ver(query_package_ver_str, schema_change_versions):
+    """Return the requested schema version for a chaintool package version.
 
-    The config/data format used by chaintool has changed at the package
-    versions listed in :const:`SCHEMA_CHANGE_VERSIONS`. This function takes the
-    base of the given package version (e.g. if given "0.3.0.dev0" it will
-    work with "0.3.0") and compares it to the :const:`SCHEMA_CHANGE_VERSIONS`
-    to determine the appropriate schema version number used by that version
-    of chaintool.
+    This function takes the base of the given package version (e.g. if given
+    "0.3.0.dev0" it will work with "0.3.0") and compares it to the
+    ``schema_change_versions`` to determine the appropriate schema version
+    number used by that version of chaintool.
 
-    :param query_package_ver_str: package version to calculate schema for
-    :type query_package_ver_str:  str
+    :param query_package_ver_str:  package version to calculate schema for
+    :type query_package_ver_str:   str
+    :param schema_change_versions: package versions at which schema changed
+    :type schema_change_versions:  list[str]
 
     :returns: schema version for the given package version, or None if the
               input version string could not be evaluated
@@ -67,14 +68,34 @@ def schema_ver_for_package_ver(query_package_ver_str):
 
     """
     query_package_ver = Version(Version(query_package_ver_str).base_version)
-    if query_package_ver >= Version(SCHEMA_CHANGE_VERSIONS[-1]):
-        return len(SCHEMA_CHANGE_VERSIONS)
+    if query_package_ver >= Version(schema_change_versions[-1]):
+        return len(schema_change_versions)
     for prev_schema_ver, package_ver_str in reversed(
-        list(enumerate(SCHEMA_CHANGE_VERSIONS))
+        list(enumerate(schema_change_versions))
     ):
         if query_package_ver < Version(package_ver_str):
             return prev_schema_ver
     return None
+
+
+def internal_schema_ver_for_package_ver(query_package_ver_str):
+    """Return the internal schema version for a chaintool package version.
+
+    Delegate to :func:`schema_ver_for_package_ver` using the given
+    ``query_package_ver_str`` and the schema-change info from
+    :const:`INTERNAL_SCHEMA_CHANGE_VERSIONS`.
+
+    :param query_package_ver_str: package version to calculate schema for
+    :type query_package_ver_str:  str
+
+    :returns: internal schema version for the given package version, or None
+              if the input version string could not be evaluated
+    :rtype:   int | None
+
+    """
+    return schema_ver_for_package_ver(
+        query_package_ver_str, INTERNAL_SCHEMA_CHANGE_VERSIONS
+    )
 
 
 def init_modules():
@@ -104,7 +125,7 @@ def init_modules():
     shared.init()
     locks.init()
     with locks.META_LOCK:
-        this_schema_ver = schema_ver_for_package_ver(__version__)
+        this_schema_ver = internal_schema_ver_for_package_ver(__version__)
         last_schema_ver = shared.get_last_schema_version()
         last_chaintool_ver = shared.get_last_chaintool_version()
         last_python_ver = shared.get_last_python_version()
@@ -141,3 +162,20 @@ def init():
 
     """
     init_modules()
+
+
+def current_export_schema_ver():
+    """Return the export schema version understood by this chaintool version.
+
+    Delegate to :func:`schema_ver_for_package_ver` using the current
+    chaintool version and the schema-change info from
+    :const:`EXPORT_SCHEMA_CHANGE_VERSIONS`.
+
+    :returns: export schema version for the given package version, or None
+              if the current chaintool version string could not be evaluated
+    :rtype:   int | None
+
+    """
+    return schema_ver_for_package_ver(
+        __version__, EXPORT_SCHEMA_CHANGE_VERSIONS
+    )

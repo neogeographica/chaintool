@@ -36,12 +36,15 @@ import yaml  # from pyyaml
 
 from colorama import Fore
 
+from . import current_export_schema_ver
+
 from . import command_impl_core
 from . import command_impl_op
 from . import completions
 from . import sequence_impl_core
 from . import sequence_impl_op
 from . import locks
+from . import shared
 from . import shortcuts
 
 
@@ -55,15 +58,25 @@ def cli_export(export_file):
     :func:`.command_impl_core.read_dict`) are written to a list value for the
     "commands" property, and sequences (from
     :func:`.sequence_impl_core.read_dict`) similarly to the "sequences"
-    property.
+    property. The "schema_version" is also written, to help interpret this
+    file if its format changes in the future.
 
     :param export_file: filepath to write to
     :type export_file:  str
 
-    :returns: exit status code; currently always returns 0
+    :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
 
     """
+    export_schema_ver = current_export_schema_ver()
+    if export_schema_ver is None:
+        print()
+        shared.errprint(
+            "Internal error: unable to determine export format for this"
+            " version of chaintool."
+        )
+        print()
+        return 1
     locks.inventory_lock("seq", locks.LockType.READ)
     locks.inventory_lock("cmd", locks.LockType.READ)
     command_names = command_impl_core.all_names()
@@ -71,7 +84,11 @@ def cli_export(export_file):
     locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
     locks.multi_item_lock("seq", sequence_names, locks.LockType.READ)
     print()
-    export_dict = {"commands": [], "sequences": []}
+    export_dict = {
+        "schema_version": export_schema_ver,
+        "commands": [],
+        "sequences": [],
+    }
     print(Fore.MAGENTA + "* Exporting commands..." + Fore.RESET)
     print()
     for cmd in command_names:
