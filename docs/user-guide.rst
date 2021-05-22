@@ -10,6 +10,6 @@ User Guide
    shortcuts
    placeholders
    virtual-tools
-   import-export
+   export-import
    complex-example
    reference
