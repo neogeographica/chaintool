@@ -125,7 +125,7 @@ You can create or update a command with the ``cmd set`` operation, of the form:
 
    chaintool cmd set [-q] <cmdname> <cmdline>
 
-`<cmdname>` is the name of the command to create or update, and can be any sequence of non-whitespace characters that is not already taken by some other command or sequence. `<cmdline>` is the commandline to associate with that name; keep in mind that this is a single argument and so likely will need to be appropriately quoted/escaped to deal with spaces or special characters in it. The optional ``-q`` flag suppresses the pretty-printed command info that would normally happen after the set.
+`<cmdname>` is the name of the command to create or update, and can be any sequence of non-whitespace characters that is not already taken by some other command or sequence. `<cmdline>` is the commandline to associate with that name; keep in mind that this is a single argument and so likely will need to be appropriately quoted/escaped to deal with spaces or special characters in it. The optional ``-q`` (or ``--quiet``) flag suppresses the pretty-printed command info that would normally happen after the set.
 
 Similarly you can create or update a sequence using ``seq set``:
 
@@ -143,7 +143,7 @@ While the ``set`` operations can be useful, they can also be tedious if you just
 
    chaintool seq edit [-f] [-q] <seqname>
 
-When you invoke an ``edit`` operation, you are presented with a prompt where you can type the commandline or list of command names. No special quoting/escaping required. If you are modifying an existing command or sequence, the existing content will be placed there for you to edit.
+The optional flags are the same as for ``set`` above. When you invoke an ``edit`` operation, you are presented with a prompt where you can type the commandline or list of command names. No special quoting/escaping required. If you are modifying an existing command or sequence, the existing content will be placed there for you to edit.
 
 .. note::
 
@@ -159,7 +159,7 @@ The final editing tool at your disposal is the ``vals`` operation. This allows y
 
    chaintool vals <placeholder_arg> [<placeholder_arg> ...]
 
-With each `<placeholder_arg>` you can set the default value for a placeholder, clear the default value for a placeholder, or set the "off" and "on" values for a toggle. For example the following invocation would modify all commands in sequence ``foo`` to (where applicable) set default values for placeholders ``fishes`` and ``bicycles``, clear any default value for ``dinnertime``, and set "off" and "on" values for the ``power`` toggle:
+The optional ``-q`` (or ``--quiet``) flag suppresses pretty-printed output as usual. With each `<placeholder_arg>` you can set the default value for a placeholder, clear the default value for a placeholder, or set the "off" and "on" values for a toggle. For example the following invocation would modify all commands in sequence ``foo`` to (where applicable) set default values for placeholders ``fishes`` and ``bicycles``, clear any default value for ``dinnertime``, and set "off" and "on" values for the ``power`` toggle:
 
 .. code-block:: none
 
@@ -169,9 +169,11 @@ Once you have some commands and/or sequences, you can use ``list`` operations to
 
 .. code-block:: none
 
-   chaintool cmd list
+   chaintool cmd list [-c]
 
-   chaintool seq list
+   chaintool seq list [-c]
+
+The optional ``-c`` (or ``--column``) flag formats the output with one name per line.
 
 You can also pretty-print the info for a command, or for all the commands in a sequence, or for **all** commands:
 
@@ -191,7 +193,7 @@ The final part of the authoring lifecycle is of course deleting stuff. You can u
 
    chaintool seq del <seqname> [<seqname> ...]
 
-The optional ``-f`` flag for ``cmd del`` allows you to delete commands that are currently being used by some sequence.
+The optional ``-f`` (or ``--force``) flag for ``cmd del`` allows you to delete commands that are currently being used by some sequence.
 
 Command and Sequence Execution
 ------------------------------
@@ -204,9 +206,9 @@ You can use the ``run`` operation to execute the commandline of an existing comm
 
    chaintool seq run [-i] [-s <skip_cmdname>] <seqname> <placeholder_arg> [<placeholder_arg> ...]
 
-The optional ``-i`` flag for ``seq run`` tells chaintool to ignore any error status from an individual command execution and continue running the next command in the sequence.
+The optional ``-i`` (or ``--ignore-errors``) flag for ``seq run`` tells chaintool to ignore any error status from an individual command execution and continue running the next command in the sequence.
 
-The ``seq run`` operation also accepts multiple ``-s <skip_cmdname>`` arguments to identify any commands in the sequence that should not be run this time.
+The ``seq run`` operation also accepts multiple ``-s <cmdname>`` (or ``--skip <cmdname>``) arguments to identify any commands in the sequence that should not be run this time.
 
 As with the ``vals`` operation, each `<placeholder_arg>` affects the value substituted for a placeholder in the command (or in all commands in the sequence). However, here you are specifying values only for this run, and not modifying any stored default values. Two other differences from the ``vals`` syntax are also important:
 
