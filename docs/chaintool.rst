@@ -1,7 +1,8 @@
 chaintool package
 =================
 
-:ref:`search`
+Submodules
+----------
 
 chaintool.cli module
 --------------------
