@@ -36,7 +36,7 @@ An `<off_value>` can be anything except a colon; there's currently no way to exp
 
    That double-curly-bracket maneuver is only required when composing these curly-bracket-enclosed tokens within a commandline. If you are instead specifying the value as part of a `<placeholder_arg>` for a ``run`` or ``vals`` operation as described below, the doubling is not needed.
 
-   Finally, note that none of these cases allow/support interpreting a placeholder token nested inside the default value of some other placeholder token. If you need a default value to be based on another placeholder value in some way, using :ref:`chaintool-env<virtual-tools:chaintool-env>` in a sequence can get you the same effect.
+   Finally, note that none of these cases allow/support interpreting a placeholder token nested inside the default value of some other placeholder token. If you need a default value to be based on another placeholder value in some way, using the ``chaintool-env`` :ref:`virtual tool<virtual-tools:chaintool-env>` in a sequence can get you the same effect.
 
 Syntax in Vals Operations
 -------------------------
@@ -95,7 +95,7 @@ At the end of the operation, chaintool will also tell you if any specified `<pla
 Modifiers
 ---------
 
-Normally a placeholder token in a commandline will be replaced with the verbatim value for that placeholder. But for non-toggle placeholders, you can optionally indicate that the value will be changed by some common filepath manipulation(s). These manipulations are called "modifiers" and can be repeatedly prepended to the placeholder name using a slash.
+Normally a placeholder token in a commandline will be replaced with the verbatim value for that placeholder. But for non-toggle placeholders, you can optionally indicate that the value will be changed by some commonly useful manipulation(s). These manipulations are called "modifiers" and can be repeatedly prepended to the placeholder name using a slash.
 
 .. note::
 
@@ -106,8 +106,7 @@ The available modifiers are:
 - ``dirname`` : This modifier removes the final directory separator character (if it exists) and everything after it. It is the equivalent of ``os.path.dirname`` in Python.
 - ``basename`` : This modifier removes the final directory separator character (if it exists) and everything before it. It is the equivalent of ``os.path.basename`` in Python.
 - ``stem`` : This modifier removes the rightmost file extension (if any), as long as it is after the final directory separator character (if it exists).
-
-So you can see how it might be useful to apply more than one modifier to a value that is a filepath of some sort.
+- ``strip`` : This modifier removes any whitespace from the beginning and end of the value. It is the equivalent of calling ``strip`` on a string in Python.
 
 A placeholder with one modifier would be in this form:
 
@@ -148,6 +147,50 @@ Finally, if you wanted the output file to be written to the "/tmp" directory, yo
 If we supply that ``/home/bob/foo.txt`` value for ``inputfile`` at runtime, the resulting commandline portion would be:
 
    | :mono:`--inputfile "/home/bob/foo.txt" --outputfile "/tmp/foo.out"`
+
+Reserved Placeholders
+---------------------
+
+Some placeholder names have special values associated with them. When using these placeholders you won't be allowed to assign default or runtime values to them; they'll always have whatever special value they're defined to have.
+
+Currently there are two reserved placeholder names: ``tempdir`` and ``prev_stdout``.
+
+tempdir
+^^^^^^^
+
+Whenever you use the ``{tempdir}`` token in a commandline, and you do a ``run`` operation that involves that command, that token will have the value of a temporary directory path (created with ``tempfile.TemporaryDirectory`` in Python) that has a final path separator already added to the end of it. You can use this behavior to compose names for any temporary file your command needs to work with, for example:
+
+   | :mono:`echo "hi!" > "{tempdir}my_temp_outfile.txt"`
+
+This is not much use in a single command. In a sequence however, all commands will get the same value for ``{tempdir}``... so if one command needs to generate a temporary file that can be consumed by a later command, that's easy to do.
+
+After your ``run`` operation completes, the temporary directory and all its contents will be deleted.
+
+prev_stdout
+^^^^^^^^^^^
+
+Sometimes you want to take the output (stdout) from a command and use it to help compose the commandline of a subsequent command in the sequence. chaintool supports the ``{prev_stdout}`` token to help do this in a fairly easy and OS-independent way.
+
+Whenever you use the ``{prev_stdout}`` token in a commandline, and you do a ``run`` operation that involves that command, that token will have the value of the output of the previous command in the sequence.
+
+.. note::
+
+   This will probably often be used with the ``strip`` modifier described above, i.e. as ``{strip/prev_stdout}``, to get rid of any leading/trailing whitespace.
+
+Be aware that running a command using this token will fail if the command:
+
+- is not in a sequence
+- is the first command in a sequence
+- follows a failed command (when the sequence continues because of ``--ignore-errors``)
+- follows a skipped command (when the sequence invocation uses ``--skip``)
+
+In other words to substitute in the "previous stdout", there must be existing stdout content from an immediately previous command.
+
+If you want to save the stdout from a command and use it in some subsequent command that is **not** the immediately following command, the ``chaintool-env`` :ref:`virtual tool<virtual-tools:chaintool-env>` can help. With ``chaintool-env`` you can set some other placeholder to the value of ``{prev_stdout}``, and then you're free to use that other placeholder whenever you wish in the rest of the sequence.
+
+.. note::
+
+   Whenever you use ``{prev_stdout}`` in a command, the previous command's output (the stuff being captured for use) will not be printed until that previous command has finished. This differs from the usual behavior where command output is shown as it happens.
 
 Interpreting Print Output
 -------------------------
@@ -300,11 +343,11 @@ Since there is now at least one command where this placeholder lacks a value, th
 
    When a placeholder's value is set by ``run`` or ``vals``, the same value is applied wherever that placeholder appears in all affected commands. So, it also usually makes sense for a placeholder to have the same **default** value everywhere. If a placeholder is shown as having a different default in some commands, that might be an indication that a different placeholder name should be used in those cases.
 
-"chaintool-env" Effects
-^^^^^^^^^^^^^^^^^^^^^^^
+Effects of chaintool-env
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 The last thing to notice in the example output above is the bit of green text:
 
    | :mono:`dstbase = '`:green:`{basename/stem/map}`:mono:`'`
 
-This green text can appear in print output for sequences, and it indicates a placeholder value affected by a "chaintool-env" :doc:`virtual tool<virtual-tools>` that is used earlier in the sequence. More details about virtual tools can be found in that full section; the gist to mention here is that the value of some placeholder (here, ``dstbase``) will be based on the runtime value of some other placeholder (here, ``map`` with :ref:`modifiers<placeholders:modifiers>`).
+This green text can appear in print output for sequences, and it indicates a placeholder value affected by a ``chaintool-env`` :ref:`virtual tool<virtual-tools:chaintool-env>` that is used earlier in the sequence. More details about virtual tools can be found in that full section; the gist to mention here is that the value of some placeholder (here, ``dstbase``) will be based on the runtime value of some other placeholder (here, ``map`` with :ref:`modifiers<placeholders:modifiers>`).

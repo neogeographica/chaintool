@@ -14,7 +14,11 @@ Changelog
   - Simplification of chaintool-env: only conditional assignment is now
     supported in the env ops. The "=" assignment operator now does conditional
     assignment.
+  - "Reserved" placeholder support; initially including "prev_stdout" and
+    "tempdir".
+  - Adding the "strip" modifier for placeholder values.
   - More work on Sphinx docs, and hosting them at "Read the Docs".
+  - More samples for import.
 
 - **0.2.0** (2021-04-30)
 
