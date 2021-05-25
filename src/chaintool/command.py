@@ -43,6 +43,8 @@ __all__ = [
 
 import atexit
 import copy
+import os
+import tempfile
 
 from colorama import Fore
 
@@ -311,9 +313,12 @@ def cli_del(delcmds, ignore_seq_usage):
 def cli_run(cmd, args):
     """Run a command.
 
-    Acquire the cmd item readlock. Delegate to :func:`.command_impl_op.run` to
-    execute the command. Finally, print a warning if any of the given
-    placeholder args were irrelevant for this command.
+    Acquire the cmd item readlock. Create a temporary directory using a
+    context manager. While the temp directory exists, grab its name for the
+    value of the "tempdir" reserved placeholder, and delegate to
+    :func:`.command_impl_op.run` to execute the command. Finally, print a
+    warning if any of the given placeholder args were irrelevant for this
+    command.
 
     Note that :func:`.command_impl_op.run` may modify ``args`` (for use with
     subsequent commands in the sequence).
@@ -333,8 +338,10 @@ def cli_run(cmd, args):
     # cmd while it is running.
     locks.item_lock("cmd", cmd, locks.LockType.READ)
     unused_args = copy.deepcopy(args)
-    stdout_relay = command_impl_op.StdoutRelay()
-    status = command_impl_op.run(cmd, args, unused_args, stdout_relay)
+    rsv_ctx = command_impl_op.ReservedPlaceholdersCtx()
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        rsv_ctx.tempdir = tmpdirname + os.sep
+        status = command_impl_op.run(cmd, args, unused_args, rsv_ctx)
     if unused_args:
         print(
             shared.MSG_WARN_PREFIX

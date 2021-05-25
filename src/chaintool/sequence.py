@@ -41,6 +41,8 @@ __all__ = [
 
 import atexit
 import copy
+import os
+import tempfile
 
 from colorama import Fore
 
@@ -312,9 +314,16 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     sequence's command list, then acquire readlocks on those commands and
     release the cmd inventory readlock.
 
-    Delegate to :func:`.command_impl_op.run` to execute each command in the
-    list that is not a member of ``skip_cmdnames``. If a command returns an
-    error status and ignore_errors is false, bail out.
+    Do a pre-pass through the commands to see which ones want to consume
+    the stdout of the previous command; we'll use that info to correctly
+    populate ``stdout_requested`` in the reserved-placeholders context
+    passed to each command execution.
+
+    Create a temporary directory using a context manager. While the temp
+    directory exists, grab its name for the value of the "tempdir" reserved
+    placeholder, and delegate to :func:`.command_impl_op.run` to execute each
+    command in the list that is not a member of ``skip_cmdnames``. If a
+    command returns an error status and ignore_errors is false, bail out.
 
     In the success case, finally print a warning if any of the given
     placeholder args were irrelevant for all the executed commands.
@@ -347,7 +356,7 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     locks.multi_item_lock("cmd", cmd_list, locks.LockType.READ)
     locks.release_inventory_lock("cmd", locks.LockType.READ)
     unused_args = copy.deepcopy(args)
-    stdout_relay = command_impl_op.StdoutRelay()
+    rsv_ctx = command_impl_op.ReservedPlaceholdersCtx()
     req_stdout = []
     for cmd in cmd_list[1:]:
         try:
@@ -357,23 +366,27 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
             uses_prev_stdout = False
         req_stdout.append(uses_prev_stdout)
     req_stdout.append(False)
-    for index, cmd in enumerate(cmd_list):
-        if skip_cmdnames and cmd in skip_cmdnames:
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        rsv_ctx.tempdir = tmpdirname + os.sep
+        for index, cmd in enumerate(cmd_list):
+            if skip_cmdnames and cmd in skip_cmdnames:
+                print(
+                    Fore.MAGENTA
+                    + "* SKIPPING command '{}'".format(cmd)
+                    + Fore.RESET
+                )
+                print()
+                rsv_ctx.stdout = None
+                continue
+            rsv_ctx.stdout_requested = req_stdout[index]
             print(
                 Fore.MAGENTA
-                + "* SKIPPING command '{}'".format(cmd)
+                + "* running command '{}':".format(cmd)
                 + Fore.RESET
             )
-            print()
-            stdout_relay.stdout = None
-            continue
-        stdout_relay.stdout_requested = req_stdout[index]
-        print(
-            Fore.MAGENTA + "* running command '{}':".format(cmd) + Fore.RESET
-        )
-        status = command_impl_op.run(cmd, args, unused_args, stdout_relay)
-        if status and not ignore_errors:
-            return status
+            status = command_impl_op.run(cmd, args, unused_args, rsv_ctx)
+            if status and not ignore_errors:
+                return status
     if unused_args:
         print(
             shared.MSG_WARN_PREFIX

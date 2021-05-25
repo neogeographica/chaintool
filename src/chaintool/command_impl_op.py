@@ -26,7 +26,7 @@ bulk of the work for creating/modifying/executing/deleting command definitions.
 
 
 __all__ = [
-    "StdoutRelay",
+    "ReservedPlaceholdersCtx",
     "define",
     "delete",
     "run",
@@ -50,17 +50,18 @@ from .command_impl_core import CMD_DIR
 
 
 @dataclass
-class StdoutRelay:
-    """Pass stdout to a command and/or request stdout for next command."""
+class ReservedPlaceholdersCtx:
+    """Info shared among commands to implement reserved placeholders."""
 
     stdout: str = None
     stdout_requested: bool = False
+    tempdir: str = None
 
 
 PLACEHOLDER_RE = re.compile(r"^((?:[^/+=]+/)*)([^+][^=]*)(?:=(.*))?$")
 PLACEHOLDER_TOGGLE_RE = re.compile(r"^(\+[^=]+)=([^:]*):(.*)$")
 ALPHANUM_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*$")
-RESERVED_PLACEHOLDERS = ["prev_stdout"]
+RESERVED_PLACEHOLDERS = ["prev_stdout", "tempdir"]
 
 
 def remove_if_present(element_to_remove, list_to_modify):
@@ -415,7 +416,9 @@ def command_with_values(
         shared.errprint("Command '{}' does not exist.".format(cmd))
         return None
     values_for_names = cmd_dict["args"]
-    values_for_names.update(values_for_reserved)
+    for r_k, r_v in values_for_reserved.items():
+        if r_k in values_for_names:
+            values_for_names[r_k] = r_v
     modifiers_for_names = cmd_dict["args_modifiers"]
     togglevalues_for_names = cmd_dict["toggle_args"]
     if is_run:
@@ -935,15 +938,13 @@ def delete(cmd, is_not_found_ok):
             raise
 
 
-def run(cmd, args, unused_args, stdout_relay):
+def run(cmd, args, unused_args, rsv_ctx):
     """Run a command.
 
-    Apply the placeholder values from the ``args`` list to the relevant
-    values of the command dictionary, and update ``unused_args``, by calling
-    :func:`command_with_values`. If ``stdout_relay.stdout`` is not ``None``
-    then it is also passed as the value for the reserved "prev_stdout"
-    placeholder. If :func:`command_with_values` fails, bail out with error
-    status.
+    Apply the placeholder values from the ``args`` list (as well as any
+    special reserved-placeholder values) to the relevant values of the command
+    dictionary, and update ``unused_args``, by calling
+    :func:`command_with_values`. If that fails, bail out with error status.
 
     Generate the commandline to execute by using the keys/values from this
     command dictionary with the command's format string. Invoke
@@ -952,24 +953,24 @@ def run(cmd, args, unused_args, stdout_relay):
     the status from the virtual tool. If not, then execute the commandline
     via :func:`subprocess.run` and return its exit status.
 
-    Note that if ``stdout_relay.stdout_requested`` is ``False``, the output
-    of the command will be printed as it is generated, and
-    ``stdout_relay.stdout`` will be set to ``None``. On the other hand if it
-    is ``True``, the output of the command will be captured. Then it will
-    be printed and assigned to ``stdout_relay.stdout``.
+    Note that if ``rsv_ctx.stdout_requested`` is ``False``, the output of the
+    command will be printed as it is generated, and ``rsv_ctx.stdout`` will be
+    set to ``None``. On the other hand if it is ``True``, the output of the
+    command will be captured. Then it will be printed and assigned to
+    ``rsv_ctx.stdout``.
 
     Note also that :func:`.virtual_tools.dispatch` may modify ``args``.
 
-    :param cmd:          name of command to run
-    :type cmd:           str
-    :param args:         placeholder arguments for this run; to modify
-    :type args:          list(str)
-    :param unused_args:  placeholder arguments unused by any command in
-                         current sequence; to modify
-    :type unused_args:   list[str]
-    :param stdout_relay: contains stdout from prev cmd (if needed here) and
-                         will contain stdout for next (if requested); to modify
-    :type stdout_relay:  StdoutRelay
+    :param cmd:         name of command to run
+    :type cmd:          str
+    :param args:        placeholder arguments for this run; to modify
+    :type args:         list(str)
+    :param unused_args: placeholder arguments unused by any command in
+                        current sequence; to modify
+    :type unused_args:  list[str]
+    :param rsv_ctx:     contains stdout from prev cmd (if needed here) and
+                        will contain stdout for next (if requested); to modify
+    :type rsv_ctx:      ReservedPlaceholdersCtx
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -977,14 +978,14 @@ def run(cmd, args, unused_args, stdout_relay):
     """
     print()
     values_for_reserved = dict()
-    if stdout_relay.stdout is not None:
-        values_for_reserved["prev_stdout"] = stdout_relay.stdout
+    values_for_reserved["prev_stdout"] = rsv_ctx.stdout
+    values_for_reserved["tempdir"] = rsv_ctx.tempdir
     cmd_dict = command_with_values(
         cmd, args, unused_args, values_for_reserved, True
     )
     if cmd_dict is None:
         print()
-        stdout_relay.stdout = None
+        rsv_ctx.stdout = None
         return 1
     cmdline = cmd_dict["format"].format(**cmd_dict["args"])
     print(Fore.CYAN + cmdline + Fore.RESET)
@@ -992,19 +993,19 @@ def run(cmd, args, unused_args, stdout_relay):
     vtool_status = virtual_tools.dispatch(cmdline, args)
     if vtool_status is not None:
         print()
-        stdout_relay.stdout = None
+        rsv_ctx.stdout = None
         return vtool_status
-    if stdout_relay.stdout_requested:
+    if rsv_ctx.stdout_requested:
         result = subprocess.run(
             cmdline, capture_output=True, shell=True, check=False, text=True
         )
-        stdout_relay.stdout = result.stdout
+        rsv_ctx.stdout = result.stdout
         print(result.stdout)
     else:
         result = subprocess.run(
             cmdline, capture_output=False, shell=True, check=False
         )
-        stdout_relay.stdout = None
+        rsv_ctx.stdout = None
     print()
     return result.returncode
 
