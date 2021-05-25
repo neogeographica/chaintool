@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-  # pylint: disable=C0302
 #
 # Copyright 2021 Joel Baxter
 #
@@ -26,6 +26,7 @@ bulk of the work for creating/modifying/executing/deleting command definitions.
 
 
 __all__ = [
+    "StdoutRelay",
     "define",
     "delete",
     "run",
@@ -37,6 +38,8 @@ import os
 import re
 import subprocess
 
+from dataclasses import dataclass
+
 from colorama import Fore
 
 from . import command_impl_core
@@ -46,9 +49,18 @@ from . import virtual_tools
 from .command_impl_core import CMD_DIR
 
 
+@dataclass
+class StdoutRelay:
+    """Pass stdout to a command and/or request stdout for next command."""
+
+    stdout: str = None
+    stdout_requested: bool = False
+
+
 PLACEHOLDER_RE = re.compile(r"^((?:[^/+=]+/)*)([^+][^=]*)(?:=(.*))?$")
 PLACEHOLDER_TOGGLE_RE = re.compile(r"^(\+[^=]+)=([^:]*):(.*)$")
 ALPHANUM_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*$")
+RESERVED_PLACEHOLDERS = ["prev_stdout"]
 
 
 def remove_if_present(element_to_remove, list_to_modify):
@@ -118,6 +130,7 @@ def stem_modifier(filepath):
 
 
 MODIFIERS_DISPATCH = {
+    "strip": lambda s: s.strip(),
     "dirname": os.path.dirname,
     "basename": os.path.basename,
     "stem": stem_modifier,
@@ -254,6 +267,11 @@ def update_runtime_values_from_args(
         modifiers_prefix = nontoggle_match.group(1)
         key = nontoggle_match.group(2)
         value = nontoggle_match.group(3)
+        if key in RESERVED_PLACEHOLDERS:
+            shared.errprint(
+                "Can't specify reserved placeholder '{}'.".format(key)
+            )
+            return False
         if modifiers_prefix:
             shared.errprint(
                 "Can't specify modifiers (such as '{}') for placeholders in"
@@ -341,6 +359,11 @@ def update_default_values_from_args(
         modifiers_prefix = nontoggle_match.group(1)
         key = nontoggle_match.group(2)
         value = nontoggle_match.group(3)
+        if key in RESERVED_PLACEHOLDERS:
+            shared.errprint(
+                "Can't specify reserved placeholder '{}'.".format(key)
+            )
+            return False
         if modifiers_prefix:
             shared.errprint(
                 "Can't specify modifiers (such as '{}') for placeholders in"
@@ -353,29 +376,34 @@ def update_default_values_from_args(
     return True
 
 
-def command_with_values(cmd, all_args, unused_args, is_run):
+def command_with_values(
+    cmd, all_args, unused_args, values_for_reserved, is_run
+):
     """Fetch the indicated command dictionary, modified by placeholder args.
 
     Load the command with :func:`.command_impl_core.read_dict`, returning
     ``None`` if that fails.
 
-    Process the loaded dictionary with either
-    :func:`update_runtime_values_from_args` or
+    Update the ``args`` dictionary of the command with ``values_for_reserved``.
+    Then process the loaded command :func:`update_runtime_values_from_args` or
     :func:`update_default_values_from_args`, according to the value of
     ``is_run``. (Note that these functions can modify ``unused_args``.)
 
     If that processing fails, return None; otherwise return the updated
     command dictionary.
 
-    :param cmd:         command to fetch
-    :type cmd:          str
-    :param all_args:    placeholder arguments
-    :type all_args:     list[str]
-    :param unused_args: placeholder arguments unused by any command in current
-                        sequence; to modify
-    :type unused_args:  list[str]
-    :param is_run:      whether this is a "run" op (as opposed to "vals")
-    :type is_run:       bool
+    :param cmd:                 command to fetch
+    :type cmd:                  str
+    :param all_args:            placeholder arguments
+    :type all_args:             list[str]
+    :param unused_args:         placeholder arguments unused by any command in
+                                current sequence; to modify
+    :type unused_args:          list[str]
+    :param values_for_reserved: values for internally-populated "reserved"
+                                placeholder names
+    :type values_for_reserved:  dict[str, str]
+    :param is_run:              whether this is a "run" op (and not "vals")
+    :type is_run:               bool
 
     :returns: the loaded and modified command dictionary, if successful
     :rtype:   dict[str, str] | None
@@ -387,6 +415,7 @@ def command_with_values(cmd, all_args, unused_args, is_run):
         shared.errprint("Command '{}' does not exist.".format(cmd))
         return None
     values_for_names = cmd_dict["args"]
+    values_for_names.update(values_for_reserved)
     modifiers_for_names = cmd_dict["args_modifiers"]
     togglevalues_for_names = cmd_dict["toggle_args"]
     if is_run:
@@ -566,6 +595,13 @@ def print_errors(error_sets):
             " values. Also, if you need a literal brace character to appear in"
             " the commandline, use a double brace.)"
         )
+    if error_sets["reserved_defaults"]:
+        error = True
+        shared.errprint(
+            "Can't specify default values for these reserved placeholder"
+            " names: "
+            + " ".join(error_sets["reserved_defaults"])
+        )
     if error_sets["invalid_modifiers"]:
         error = True
         shared.errprint(
@@ -672,6 +708,9 @@ def check_placeholder_errors(  # pylint: disable=too-many-arguments
         return
     if not ALPHANUM_RE.match(key):
         error_sets["non_alphanum_names"].add(key)
+    if key in RESERVED_PLACEHOLDERS:
+        if value is not None:
+            error_sets["reserved_defaults"].add(key)
     if not valid_modifiers(modifiers):
         error_sets["invalid_modifiers"].add(key)
     if "+" + key in togglevalues_for_names:
@@ -827,6 +866,7 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
     togglevalues_for_names = dict()
     error_sets = {
         "non_alphanum_names": set(),
+        "reserved_defaults": set(),
         "invalid_modifiers": set(),
         "multi_value_names": set(),
         "multi_togglevalue_names": set(),
@@ -895,38 +935,56 @@ def delete(cmd, is_not_found_ok):
             raise
 
 
-def run(cmd, args, unused_args):
+def run(cmd, args, unused_args, stdout_relay):
     """Run a command.
 
     Apply the placeholder values from the ``args`` list to the relevant
     values of the command dictionary, and update ``unused_args``, by calling
-    :func:`command_with_values`. If that fails, bail out with error status.
+    :func:`command_with_values`. If ``stdout_relay.stdout`` is not ``None``
+    then it is also passed as the value for the reserved "prev_stdout"
+    placeholder. If :func:`command_with_values` fails, bail out with error
+    status.
 
     Generate the commandline to execute by using the keys/values from this
     command dictionary with the command's format string. Invoke
     :func:`.virtual_tools.dispatch` to see whether the command is a "virtual
     tool" that should be executed internally (and do so). If so, then return
     the status from the virtual tool. If not, then execute the commandline
-    via :func:`subprocess.call` and return its exit status.
+    via :func:`subprocess.run` and return its exit status.
 
-    Note that :func:`.virtual_tools.dispatch` may modify ``args``.
+    Note that if ``stdout_relay.stdout_requested`` is ``False``, the output
+    of the command will be printed as it is generated, and
+    ``stdout_relay.stdout`` will be set to ``None``. On the other hand if it
+    is ``True``, the output of the command will be captured. Then it will
+    be printed and assigned to ``stdout_relay.stdout``.
 
-    :param cmd:         name of command to run
-    :type cmd:          str
-    :param args:        placeholder arguments for this run; to modify
-    :type args:         list(str)
-    :param unused_args: placeholder arguments unused by any command in current
-                        sequence; to modify
-    :type unused_args:  list[str]
+    Note also that :func:`.virtual_tools.dispatch` may modify ``args``.
+
+    :param cmd:          name of command to run
+    :type cmd:           str
+    :param args:         placeholder arguments for this run; to modify
+    :type args:          list(str)
+    :param unused_args:  placeholder arguments unused by any command in
+                         current sequence; to modify
+    :type unused_args:   list[str]
+    :param stdout_relay: contains stdout from prev cmd (if needed here) and
+                         will contain stdout for next (if requested); to modify
+    :type stdout_relay:  StdoutRelay
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
 
     """
     print()
-    cmd_dict = command_with_values(cmd, args, unused_args, True)
+    values_for_reserved = dict()
+    if stdout_relay.stdout is not None:
+        values_for_reserved["prev_stdout"] = stdout_relay.stdout
+    cmd_dict = command_with_values(
+        cmd, args, unused_args, values_for_reserved, True
+    )
     if cmd_dict is None:
         print()
+        stdout_relay.stdout = None
         return 1
     cmdline = cmd_dict["format"].format(**cmd_dict["args"])
     print(Fore.CYAN + cmdline + Fore.RESET)
@@ -934,10 +992,21 @@ def run(cmd, args, unused_args):
     vtool_status = virtual_tools.dispatch(cmdline, args)
     if vtool_status is not None:
         print()
+        stdout_relay.stdout = None
         return vtool_status
-    status = subprocess.call(cmdline, shell=True)
+    if stdout_relay.stdout_requested:
+        result = subprocess.run(
+            cmdline, capture_output=True, shell=True, check=False, text=True
+        )
+        stdout_relay.stdout = result.stdout
+        print(result.stdout)
+    else:
+        result = subprocess.run(
+            cmdline, capture_output=False, shell=True, check=False
+        )
+        stdout_relay.stdout = None
     print()
-    return status
+    return result.returncode
 
 
 def vals(cmd, args, unused_args, print_after_set, compact):
@@ -970,7 +1039,7 @@ def vals(cmd, args, unused_args, print_after_set, compact):
     """
     if not compact:
         print()
-    cmd_dict = command_with_values(cmd, args, unused_args, False)
+    cmd_dict = command_with_values(cmd, args, unused_args, dict(), False)
     if cmd_dict is None:
         return 1
     update_cmdline(cmd_dict)

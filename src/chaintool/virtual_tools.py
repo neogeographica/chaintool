@@ -54,7 +54,7 @@ def env_op_parse(env_op):
     """
     match = ENV_OP_RE.match(env_op)
     if match is None:
-        shared.errprint("Bad chaintool-env argument format.")
+        shared.errprint("Bad chaintool-env argument format: {}".format(env_op))
         return None
     dst_name = match.group(1)
     src_value = match.group(2)

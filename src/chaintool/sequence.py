@@ -347,7 +347,17 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     locks.multi_item_lock("cmd", cmd_list, locks.LockType.READ)
     locks.release_inventory_lock("cmd", locks.LockType.READ)
     unused_args = copy.deepcopy(args)
-    for cmd in cmd_list:
+    stdout_relay = command_impl_op.StdoutRelay()
+    req_stdout = []
+    for cmd in cmd_list[1:]:
+        try:
+            cmd_dict = command_impl_core.read_dict(cmd)
+            uses_prev_stdout = "prev_stdout" in cmd_dict["args"]
+        except FileNotFoundError:
+            uses_prev_stdout = False
+        req_stdout.append(uses_prev_stdout)
+    req_stdout.append(False)
+    for index, cmd in enumerate(cmd_list):
         if skip_cmdnames and cmd in skip_cmdnames:
             print(
                 Fore.MAGENTA
@@ -355,11 +365,13 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
                 + Fore.RESET
             )
             print()
+            stdout_relay.stdout = None
             continue
+        stdout_relay.stdout_requested = req_stdout[index]
         print(
             Fore.MAGENTA + "* running command '{}':".format(cmd) + Fore.RESET
         )
-        status = command_impl_op.run(cmd, args, unused_args)
+        status = command_impl_op.run(cmd, args, unused_args, stdout_relay)
         if status and not ignore_errors:
             return status
     if unused_args:

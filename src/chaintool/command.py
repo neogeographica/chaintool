@@ -333,7 +333,8 @@ def cli_run(cmd, args):
     # cmd while it is running.
     locks.item_lock("cmd", cmd, locks.LockType.READ)
     unused_args = copy.deepcopy(args)
-    status = command_impl_op.run(cmd, args, unused_args)
+    stdout_relay = command_impl_op.StdoutRelay()
+    status = command_impl_op.run(cmd, args, unused_args, stdout_relay)
     if unused_args:
         print(
             shared.MSG_WARN_PREFIX
