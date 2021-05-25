@@ -1,0 +1,33 @@
+commands:
+- cmdline: chaintool-env ec2ip={strip/prev_stdout}
+  name: ec2-save-stdout-as-ec2ip
+- cmdline: scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i {ec2key}
+    {source} {ec2user=ec2-user}@{ec2ip}:{dest=}
+  name: ec2cp-ip
+- cmdline: ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i {ec2key}
+    {ec2user=ec2-user}@{ec2ip}
+  name: ec2ssh-ip
+- cmdline: aws ec2 --region {region} describe-instances --filters "Name=tag:Name,Values={vmname}"
+    "Name=instance-state-name,Values=running" --query 'Reservations[0].Instances[0].[{+private=PublicIpAddress:PrivateIpAddress}]'
+    --output text
+  name: ec2ip
+- cmdline: rsync -P -e "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+    -i {ec2key}" {source} {ec2user=ec2-user}@{ec2ip}:{dest=}
+  name: ec2cp-resume-ip
+schema_version: 1
+sequences:
+- commands:
+  - ec2ip
+  - ec2-save-stdout-as-ec2ip
+  - ec2ssh-ip
+  name: ec2ssh
+- commands:
+  - ec2ip
+  - ec2-save-stdout-as-ec2ip
+  - ec2cp-ip
+  name: ec2cp
+- commands:
+  - ec2ip
+  - ec2-save-stdout-as-ec2ip
+  - ec2cp-resume-ip
+  name: ec2cp-resume

@@ -1,12 +1,22 @@
 *** overview
 
-XXX talk about what this is
+XXX TBD talk about what this is
 
-XXX mention that it specifically has been tested with q3map2 from netradiant-custom... other versions might work differently, or not work (e.g. not support using both -samples and -filter)
+XXX TBD mention that it specifically has been tested with q3map2 from netradiant-custom... other versions might work differently, or not work (e.g. not support using both -samples and -filter)
+
+
+*** prerequisites
+
+XXX TBD worth any discussion of Q3 mapping setup?
+
 
 *** setup
 
-After importing the q3build file with "chaintool import q3build", you will need to use "chaintool vals" to define a default value for the following placeholder:
+You can import the latest version of these commands/sequences from GitHub with:
+
+  chaintool import https://raw.githubusercontent.com/neogeographica/chaintool/main/sample-imports/q3build
+
+You will then want to use "chaintool vals" to set a default value for the following placeholder:
 
   q3basepath : The absolute filepath to the Quake3 directory that you want to use for test-running your results.
 
@@ -14,7 +24,7 @@ So for example in my own case I would use the following command after import:
 
   chaintool vals q3basepath="/home/joel/Mapping/Quake3"
 
-You may also want or need to use "chaintool vals" to set new different defaults for the following placeholders:
+You may also want to use "chaintool vals" to set new different defaults for the following placeholders:
 
   q3exe (currently quake3e.x64) : The name of your Quake 3 executable. Must be located inside the q3basepath directory.
 
@@ -25,6 +35,8 @@ You may also want or need to use "chaintool vals" to set new different defaults 
   threads (currently 7) : Generally the largest number to set here would be one less than your # of CPUs.
 
 (Keep in mind that you can set multiple default values in the same "chaintool vals" invocation.)
+
+XXX TBD show a chaintool vals example
 
 There are other defaults you may want to change, for the optional parameters in the various commands, but those are more a matter of taste.
 
@@ -39,11 +51,11 @@ The "q3build-simple" sequence is just like the "q3build" sequence, except that i
 
 The "q3aas" command (not sequence) can also be run to generate the bot info (.aas file) for a mapfile that you have previously compiled using one of those two sequences. It has a required "map" value that must be the absolute path to the .bsp file (or to the .map file if it is in the same directory).
 
-XXX actually need to make this into a sequence that also at least copies the .aas file into the Quake 3 installation
+XXX TBD actually need to make this into a sequence that also at least copies the .aas file into the Quake 3 installation
 
 There are several available toggles and optional parameters for customizing the command behaviors.
 
-XXX insert a quick rundown of those in here
+XXX TBD insert a quick rundown of those in here
 
 
 *** cleanup
