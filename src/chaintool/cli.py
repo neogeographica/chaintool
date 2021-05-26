@@ -228,6 +228,12 @@ def set_cmd_options(group_subparsers):
             " placeholders."
         ),
     )
+    cmd_parser_run.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Don't print the commandline, only the command output.",
+    )
     cmd_parser_run.add_argument("cmdname")
     cmd_parser_run.add_argument(
         "placeholder_args",
@@ -400,6 +406,15 @@ def set_seq_options(group_subparsers):
         description=(
             "Execute a sequence, optionally setting values for commandlines'"
             " placeholders."
+        ),
+    )
+    seq_parser_run.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help=(
+            "Don't print the command names or commandlines, only the command"
+            " output."
         ),
     )
     seq_parser_run.add_argument(
@@ -638,7 +653,9 @@ CMD_DISPATCH = {
     "edit": lambda args: command.cli_edit(args.cmdname, not args.quiet),
     "print": lambda args: command.cli_print(args.cmdname),
     "del": lambda args: command.cli_del(args.cmdnames, args.force),
-    "run": lambda args: command.cli_run(args.cmdname, args.placeholder_args),
+    "run": lambda args: command.cli_run(
+        args.cmdname, args.quiet, args.placeholder_args
+    ),
     "vals": lambda args: command.cli_vals(
         args.cmdname, args.placeholder_args, not args.quiet
     ),
@@ -673,6 +690,7 @@ SEQ_DISPATCH = {
     "del": lambda args: sequence.cli_del(args.seqnames),
     "run": lambda args: sequence.cli_run(
         args.seqname,
+        args.quiet,
         args.placeholder_args,
         args.ignore_errors,
         args.skip_cmdnames,

@@ -938,7 +938,7 @@ def delete(cmd, is_not_found_ok):
             raise
 
 
-def run(cmd, args, unused_args, rsv_ctx):
+def run(cmd, quiet, args, unused_args, rsv_ctx):
     """Run a command.
 
     Apply the placeholder values from the ``args`` list (as well as any
@@ -963,6 +963,8 @@ def run(cmd, args, unused_args, rsv_ctx):
 
     :param cmd:         name of command to run
     :type cmd:          str
+    :param quiet:       whether to print only the command output
+    :type quiet:        bool
     :param args:        placeholder arguments for this run; to modify
     :type args:         list(str)
     :param unused_args: placeholder arguments unused by any command in
@@ -976,7 +978,8 @@ def run(cmd, args, unused_args, rsv_ctx):
     :rtype:   int
 
     """
-    print()
+    if not quiet:
+        print()
     values_for_reserved = dict()
     values_for_reserved["prev_stdout"] = rsv_ctx.stdout
     values_for_reserved["tempdir"] = rsv_ctx.tempdir
@@ -984,15 +987,18 @@ def run(cmd, args, unused_args, rsv_ctx):
         cmd, args, unused_args, values_for_reserved, True
     )
     if cmd_dict is None:
-        print()
+        if not quiet:
+            print()
         rsv_ctx.stdout = None
         return 1
     cmdline = cmd_dict["format"].format(**cmd_dict["args"])
-    print(Fore.CYAN + cmdline + Fore.RESET)
-    print()
+    if not quiet:
+        print(Fore.CYAN + cmdline + Fore.RESET)
+        print()
     vtool_status = virtual_tools.dispatch(cmdline, args)
     if vtool_status is not None:
-        print()
+        if not quiet:
+            print()
         rsv_ctx.stdout = None
         return vtool_status
     if rsv_ctx.stdout_requested:
@@ -1000,13 +1006,14 @@ def run(cmd, args, unused_args, rsv_ctx):
             cmdline, capture_output=True, shell=True, check=False, text=True
         )
         rsv_ctx.stdout = result.stdout
-        print(result.stdout)
+        print(result.stdout, end="")
     else:
         result = subprocess.run(
             cmdline, capture_output=False, shell=True, check=False
         )
         rsv_ctx.stdout = None
-    print()
+    if not quiet:
+        print()
     return result.returncode
 
 

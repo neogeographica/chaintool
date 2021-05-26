@@ -110,9 +110,33 @@ In that case the first (required) positional argument after ``cmd run`` specifie
 
 The subsections below, and the other pages of this user guide, go into more detail about how to use each of the commandgroups and their operations. Two more things should be mentioned at this point:
 
-- chaintool has a multi-level help system to describe the available commandline options. ``chaintool -h`` will describe all of the commandgroups and (where relevant) list their operations. If a commandgroup has multiple operations, then ``chaintool <commandgroup> -h`` will show the help for all of its operations, and ``chaintool <commandgroup> <operation> -h`` will show the help for a single operation. (The :doc:`reference<reference>` section of this user guide replicates that help text.)
+First: chaintool has a multi-level help system to describe the available commandline options. ``chaintool -h`` will describe all of the commandgroups and (where relevant) list their operations. If a commandgroup has multiple operations, then ``chaintool <commandgroup> -h`` will show the help for all of its operations, and ``chaintool <commandgroup> <operation> -h`` will show the help for a single operation. (The :doc:`reference<reference>` section of this user guide replicates that help text.)
 
-- If you have configured :ref:`bash completions<configuration:completions>` for chaintool, you can use Tab to help autocomplete available options on the commandline. This includes the optional positional arguments for placeholder settings; e.g. in the example above typing ``chaintool cmd run foo m`` followed by Tab would autocomplete to ``chaintool cmd run foo message=hi\!``, showing the available placeholder and its current default value, quoted/escaped as necessary, for you to edit.
+Also, if you have configured :ref:`bash completions<configuration:completions>` for chaintool, you can use Tab to help autocomplete available options on the commandline. This includes the optional positional arguments for placeholder settings; e.g. in the example above typing ``chaintool cmd run foo m`` followed by Tab would autocomplete to ``chaintool cmd run foo message=hi\!``, showing the available placeholder and its current default value, quoted/escaped as necessary, for you to edit.
+
+.. note::
+
+   The argument parser used by chaintool doesn't allow intermixing optional flags with positional arguments (after the commandgroup+operation). So this is allowed:
+
+   .. code-block:: none
+
+      chaintool cmd run -q foo arg=wow
+
+   And this is allowed (and functionally identical):
+
+   .. code-block:: none
+
+      chaintool cmd run foo arg=wow -q
+
+   But this is **not** allowed:
+
+   .. code-block:: none
+
+      chaintool cmd run foo -q arg=wow
+
+   That last one will give you an "unrecognized arguments" error from the parser.
+
+   Once you have typed any positional argument (like the command name ``foo`` above), the autocomplete logic will stop suggesting optional flags, because it doesn't know if you intend to then add more positional arguments. However it's fine to type out the flag yourself if you know it's at the end of the arguments. This is mostly relevant when you're using :ref:`shortcuts<shortcuts:optional run flags>`.
 
 Command and Sequence Authoring
 ------------------------------
@@ -202,9 +226,11 @@ You can use the ``run`` operation to execute the commandline of an existing comm
 
 .. code-block:: none
 
-   chaintool cmd run <cmdname> <placeholder_arg> [<placeholder_arg> ...]
+   chaintool cmd run [-q] <cmdname> <placeholder_arg> [<placeholder_arg> ...]
 
-   chaintool seq run [-i] [-s <skip_cmdname>] <seqname> <placeholder_arg> [<placeholder_arg> ...]
+   chaintool seq run [-q] [-i] [-s <skip_cmdname>] <seqname> <placeholder_arg> [<placeholder_arg> ...]
+
+The optional ``-q`` (or ``--quiet``) flag for ``cmd run`` and ``seq run`` suppresses the printing of info about which commandlines are being executed; only the command output will be printed.
 
 The optional ``-i`` (or ``--ignore-errors``) flag for ``seq run`` tells chaintool to ignore any error status from an individual command execution and continue running the next command in the sequence.
 

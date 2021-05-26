@@ -11,12 +11,12 @@ Changelog
   - Support import-from-URL.
   - Support tab-completion of command names during "seq edit".
   - Make chaintool-del succeed even if file is already gone.
-  - Simplification of chaintool-env: only conditional assignment is now
-    supported in the env ops. The "=" assignment operator now does conditional
-    assignment.
-  - "Reserved" placeholder support; initially including "prev_stdout" and
+  - Simplify chaintool-env: only conditional assignment is now supported in
+    the env ops. The "=" assignment operator now does conditional assignment.
+  - Add "reserved" placeholder support; initially including "prev_stdout" and
     "tempdir".
-  - Adding the "strip" modifier for placeholder values.
+  - Add the "strip" modifier for placeholder values.
+  - Add the "-q"/"--quiet" flag for run ops.
   - More work on Sphinx docs, and hosting them at "Read the Docs".
   - More samples for import.
 

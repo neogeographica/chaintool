@@ -172,7 +172,7 @@ _chaintool_cmd_completions()
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
-        GENWORDS+=( "--help" )
+        GENWORDS+=( "--help" "--quiet" )
       fi
       ;;
     vals)
@@ -342,7 +342,7 @@ _chaintool_seq_completions()
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
-        GENWORDS+=( "--help" "--ignore-errors" "--skip=" )
+        GENWORDS+=( "--help" "--quiet" "--ignore-errors" "--skip=" )
       fi
       ;;
     vals)

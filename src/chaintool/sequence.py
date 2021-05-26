@@ -82,6 +82,34 @@ def undefined_cmds(cmds, ignore_undefined_cmds):
     return list(set(cmds) - set(command_impl_core.all_names()))
 
 
+def req_stdout_flags(cmds):
+    """Determine which commands need to have their stdout captured.
+
+    Examine the given commands. For any command that uses the ``prev_stdout``
+    placeholder, mark that the previous command needs to have its stdout
+    captured. Return a list of booleans the same length as the list of
+    commands, each element indicating whether the corresponding command needs
+    to be captured.
+
+    :param cmds: list of command names to check
+    :type cmds:  list[str]
+
+    :returns: list of flags indicating which cmd outputs need to be captured.
+    :rtype:   list[bool]
+
+    """
+    flags = []
+    for cmd in cmds[1:]:
+        try:
+            cmd_dict = command_impl_core.read_dict(cmd)
+            uses_prev_stdout = "prev_stdout" in cmd_dict["args"]
+        except FileNotFoundError:
+            uses_prev_stdout = False
+        flags.append(uses_prev_stdout)
+    flags.append(False)
+    return flags
+
+
 def cli_list(column):
     """Print the list of current sequence names.
 
@@ -307,7 +335,7 @@ def cli_del(delseqs):
     return 0
 
 
-def cli_run(seq, args, ignore_errors, skip_cmdnames):
+def cli_run(seq, quiet, args, ignore_errors, skip_cmdnames):
     """Run a sequence.
 
     Acquire the seq item readlock and cmd inventory readlock. Read the
@@ -332,6 +360,8 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
 
     :param seq:           name of sequence to run
     :type seq:            str
+    :param quiet:         whether to print only the command output
+    :type quiet:          bool
     :param args:          placeholder arguments for this run; to modify
     :type args:           list[str]
     :param ignore_errors: if True, a command error does not stop the run
@@ -345,7 +375,8 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     """
     locks.item_lock("seq", seq, locks.LockType.READ)
     locks.inventory_lock("cmd", locks.LockType.READ)
-    print()
+    if not quiet:
+        print()
     try:
         seq_dict = sequence_impl_core.read_dict(seq)
     except FileNotFoundError:
@@ -357,15 +388,7 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
     locks.release_inventory_lock("cmd", locks.LockType.READ)
     unused_args = copy.deepcopy(args)
     rsv_ctx = command_impl_op.ReservedPlaceholdersCtx()
-    req_stdout = []
-    for cmd in cmd_list[1:]:
-        try:
-            cmd_dict = command_impl_core.read_dict(cmd)
-            uses_prev_stdout = "prev_stdout" in cmd_dict["args"]
-        except FileNotFoundError:
-            uses_prev_stdout = False
-        req_stdout.append(uses_prev_stdout)
-    req_stdout.append(False)
+    req_stdout = req_stdout_flags(cmd_list)
     with tempfile.TemporaryDirectory() as tmpdirname:
         rsv_ctx.tempdir = tmpdirname + os.sep
         for index, cmd in enumerate(cmd_list):
@@ -375,16 +398,20 @@ def cli_run(seq, args, ignore_errors, skip_cmdnames):
                     + "* SKIPPING command '{}'".format(cmd)
                     + Fore.RESET
                 )
-                print()
+                if not quiet:
+                    print()
                 rsv_ctx.stdout = None
                 continue
             rsv_ctx.stdout_requested = req_stdout[index]
-            print(
-                Fore.MAGENTA
-                + "* running command '{}':".format(cmd)
-                + Fore.RESET
+            if not quiet:
+                print(
+                    Fore.MAGENTA
+                    + "* running command '{}':".format(cmd)
+                    + Fore.RESET
+                )
+            status = command_impl_op.run(
+                cmd, quiet, args, unused_args, rsv_ctx
             )
-            status = command_impl_op.run(cmd, args, unused_args, rsv_ctx)
             if status and not ignore_errors:
                 return status
     if unused_args:

@@ -310,7 +310,7 @@ def cli_del(delcmds, ignore_seq_usage):
     return 0
 
 
-def cli_run(cmd, args):
+def cli_run(cmd, quiet, args):
     """Run a command.
 
     Acquire the cmd item readlock. Create a temporary directory using a
@@ -325,6 +325,8 @@ def cli_run(cmd, args):
 
     :param cmd:           name of command to run
     :type cmd:            str
+    :param quiet:         whether to print only the command output
+    :type quiet:          bool
     :param args:          placeholder arguments for this run; to modify
     :type args:           list[str]
 
@@ -341,7 +343,7 @@ def cli_run(cmd, args):
     rsv_ctx = command_impl_op.ReservedPlaceholdersCtx()
     with tempfile.TemporaryDirectory() as tmpdirname:
         rsv_ctx.tempdir = tmpdirname + os.sep
-        status = command_impl_op.run(cmd, args, unused_args, rsv_ctx)
+        status = command_impl_op.run(cmd, quiet, args, unused_args, rsv_ctx)
     if unused_args:
         print(
             shared.MSG_WARN_PREFIX
