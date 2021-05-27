@@ -228,13 +228,11 @@ You can use the ``run`` operation to execute the commandline of an existing comm
 
    chaintool cmd run [-q] <cmdname> <placeholder_arg> [<placeholder_arg> ...]
 
-   chaintool seq run [-q] [-i] [-s <skip_cmdname>] <seqname> <placeholder_arg> [<placeholder_arg> ...]
+   chaintool seq run [-q] [-i] <seqname> <placeholder_arg> [<placeholder_arg> ...]
 
 The optional ``-q`` (or ``--quiet``) flag for ``cmd run`` and ``seq run`` suppresses the printing of info about which commandlines are being executed; only the command output will be printed.
 
 The optional ``-i`` (or ``--ignore-errors``) flag for ``seq run`` tells chaintool to ignore any error status from an individual command execution and continue running the next command in the sequence.
-
-The ``seq run`` operation also accepts multiple ``-s <cmdname>`` (or ``--skip <cmdname>``) arguments to identify any commands in the sequence that should not be run this time.
 
 As with the ``vals`` operation, each `<placeholder_arg>` affects the value substituted for a placeholder in the command (or in all commands in the sequence). However, here you are specifying values only for this run, and not modifying any stored default values. Two other differences from the ``vals`` syntax are also important:
 

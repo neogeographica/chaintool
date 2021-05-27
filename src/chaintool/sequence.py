@@ -335,7 +335,7 @@ def cli_del(delseqs):
     return 0
 
 
-def cli_run(seq, quiet, args, ignore_errors, skip_cmdnames):
+def cli_run(seq, quiet, args, ignore_errors):
     """Run a sequence.
 
     Acquire the seq item readlock and cmd inventory readlock. Read the
@@ -350,8 +350,8 @@ def cli_run(seq, quiet, args, ignore_errors, skip_cmdnames):
     Create a temporary directory using a context manager. While the temp
     directory exists, grab its name for the value of the "tempdir" reserved
     placeholder, and delegate to :func:`.command_impl_op.run` to execute each
-    command in the list that is not a member of ``skip_cmdnames``. If a
-    command returns an error status and ignore_errors is false, bail out.
+    command in the list. If a command returns an error status and
+    ignore_errors is false, bail out.
 
     In the success case, finally print a warning if any of the given
     placeholder args were irrelevant for all the executed commands.
@@ -366,8 +366,6 @@ def cli_run(seq, quiet, args, ignore_errors, skip_cmdnames):
     :type args:           list[str]
     :param ignore_errors: if True, a command error does not stop the run
     :type ignore_errors:  bool
-    :param skip_cmdnames: list of command names to not execute
-    :type skip_cmdnames:  list[str]
 
     :returns: exit status code (0 for success, nonzero for error)
     :rtype:   int
@@ -392,16 +390,6 @@ def cli_run(seq, quiet, args, ignore_errors, skip_cmdnames):
     with tempfile.TemporaryDirectory() as tmpdirname:
         rsv_ctx.tempdir = tmpdirname + os.sep
         for index, cmd in enumerate(cmd_list):
-            if skip_cmdnames and cmd in skip_cmdnames:
-                print(
-                    Fore.MAGENTA
-                    + "* SKIPPING command '{}'".format(cmd)
-                    + Fore.RESET
-                )
-                if not quiet:
-                    print()
-                rsv_ctx.stdout = None
-                continue
             rsv_ctx.stdout_requested = req_stdout[index]
             if not quiet:
                 print(

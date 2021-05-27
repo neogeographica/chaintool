@@ -294,55 +294,29 @@ _chaintool_seq_completions()
     run)
       if [[ $MIGHT_MATCH_NAME == 1 ]]
       then
-        local SKIP_VALUE=0
-        if [[ $NO_FLAGS == 0 ]]
+        if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
         then
-          if [[ "$BEFORE_CUR" == "-s" || "$BEFORE_CUR" == "--skip" ]]
-          then
-            SKIP_VALUE=1
-          else
-            if [[ "$BEFORE_CUR" == "=" ]]
-            then
-              BEFORE_CUR="${COMP_WORDS[$COMP_CWORD-2]}"
-              if [[ "$BEFORE_CUR" == "-s" || "$BEFORE_CUR" == "--skip" ]]
-              then
-                SKIP_VALUE=1
-              fi
-            fi
-          fi
-        fi
-        if [[ $SKIP_VALUE == 1 ]]
-        then
-          if [[ "$CUR" == "=" ]]
-          then
-            CUR=""
-          fi
-          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper cmd))
+          GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper seq))
         else
-          if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
+          if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
           then
-            GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper seq))
-          else
-            if [[ "$CUR" == "" || "$CUR" =~ ^[A-Za-z\+] ]]
+            local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
+            GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper run seq $SEQNAME))
+            GENWORDS_INCLUDE_PLACEHOLDERS=1
+          elif [[ "$CUR" == "=" || "$BEFORE_CUR" == "=" ]]
+          then
+            if [[ "$CUR" == "=" ]]
             then
-              local SEQNAME="${COMP_WORDS[$FIRST_POSITIONAL_INDEX]}"
-              GENWORDS=($("$CHAINTOOL_COMPLETIONS_PYTHON" -m chaintool_completions_helper run seq $SEQNAME))
-              GENWORDS_INCLUDE_PLACEHOLDERS=1
-            elif [[ "$CUR" == "=" || "$BEFORE_CUR" == "=" ]]
-            then
-              if [[ "$CUR" == "=" ]]
-              then
-                CUR=""
-              fi
-              _chaintool_file_completions "$CUR"
-              return
+              CUR=""
             fi
+            _chaintool_file_completions "$CUR"
+            return
           fi
         fi
       fi
       if [[ $NO_FLAGS == 0 ]]
       then
-        GENWORDS+=( "--help" "--quiet" "--ignore-errors" "--skip=" )
+        GENWORDS+=( "--help" "--quiet" "--ignore-errors" )
       fi
       ;;
     vals)
@@ -610,11 +584,6 @@ _chaintool()
   # Scan up to just before our current position.
   local NO_FLAGS=0
   local FIRST_POSITIONAL_INDEX=0
-  local CHECK_SKIP=0
-  if [[ "$CMD_GROUP" == "seq" && "$OPERATION" == "run" ]]
-  then
-    CHECK_SKIP=1
-  fi
   if [[ $SCAN_START != $COMP_CWORD ]]
   then
     let SCAN_END=$COMP_CWORD-1
@@ -625,7 +594,6 @@ _chaintool()
       if [[ "$THIS_WORD" == "--" ]]
       then
         NO_FLAGS=1
-        CHECK_SKIP=0
         continue
       fi
       # If this word is an option, keep looking.
@@ -633,27 +601,7 @@ _chaintool()
       then
         continue
       fi
-      # Otherwise, we've probably found a positional arg. Only exception is
-      # the "skip" arguments for seq run. Note that if the "option=value"
-      # format is used on the command line, rather than "option value",
-      # we'll be getting the = sign as its own word here so we need to check
-      # for that.
-      if [[ $CHECK_SKIP == 1 ]]
-      then
-        local PREV_WORD="${COMP_WORDS[$INDEX-1]}"
-        if [[ "$PREV_WORD" == "-s" || "$PREV_WORD" == "--skip" ]]
-        then
-          continue
-        fi
-        if [[ "$PREV_WORD" == "=" ]]
-        then
-          PREV_WORD="${COMP_WORDS[$INDEX-2]}"
-          if [[ "$PREV_WORD" == "-s" || "$PREV_WORD" == "--skip" ]]
-          then
-            continue
-          fi
-        fi
-      fi
+      # Otherwise, we've found a positional arg.
       if [[ $FIRST_POSITIONAL_INDEX == 0 ]]
       then
         FIRST_POSITIONAL_INDEX=$INDEX
@@ -687,7 +635,6 @@ _chaintool()
   esac
 
   # Set nospace if we've found the one completion and it ends with an = sign.
-  # Currently this really only catches the case of the --skip= option.
   if [[ ${#COMPREPLY[@]} -eq 1 && ${COMPREPLY[0]} == *= ]]
   then
     compopt -o nospace 2> /dev/null

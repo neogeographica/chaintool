@@ -427,17 +427,6 @@ def set_seq_options(group_subparsers):
             " exist or returns an error status."
         ),
     )
-    seq_parser_run.add_argument(
-        "-s",
-        "--skip",
-        action="append",
-        metavar="cmdname",
-        dest="skip_cmdnames",
-        help=(
-            "Skip running a command, if it is in this sequence. Multiple"
-            " --skip usages are allowed, to skip multiple commands."
-        ),
-    )
     seq_parser_run.add_argument("seqname")
     seq_parser_run.add_argument(
         "placeholder_args",
@@ -693,7 +682,6 @@ SEQ_DISPATCH = {
         args.quiet,
         args.placeholder_args,
         args.ignore_errors,
-        args.skip_cmdnames,
     ),
     "vals": lambda args: sequence.cli_vals(
         args.seqname, args.placeholder_args, not args.quiet

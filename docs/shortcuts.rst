@@ -22,7 +22,7 @@ You could manually add that "shortcuts" directory to your :envvar:`PATH`, but it
 Optional Run Flags
 ------------------
 
-So to recap, a shortcut is a way of executing a ``cmd run`` or ``seq run`` operation. This means that the optional ``-q`` (or ``--quiet``) flag is available. For ``seq run``, the optional ``-i`` (or ``--ignore-errors``) and ``-s <cmdname>`` (or ``--skip <cmdname>``) flags are also available.
+So to recap, a shortcut is a way of executing a ``cmd run`` or ``seq run`` operation. This means that the optional ``-q`` (or ``--quiet``) flag is available. For ``seq run``, the optional ``-i`` (or ``--ignore-errors``) flag is also available.
 
 As mentioned in the :ref:`overview<overview:invoking chaintool>`, you can't intermix optional flags with positional arguments. Since a shortcut already has one positional argument "baked in" (i.e. the command/sequence name), this means that if you want to use these flags you'll have to put them at the very end of any other arguments you may be specifying. (Also as described in the overview, there are reasons that the autocomplete logic can't help with these flags in this case, so you'll have to type them yourself.)
 

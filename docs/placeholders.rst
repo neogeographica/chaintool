@@ -182,7 +182,6 @@ Be aware that running a command using this token will fail if the command:
 - is not in a sequence
 - is the first command in a sequence
 - follows a failed command (when the sequence continues because of ``--ignore-errors``)
-- follows a skipped command (when the sequence invocation uses ``--skip``)
 
 In other words to substitute in the "previous stdout", there must be existing stdout content from an immediately previous command.
 
