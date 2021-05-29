@@ -56,6 +56,9 @@ from . import sequence_impl_op
 from . import shared
 from . import shortcuts
 
+from .locks import LockType
+from .shared import ItemType
+
 
 def undefined_cmds(cmds, ignore_undefined_cmds):
     """Return which commands don't exist, if ``ignore_undefined_cmds``.
@@ -78,7 +81,7 @@ def undefined_cmds(cmds, ignore_undefined_cmds):
     """
     if ignore_undefined_cmds:
         return []
-    locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.inventory_lock(ItemType.CMD, LockType.READ)
     return list(set(cmds) - set(command_impl_core.all_names()))
 
 
@@ -162,12 +165,12 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
     :rtype:   int
 
     """
-    locks.inventory_lock("seq", locks.LockType.WRITE)
-    locks.item_lock("seq", seq, locks.LockType.WRITE)
+    locks.inventory_lock(ItemType.SEQ, LockType.WRITE)
+    locks.item_lock(ItemType.SEQ, seq, LockType.WRITE)
     creating = False
     if not sequence_impl_core.exists(seq):
         creating = True
-        locks.inventory_lock("cmd", locks.LockType.READ)
+        locks.inventory_lock(ItemType.CMD, LockType.READ)
         if command_impl_core.exists(seq):
             print()
             shared.errprint(
@@ -220,9 +223,9 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
     :rtype:   int
 
     """
-    locks.inventory_lock("seq", locks.LockType.WRITE)
-    locks.item_lock("seq", seq, locks.LockType.WRITE)
-    locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.inventory_lock(ItemType.SEQ, LockType.WRITE)
+    locks.item_lock(ItemType.SEQ, seq, LockType.WRITE)
+    locks.inventory_lock(ItemType.CMD, LockType.READ)
     cleanup_fun = None
     try:
         seq_dict = sequence_impl_core.read_dict(seq)
@@ -245,8 +248,8 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         atexit.register(cleanup_fun)
         sequence_impl_core.create_temp(seq)
     current_commands = command_impl_core.all_names()
-    locks.release_inventory_lock("cmd", locks.LockType.READ)
-    locks.release_inventory_lock("seq", locks.LockType.WRITE)
+    locks.release_inventory_lock(ItemType.CMD, LockType.READ)
+    locks.release_inventory_lock(ItemType.SEQ, LockType.WRITE)
     # We're including the newline in the prompt here, so that if the line gets
     # re-displayed after showing some completion suggestions it will get some
     # separation from the completions list.
@@ -289,8 +292,8 @@ def cli_print(seq):
     :rtype:   int
 
     """
-    locks.item_lock("seq", seq, locks.LockType.READ)
-    locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.item_lock(ItemType.SEQ, seq, LockType.READ)
+    locks.inventory_lock(ItemType.CMD, LockType.READ)
     try:
         seq_dict = sequence_impl_core.read_dict(seq)
     except FileNotFoundError:
@@ -299,7 +302,7 @@ def cli_print(seq):
         print()
         return 1
     commands = seq_dict["commands"]
-    locks.multi_item_lock("cmd", commands, locks.LockType.READ)
+    locks.multi_item_lock(ItemType.CMD, commands, LockType.READ)
     print()
     return command_impl_print.print_multi(commands, False)
 
@@ -319,8 +322,8 @@ def cli_del(delseqs):
     :rtype:   int
 
     """
-    locks.inventory_lock("seq", locks.LockType.WRITE)
-    locks.multi_item_lock("seq", delseqs, locks.LockType.WRITE)
+    locks.inventory_lock(ItemType.SEQ, LockType.WRITE)
+    locks.multi_item_lock(ItemType.SEQ, delseqs, LockType.WRITE)
     print()
     for seq in delseqs:
         try:
@@ -371,8 +374,8 @@ def cli_run(seq, quiet, args, ignore_errors):
     :rtype:   int
 
     """
-    locks.item_lock("seq", seq, locks.LockType.READ)
-    locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.item_lock(ItemType.SEQ, seq, LockType.READ)
+    locks.inventory_lock(ItemType.CMD, LockType.READ)
     if not quiet:
         print()
     try:
@@ -382,8 +385,8 @@ def cli_run(seq, quiet, args, ignore_errors):
         print()
         return 1
     cmd_list = seq_dict["commands"]
-    locks.multi_item_lock("cmd", cmd_list, locks.LockType.READ)
-    locks.release_inventory_lock("cmd", locks.LockType.READ)
+    locks.multi_item_lock(ItemType.CMD, cmd_list, LockType.READ)
+    locks.release_inventory_lock(ItemType.CMD, LockType.READ)
     unused_args = copy.deepcopy(args)
     rsv_ctx = command_impl_op.ReservedPlaceholdersCtx()
     req_stdout = req_stdout_flags(cmd_list)
@@ -439,8 +442,8 @@ def cli_vals(seq, args, print_after_set):
     :rtype:   int
 
     """
-    locks.item_lock("seq", seq, locks.LockType.WRITE)
-    locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.item_lock(ItemType.SEQ, seq, LockType.WRITE)
+    locks.inventory_lock(ItemType.CMD, LockType.READ)
     try:
         seq_dict = sequence_impl_core.read_dict(seq)
     except FileNotFoundError:
@@ -449,8 +452,8 @@ def cli_vals(seq, args, print_after_set):
         print()
         return 1
     cmd_list = seq_dict["commands"]
-    locks.multi_item_lock("cmd", cmd_list, locks.LockType.WRITE)
-    locks.release_inventory_lock("cmd", locks.LockType.READ)
+    locks.multi_item_lock(ItemType.CMD, cmd_list, LockType.WRITE)
+    locks.release_inventory_lock(ItemType.CMD, LockType.READ)
     print()
     unused_args = copy.deepcopy(args)
     print(Fore.MAGENTA + "* updating all commands in sequence" + Fore.RESET)

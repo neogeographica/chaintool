@@ -47,6 +47,9 @@ from . import locks
 from . import shared
 from . import shortcuts
 
+from .locks import LockType
+from .shared import ItemType
+
 
 def cli_export(export_file):
     """Export all current commands and sequences to a file.
@@ -77,12 +80,12 @@ def cli_export(export_file):
         )
         print()
         return 1
-    locks.inventory_lock("seq", locks.LockType.READ)
-    locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.inventory_lock(ItemType.SEQ, LockType.READ)
+    locks.inventory_lock(ItemType.CMD, LockType.READ)
     command_names = command_impl_core.all_names()
     sequence_names = sequence_impl_core.all_names()
-    locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
-    locks.multi_item_lock("seq", sequence_names, locks.LockType.READ)
+    locks.multi_item_lock(ItemType.CMD, command_names, LockType.READ)
+    locks.multi_item_lock(ItemType.SEQ, sequence_names, LockType.READ)
     print()
     export_dict = {
         "schema_version": export_schema_ver,
@@ -153,13 +156,13 @@ def cli_import(import_file, overwrite):
     :rtype:   int
 
     """
-    locks.inventory_lock("seq", locks.LockType.WRITE)
-    locks.inventory_lock("cmd", locks.LockType.WRITE)
+    locks.inventory_lock(ItemType.SEQ, LockType.WRITE)
+    locks.inventory_lock(ItemType.CMD, LockType.WRITE)
     if overwrite:
         command_names = command_impl_core.all_names()
         sequence_names = sequence_impl_core.all_names()
-        locks.multi_item_lock("cmd", command_names, locks.LockType.WRITE)
-        locks.multi_item_lock("seq", sequence_names, locks.LockType.WRITE)
+        locks.multi_item_lock(ItemType.CMD, command_names, LockType.WRITE)
+        locks.multi_item_lock(ItemType.SEQ, sequence_names, LockType.WRITE)
     print()
     if import_file.startswith("https://") or import_file.startswith("http://"):
         with requests.get(import_file) as response:

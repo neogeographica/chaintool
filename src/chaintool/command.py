@@ -57,6 +57,9 @@ from . import shared
 from . import shortcuts
 from . import locks
 
+from .locks import LockType
+from .shared import ItemType
+
 
 def cli_list(column):
     """Print the list of current command names.
@@ -108,9 +111,9 @@ def cli_set(cmd, cmdline, overwrite, print_after_set):
     :rtype:   int
 
     """
-    locks.inventory_lock("seq", locks.LockType.READ)
-    locks.inventory_lock("cmd", locks.LockType.WRITE)
-    locks.item_lock("cmd", cmd, locks.LockType.WRITE)
+    locks.inventory_lock(ItemType.SEQ, LockType.READ)
+    locks.inventory_lock(ItemType.CMD, LockType.WRITE)
+    locks.item_lock(ItemType.CMD, cmd, LockType.WRITE)
     creating = False
     if not command_impl_core.exists(cmd):
         creating = True
@@ -160,9 +163,9 @@ def cli_edit(cmd, print_after_set):
     :rtype:   int
 
     """
-    locks.inventory_lock("seq", locks.LockType.READ)
-    locks.inventory_lock("cmd", locks.LockType.WRITE)
-    locks.item_lock("cmd", cmd, locks.LockType.WRITE)
+    locks.inventory_lock(ItemType.SEQ, LockType.READ)
+    locks.inventory_lock(ItemType.CMD, LockType.WRITE)
+    locks.item_lock(ItemType.CMD, cmd, LockType.WRITE)
     cleanup_fun = None
     try:
         cmd_dict = command_impl_core.read_dict(cmd)
@@ -185,8 +188,8 @@ def cli_edit(cmd, print_after_set):
         cleanup_fun = lambda: command_impl_op.delete(cmd, True)
         atexit.register(cleanup_fun)
         command_impl_core.create_temp(cmd)
-    locks.release_inventory_lock("cmd", locks.LockType.WRITE)
-    locks.release_inventory_lock("seq", locks.LockType.READ)
+    locks.release_inventory_lock(ItemType.CMD, LockType.WRITE)
+    locks.release_inventory_lock(ItemType.SEQ, LockType.READ)
     print()
     new_cmdline = shared.editline("commandline: ", old_cmdline)
     status = command_impl_op.define(
@@ -235,9 +238,9 @@ def cli_print_all():
     :rtype:   int
 
     """
-    locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.inventory_lock(ItemType.CMD, LockType.READ)
     command_names = command_impl_core.all_names()
-    locks.multi_item_lock("cmd", command_names, locks.LockType.READ)
+    locks.multi_item_lock(ItemType.CMD, command_names, LockType.READ)
     print()
     return command_impl_print.print_multi(command_names, True)
 
@@ -269,11 +272,11 @@ def cli_del(delcmds, ignore_seq_usage):
 
     """
     if not ignore_seq_usage:
-        locks.inventory_lock("seq", locks.LockType.READ)
+        locks.inventory_lock(ItemType.SEQ, LockType.READ)
         sequence_names = sequence_impl_core.all_names()
-        locks.multi_item_lock("seq", sequence_names, locks.LockType.READ)
-    locks.inventory_lock("cmd", locks.LockType.WRITE)
-    locks.multi_item_lock("cmd", delcmds, locks.LockType.WRITE)
+        locks.multi_item_lock(ItemType.SEQ, sequence_names, LockType.READ)
+    locks.inventory_lock(ItemType.CMD, LockType.WRITE)
+    locks.multi_item_lock(ItemType.CMD, delcmds, LockType.WRITE)
     print()
     if not ignore_seq_usage:
         error = False
@@ -338,7 +341,7 @@ def cli_run(cmd, quiet, args):
     # do keep cmds locked until the run is over, so it's good to be consistent.
     # Also it's not too surprising that we would block editing or deleting a
     # cmd while it is running.
-    locks.item_lock("cmd", cmd, locks.LockType.READ)
+    locks.item_lock(ItemType.CMD, cmd, LockType.READ)
     unused_args = copy.deepcopy(args)
     rsv_ctx = command_impl_op.ReservedPlaceholdersCtx()
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -373,7 +376,7 @@ def cli_vals(cmd, args, print_after_set):
     :rtype:   int
 
     """
-    locks.item_lock("cmd", cmd, locks.LockType.WRITE)
+    locks.item_lock(ItemType.CMD, cmd, LockType.WRITE)
     unused_args = copy.deepcopy(args)
     status = command_impl_op.vals(
         cmd, args, unused_args, print_after_set, False
@@ -410,9 +413,9 @@ def cli_vals_all(placeholder_args):
     :rtype:   int
 
     """
-    locks.inventory_lock("cmd", locks.LockType.READ)
+    locks.inventory_lock(ItemType.CMD, LockType.READ)
     command_names = command_impl_core.all_names()
-    locks.multi_item_lock("cmd", command_names, locks.LockType.WRITE)
+    locks.multi_item_lock(ItemType.CMD, command_names, LockType.WRITE)
     print()
     unused_args = copy.deepcopy(placeholder_args)
     print(Fore.MAGENTA + "* updating all commands" + Fore.RESET)

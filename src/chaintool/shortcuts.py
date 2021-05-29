@@ -43,6 +43,7 @@ from . import shared
 
 from .shared import DATA_DIR
 from .shared import LOCATIONS_DIR
+from .shared import ItemType
 
 
 SHORTCUTS_DIR = os.path.join(DATA_DIR, "shortcuts")
@@ -98,7 +99,7 @@ def create_shortcut(item_type, item_name):
     uses this info to help generate the appropriate completions.
 
     :param item_type: whether this is for commands or sequences
-    :type item_type:  "cmd" | "seq"
+    :type item_type:  shared.ItemType
     :param item_name: name of the command or sequence to make a shortcut for
     :type item_name:  str
 
@@ -117,7 +118,7 @@ def create_shortcut(item_type, item_name):
         outstream.write(hashbang)
         outstream.write(
             'if [ "$1" = "--cmdgroup" ]; then echo {}; exit 0; fi\n'.format(
-                item_type
+                item_type.value
             )
         )
         # Also let the user force the version of Python to use.
@@ -125,13 +126,13 @@ def create_shortcut(item_type, item_name):
         outstream.write("then\n")
         outstream.write(
             '  python3 -m chaintool {} run {} "$@"\n'.format(
-                item_type, item_name
+                item_type.value, item_name
             )
         )
         outstream.write("else\n")
         outstream.write(
             '  "$CHAINTOOL_PYTHON" -m chaintool {} run {} "$@"\n'.format(
-                item_type, item_name
+                item_type.value, item_name
             )
         )
         outstream.write("fi\n")
@@ -148,7 +149,7 @@ def create_cmd_shortcut(cmd_name):
     :type cmd_name:  str
 
     """
-    create_shortcut("cmd", cmd_name)
+    create_shortcut(ItemType.CMD, cmd_name)
 
 
 def delete_cmd_shortcut(cmd_name):
@@ -173,7 +174,7 @@ def create_seq_shortcut(seq_name):
     :type seq_name:  str
 
     """
-    create_shortcut("seq", seq_name)
+    create_shortcut(ItemType.SEQ, seq_name)
 
 
 def delete_seq_shortcut(seq_name):

@@ -26,6 +26,7 @@ __all__ = [
     "DATA_DIR",
     "LOCATIONS_DIR",
     "MSG_WARN_PREFIX",
+    "ItemType",
     "init",
     "get_last_schema_version",
     "set_last_schema_version",
@@ -45,6 +46,7 @@ __all__ = [
 ]
 
 
+import enum
 import os
 import readline
 import shutil
@@ -67,6 +69,13 @@ CHAINTOOL_VER_MARKER_PATH = os.path.join(CONFIG_DIR, "last_chaintool_version")
 PYTHON_VER_MARKER_PATH = os.path.join(CONFIG_DIR, "last_python_version")
 
 MSG_WARN_PREFIX = Fore.YELLOW + "Warning:" + Fore.RESET
+
+
+class ItemType(enum.Enum):
+    """Enum for the kinds of operation subjects."""
+
+    CMD = "cmd"
+    SEQ = "seq"
 
 
 def init():

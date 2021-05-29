@@ -63,6 +63,7 @@ import filelock
 import psutil
 
 from . import shared
+
 from .shared import CACHE_DIR
 
 
@@ -141,7 +142,7 @@ def lock_internal(lock_type, prefix):
     handle that will delete it when this program exits.
 
     :param lock_type: whether this is writelock or readlock
-    :type lock_type:  LockType.WRITE | LockType.READ
+    :type lock_type:  LockType
     :param prefix:    the non-type, non-PID portion of the lock name,
                       indicating scope
     :type prefix:     str
@@ -179,12 +180,12 @@ def inventory_lock(item_type, lock_type):
     lock for this item type.
 
     :param item_type: whether this is for commands or sequences
-    :type item_type:  "cmd" | "seq"
+    :type item_type:  shared.ItemType
     :param lock_type: whether this is writelock or readlock
-    :type lock_type:  LockType.WRITE | LockType.READ
+    :type lock_type:  LockType
 
     """
-    prefix = LOCKS_PREFIX + "inventory-" + item_type
+    prefix = LOCKS_PREFIX + "inventory-" + item_type.value
     lock_internal(lock_type, prefix)
 
 
@@ -195,12 +196,12 @@ def release_inventory_lock(item_type, lock_type):
     suffix matching the current process PID.
 
     :param item_type: whether this is for commands or sequences
-    :type item_type:  "cmd" | "seq"
+    :type item_type:  shared.ItemType
     :param lock_type: whether this is writelock or readlock
-    :type lock_type:  LockType.WRITE | LockType.READ
+    :type lock_type:  LockType
 
     """
-    prefix = LOCKS_PREFIX + "inventory-" + item_type
+    prefix = LOCKS_PREFIX + "inventory-" + item_type.value
     lock_path = ".".join([prefix, lock_type.value, MY_PID])
     shared.delete_if_exists(lock_path)
 
@@ -212,14 +213,14 @@ def item_lock(item_type, item_name, lock_type):
     lock for this item type and specific item name.
 
     :param item_type: whether this is for commands or sequences
-    :type item_type:  "cmd" | "seq"
+    :type item_type:  shared.ItemType
     :param item_name: name of the command or sequence to lock
     :type item_name:  str
     :param lock_type: whether this is writelock or readlock
-    :type lock_type:  LockType.WRITE | LockType.READ
+    :type lock_type:  LockType
 
     """
-    prefix = LOCKS_PREFIX + item_type + "-" + item_name
+    prefix = LOCKS_PREFIX + item_type.value + "-" + item_name
     lock_internal(lock_type, prefix)
 
 
@@ -229,11 +230,11 @@ def multi_item_lock(item_type, item_name_list, lock_type):
     Sort the list of item names and then lock each via :func:`item_lock`.
 
     :param item_type:      whether this is for commands or sequences
-    :type item_type:       "cmd" | "seq"
+    :type item_type:       shared.ItemType
     :param item_name_list: names of the commands or sequences to lock
     :type item_name_list:  list[str]
     :param lock_type:      whether this is writelock or readlock
-    :type lock_type:       LockType.WRITE | LockType.READ
+    :type lock_type:       LockType
 
     """
     items = copy.deepcopy(item_name_list)
