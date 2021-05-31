@@ -34,7 +34,7 @@ import shlex
 
 from colorama import Fore
 
-from . import command_impl_core
+from . import item_io
 from . import shared
 from . import virtual_tools
 
@@ -55,7 +55,7 @@ def print_one(cmd):
 
     """
     try:
-        cmd_dict = command_impl_core.read_dict(cmd)
+        cmd_dict = item_io.read_cmd(cmd)
     except FileNotFoundError:
         shared.errprint("Command '{}' does not exist.".format(cmd))
         print()
@@ -186,7 +186,7 @@ def init_print_info_collections(  # pylint: disable=too-many-arguments
     env_values = dict()
     for cmd in commands:
         try:
-            cmd_dict = command_impl_core.read_dict(cmd)
+            cmd_dict = item_io.read_cmd(cmd)
         except FileNotFoundError:
             commands_display += " " + Fore.RED + cmd + Fore.RESET
             continue

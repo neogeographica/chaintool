@@ -26,8 +26,7 @@ __all__ = ["main"]
 
 import sys
 
-from chaintool import command_impl_core
-from chaintool import sequence_impl_core
+from chaintool import item_io
 from chaintool import virtual_tools
 
 
@@ -115,7 +114,7 @@ def dump_placeholders(commands, is_run):  # pylint: disable=too-many-branches
     env_values = dict()
     for cmd in commands:
         try:
-            cmd_dict = command_impl_core.read_dict(cmd)
+            cmd_dict = item_io.read_cmd(cmd)
         except FileNotFoundError:
             continue
         for key, value in cmd_dict["args"].items():
@@ -193,21 +192,21 @@ def main(args):
 
     """
     if args[0] == "cmd":
-        commands = command_impl_core.all_names()
+        commands = item_io.cmd_names()
         print("\n".join(commands))
         return 0
     if args[0] == "seq":
-        sequences = sequence_impl_core.all_names()
+        sequences = item_io.seq_names()
         print("\n".join(sequences))
         return 0
     is_run = args[0] == "run"
     if len(args) == 1:
-        commands = command_impl_core.all_names()
+        commands = item_io.cmd_names()
     elif args[1] == "cmd":
         commands = [args[2]]
     else:
         seq = args[2]
-        seq_dict = sequence_impl_core.read_dict(seq)
+        seq_dict = item_io.read_seq(seq)
         commands = seq_dict["commands"]
     return dump_placeholders(commands, is_run)
 

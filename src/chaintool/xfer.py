@@ -38,10 +38,9 @@ from colorama import Fore
 
 from . import current_export_schema_ver
 
-from . import command_impl_core
 from . import command_impl_op
 from . import completions
-from . import sequence_impl_core
+from . import item_io
 from . import sequence_impl_op
 from . import locks
 from . import shared
@@ -58,11 +57,10 @@ def cli_export(export_file):
     command names, and readlock all those items.
 
     Open the given file and write a YAML doc to it. Commands (from
-    :func:`.command_impl_core.read_dict`) are written to a list value for the
-    "commands" property, and sequences (from
-    :func:`.sequence_impl_core.read_dict`) similarly to the "sequences"
-    property. The "schema_version" is also written, to help interpret this
-    file if its format changes in the future.
+    :func:`.item_io.read_cmd`) are written to a list value for the "commands"
+    property, and sequences (from :func:`.item_io.read_seq`) similarly to the
+    "sequences" property. The "schema_version" is also written, to help
+    interpret this file if its format changes in the future.
 
     :param export_file: filepath to write to
     :type export_file:  str
@@ -82,8 +80,8 @@ def cli_export(export_file):
         return 1
     locks.inventory_lock(ItemType.SEQ, LockType.READ)
     locks.inventory_lock(ItemType.CMD, LockType.READ)
-    command_names = command_impl_core.all_names()
-    sequence_names = sequence_impl_core.all_names()
+    command_names = item_io.cmd_names()
+    sequence_names = item_io.seq_names()
     locks.multi_item_lock(ItemType.CMD, command_names, LockType.READ)
     locks.multi_item_lock(ItemType.SEQ, sequence_names, LockType.READ)
     print()
@@ -96,7 +94,7 @@ def cli_export(export_file):
     print()
     for cmd in command_names:
         try:
-            cmd_dict = command_impl_core.read_dict(cmd)
+            cmd_dict = item_io.read_cmd(cmd)
         except FileNotFoundError:
             print("Failed to read command '{}' ... skipped.".format(cmd))
             print()
@@ -110,7 +108,7 @@ def cli_export(export_file):
     print()
     for seq in sequence_names:
         try:
-            seq_dict = sequence_impl_core.read_dict(seq)
+            seq_dict = item_io.read_seq(seq)
         except FileNotFoundError:
             print("Failed to read sequence '{}' ... skipped.".format(seq))
             print()
@@ -159,8 +157,8 @@ def cli_import(import_file, overwrite):
     locks.inventory_lock(ItemType.SEQ, LockType.WRITE)
     locks.inventory_lock(ItemType.CMD, LockType.WRITE)
     if overwrite:
-        command_names = command_impl_core.all_names()
-        sequence_names = sequence_impl_core.all_names()
+        command_names = item_io.cmd_names()
+        sequence_names = item_io.seq_names()
         locks.multi_item_lock(ItemType.CMD, command_names, LockType.WRITE)
         locks.multi_item_lock(ItemType.SEQ, sequence_names, LockType.WRITE)
     print()
@@ -174,7 +172,7 @@ def cli_import(import_file, overwrite):
     print()
     for cmd_dict in import_dict["commands"]:
         cmd = cmd_dict["name"]
-        if sequence_impl_core.exists(cmd):
+        if item_io.seq_exists(cmd):
             print(
                 "Command '{}' cannot be created because a sequence exists with"
                 " the same name.".format(cmd)
@@ -191,7 +189,7 @@ def cli_import(import_file, overwrite):
     print()
     for seq_dict in import_dict["sequences"]:
         seq = seq_dict["name"]
-        if command_impl_core.exists(seq):
+        if item_io.cmd_exists(seq):
             print(
                 "Sequence '{}' cannot be created because a command exists with"
                 " the same name.".format(seq)

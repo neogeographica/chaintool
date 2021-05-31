@@ -30,10 +30,9 @@ import colorama
 
 from packaging.version import Version
 
-from . import command_impl_core
 from . import completions
+from . import item_io
 from . import locks
-from . import sequence_impl_core
 from . import shared
 from . import shortcuts
 
@@ -110,10 +109,9 @@ def init_modules():
     chaintool that uses a different format has been running, and has changed
     the schema to something we don't understand. In that case, exit with error.
 
-    Otherwise, call the init functions for :mod:`.command_impl_core`,
-    :mod:`.sequence_impl_core`, :mod:`.shortcuts`, and :mod:`.completions`.
-    Pass them the old and new schema versions in case they need to update
-    their stored data formats.
+    Otherwise, call the init functions for :mod:`.item_io`, :mod:`.shortcuts`,
+    and :mod:`.completions`. Pass them the old and new schema versions in case
+    they need to update their stored data formats.
 
     Finally update the last-stored-version info for schema, the chaintool
     package, and Python (last two are just informative). Release the meta-lock
@@ -139,8 +137,7 @@ def init_modules():
                 )
             )
             sys.exit(1)
-        command_impl_core.init(last_schema_ver, this_schema_ver)
-        sequence_impl_core.init(last_schema_ver, this_schema_ver)
+        item_io.init(last_schema_ver, this_schema_ver)
         shortcuts.init(last_schema_ver, this_schema_ver)
         completions.init(last_schema_ver, this_schema_ver)
         shared.set_last_schema_version(this_schema_ver)

@@ -20,14 +20,6 @@ chaintool.command module
    :undoc-members:
    :show-inheritance:
 
-chaintool.command\_impl\_core module
-------------------------------------
-
-.. automodule:: chaintool.command_impl_core
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 chaintool.command\_impl\_op module
 ----------------------------------
 
@@ -68,6 +60,14 @@ chaintool.info module
    :undoc-members:
    :show-inheritance:
 
+chaintool.item\_io module
+-------------------------
+
+.. automodule:: chaintool.item_io
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 chaintool.locks module
 ----------------------
 
@@ -80,14 +80,6 @@ chaintool.sequence module
 -------------------------
 
 .. automodule:: chaintool.sequence
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-chaintool.sequence\_impl\_core module
--------------------------------------
-
-.. automodule:: chaintool.sequence_impl_core
    :members:
    :undoc-members:
    :show-inheritance:

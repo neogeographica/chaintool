@@ -27,16 +27,12 @@ for creating/modifying/deleting sequence definitions.
 
 __all__ = [
     "define",
-    "delete",
 ]
 
 
-import os
-
 from . import command_impl_print
-from . import sequence_impl_core
+from . import item_io
 from . import shared
-from .sequence_impl_core import SEQ_DIR
 
 
 def define(  # pylint: disable=too-many-arguments
@@ -107,7 +103,7 @@ def define(  # pylint: disable=too-many-arguments
     else:
         mode = "x"
     try:
-        sequence_impl_core.write_dict(seq, {"commands": cmds}, mode)
+        item_io.write_seq(seq, {"commands": cmds}, mode)
     except FileExistsError:
         print("Sequence '{}' already exists... not modified.".format(seq))
         print()
@@ -117,27 +113,3 @@ def define(  # pylint: disable=too-many-arguments
     if print_after_set:
         command_impl_print.print_multi(cmds, False)
     return 0
-
-
-def delete(seq, is_not_found_ok):
-    """Delete a sequence.
-
-    Delete the file of name ``seq`` in the sequences directory.
-
-    If that file does not exist, and ``is_not_found_ok`` is ``False``, then
-    raise a ``FileNotFoundError`` exception.
-
-    :param seq:             names of sequence to delete
-    :type seq:              str
-    :param is_not_found_ok: whether to silently accept already-deleted case
-    :type is_not_found_ok:  bool
-
-    :raises: FileNotFoundError if the sequence does not exist and
-             is_not_found_ok is False
-
-    """
-    try:
-        os.remove(os.path.join(SEQ_DIR, seq))
-    except FileNotFoundError:
-        if not is_not_found_ok:
-            raise

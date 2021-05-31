@@ -46,12 +46,11 @@ import tempfile
 
 from colorama import Fore
 
-from . import command_impl_core
 from . import command_impl_op
 from . import command_impl_print
 from . import completions
 from . import locks
-from . import sequence_impl_core
+from . import item_io
 from . import sequence_impl_op
 from . import shared
 from . import shortcuts
@@ -82,7 +81,21 @@ def undefined_cmds(cmds, ignore_undefined_cmds):
     if ignore_undefined_cmds:
         return []
     locks.inventory_lock(ItemType.CMD, LockType.READ)
-    return list(set(cmds) - set(command_impl_core.all_names()))
+    return list(set(cmds) - set(item_io.cmd_names()))
+
+
+def create_temp(seq):
+    """Create an empty sequence used to "reserve the name" during edit-create.
+
+    If the sequence is being created by interactive edit, an empty-valued
+    temporary YAML document is first created via this function, so that the
+    inventory lock doesn't need to be held during the edit.
+
+    :param seq: name of sequence to make a temp document for
+    :type seq:  str
+
+    """
+    item_io.write_seq(seq, {"commands": []}, "w")
 
 
 def req_stdout_flags(cmds):
@@ -104,7 +117,7 @@ def req_stdout_flags(cmds):
     flags = []
     for cmd in cmds[1:]:
         try:
-            cmd_dict = command_impl_core.read_dict(cmd)
+            cmd_dict = item_io.read_cmd(cmd)
             uses_prev_stdout = "prev_stdout" in cmd_dict["args"]
         except FileNotFoundError:
             uses_prev_stdout = False
@@ -126,7 +139,7 @@ def cli_list(column):
 
     """
     print()
-    sequence_names = sequence_impl_core.all_names()
+    sequence_names = item_io.seq_names()
     if sequence_names:
         if column:
             print("\n".join(sequence_names))
@@ -168,10 +181,10 @@ def cli_set(seq, cmds, ignore_undefined_cmds, overwrite, print_after_set):
     locks.inventory_lock(ItemType.SEQ, LockType.WRITE)
     locks.item_lock(ItemType.SEQ, seq, LockType.WRITE)
     creating = False
-    if not sequence_impl_core.exists(seq):
+    if not item_io.seq_exists(seq):
         creating = True
         locks.inventory_lock(ItemType.CMD, LockType.READ)
-        if command_impl_core.exists(seq):
+        if item_io.cmd_exists(seq):
             print()
             shared.errprint(
                 "Sequence '{}' cannot be created because a command exists with"
@@ -228,10 +241,10 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
     locks.inventory_lock(ItemType.CMD, LockType.READ)
     cleanup_fun = None
     try:
-        seq_dict = sequence_impl_core.read_dict(seq)
+        seq_dict = item_io.read_seq(seq)
         old_commands_str = " ".join(seq_dict["commands"])
     except FileNotFoundError:
-        if command_impl_core.exists(seq):
+        if item_io.cmd_exists(seq):
             print()
             shared.errprint(
                 "Sequence '{}' cannot be created because a command exists with"
@@ -244,10 +257,10 @@ def cli_edit(seq, ignore_undefined_cmds, print_after_set):
         # do; any concurrent cmd creation will see it when checking for name
         # conflicts.
         old_commands_str = ""
-        cleanup_fun = lambda: sequence_impl_op.delete(seq, True)
+        cleanup_fun = lambda: item_io.delete_seq(seq, True)
         atexit.register(cleanup_fun)
-        sequence_impl_core.create_temp(seq)
-    current_commands = command_impl_core.all_names()
+        create_temp(seq)
+    current_commands = item_io.cmd_names()
     locks.release_inventory_lock(ItemType.CMD, LockType.READ)
     locks.release_inventory_lock(ItemType.SEQ, LockType.WRITE)
     # We're including the newline in the prompt here, so that if the line gets
@@ -295,7 +308,7 @@ def cli_print(seq):
     locks.item_lock(ItemType.SEQ, seq, LockType.READ)
     locks.inventory_lock(ItemType.CMD, LockType.READ)
     try:
-        seq_dict = sequence_impl_core.read_dict(seq)
+        seq_dict = item_io.read_seq(seq)
     except FileNotFoundError:
         print()
         shared.errprint("Sequence '{}' does not exist.".format(seq))
@@ -311,7 +324,7 @@ def cli_del(delseqs):
     """Delete one or more sequences.
 
     Acquire the seq inventory writelock, and item writelocks on the sequences
-    to delete. Delete each sequence (via :func:`.sequence_impl_op.delete`),
+    to delete. Delete each sequence (via :func:`.item_io.delete_seq`),
     and tear down its shortcut (:func:`.shortcuts.delete_seq_shortcut`) and
     autocompletion behavior (:func:`.completions.delete_completion`).
 
@@ -327,7 +340,7 @@ def cli_del(delseqs):
     print()
     for seq in delseqs:
         try:
-            sequence_impl_op.delete(seq, False)
+            item_io.delete_seq(seq, False)
         except FileNotFoundError:
             print("Sequence '{}' does not exist.".format(seq))
             continue
@@ -379,7 +392,7 @@ def cli_run(seq, quiet, args, ignore_errors):
     if not quiet:
         print()
     try:
-        seq_dict = sequence_impl_core.read_dict(seq)
+        seq_dict = item_io.read_seq(seq)
     except FileNotFoundError:
         shared.errprint("Sequence '{}' does not exist.".format(seq))
         print()
@@ -445,7 +458,7 @@ def cli_vals(seq, args, print_after_set):
     locks.item_lock(ItemType.SEQ, seq, LockType.WRITE)
     locks.inventory_lock(ItemType.CMD, LockType.READ)
     try:
-        seq_dict = sequence_impl_core.read_dict(seq)
+        seq_dict = item_io.read_seq(seq)
     except FileNotFoundError:
         print()
         shared.errprint("Sequence '{}' does not exist.".format(seq))

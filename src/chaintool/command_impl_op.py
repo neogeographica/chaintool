@@ -28,7 +28,6 @@ bulk of the work for creating/modifying/executing/deleting command definitions.
 __all__ = [
     "ReservedPlaceholdersCtx",
     "define",
-    "delete",
     "run",
     "vals",
 ]
@@ -42,11 +41,10 @@ from dataclasses import dataclass
 
 from colorama import Fore
 
-from . import command_impl_core
 from . import command_impl_print
+from . import item_io
 from . import shared
 from . import virtual_tools
-from .command_impl_core import CMD_DIR
 
 
 @dataclass
@@ -382,8 +380,8 @@ def command_with_values(
 ):
     """Fetch the indicated command dictionary, modified by placeholder args.
 
-    Load the command with :func:`.command_impl_core.read_dict`, returning
-    ``None`` if that fails.
+    Load the command with :func:`.item_io.read_cmd`, returning ``None`` if
+    that fails.
 
     Update the ``args`` dictionary of the command with ``values_for_reserved``.
     Then process the loaded command :func:`update_runtime_values_from_args` or
@@ -411,7 +409,7 @@ def command_with_values(
 
     """
     try:
-        cmd_dict = command_impl_core.read_dict(cmd)
+        cmd_dict = item_io.read_cmd(cmd)
     except FileNotFoundError:
         shared.errprint("Command '{}' does not exist.".format(cmd))
         return None
@@ -902,7 +900,7 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
     else:
         mode = "x"
     try:
-        command_impl_core.write_dict(cmd, cmd_dict, mode)
+        item_io.write_cmd(cmd, cmd_dict, mode)
     except FileExistsError:
         print("Command '{}' already exists... not modified.".format(cmd))
         print()
@@ -912,30 +910,6 @@ def define(cmd, cmdline, overwrite, print_after_set, compact):
     if print_after_set:
         command_impl_print.print_one(cmd)
     return 0
-
-
-def delete(cmd, is_not_found_ok):
-    """Delete a command.
-
-    Delete the file of name ``cmd`` in the commands directory.
-
-    If that file does not exist, and ``is_not_found_ok`` is ``False``, then
-    raise a ``FileNotFoundError`` exception.
-
-    :param cmd:             names of command to delete
-    :type cmd:              str
-    :param is_not_found_ok: whether to silently accept already-deleted case
-    :type is_not_found_ok:  bool
-
-    :raises: FileNotFoundError if the command does not exist and
-             is_not_found_ok is False
-
-    """
-    try:
-        os.remove(os.path.join(CMD_DIR, cmd))
-    except FileNotFoundError:
-        if not is_not_found_ok:
-            raise
 
 
 def run(cmd, quiet, args, unused_args, rsv_ctx):
@@ -1051,7 +1025,7 @@ def vals(cmd, args, unused_args, print_after_set, compact):
     if cmd_dict is None:
         return 1
     update_cmdline(cmd_dict)
-    command_impl_core.write_dict(cmd, cmd_dict, "w")
+    item_io.write_cmd(cmd, cmd_dict, "w")
     print("Command '{}' updated.".format(cmd))
     print()
     if print_after_set:
